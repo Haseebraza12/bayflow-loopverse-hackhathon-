@@ -22,7 +22,10 @@ export function PageHeader({
 }: PageHeaderProps) {
   return (
     <div
-      className={cn('flex flex-col gap-4 pb-6 sm:flex-row sm:items-end sm:justify-between', className)}
+      className={cn(
+        'flex flex-col gap-4 pb-6 sm:flex-row sm:items-end sm:justify-between',
+        className,
+      )}
     >
       <div className="space-y-2">
         <h1
@@ -33,7 +36,9 @@ export function PageHeader({
         >
           {title}
         </h1>
-        {description ? <p className="max-w-prose type-body-01 text-muted-foreground">{description}</p> : null}
+        {description ? (
+          <p className="max-w-prose type-body-01 text-muted-foreground">{description}</p>
+        ) : null}
       </div>
       {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
     </div>

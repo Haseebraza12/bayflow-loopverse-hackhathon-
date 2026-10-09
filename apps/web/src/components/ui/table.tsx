@@ -8,7 +8,10 @@ function Table({ className, ...props }: React.ComponentProps<'table'>) {
     <div data-slot="table-container" className="relative w-full overflow-x-auto">
       <table
         data-slot="table"
-        className={cn('w-full caption-bottom border-collapse bg-layer text-sm tracking-[0.16px]', className)}
+        className={cn(
+          'w-full caption-bottom border-collapse bg-layer text-sm tracking-[0.16px]',
+          className,
+        )}
         {...props}
       />
     </div>
@@ -16,7 +19,13 @@ function Table({ className, ...props }: React.ComponentProps<'table'>) {
 }
 
 function TableHeader({ className, ...props }: React.ComponentProps<'thead'>) {
-  return <thead data-slot="table-header" className={cn('bg-layer-accent [&_tr]:border-0 [&_tr]:hover:bg-transparent', className)} {...props} />
+  return (
+    <thead
+      data-slot="table-header"
+      className={cn('bg-layer-accent [&_tr]:border-0 [&_tr]:hover:bg-transparent', className)}
+      {...props}
+    />
+  )
 }
 
 function TableBody({ className, ...props }: React.ComponentProps<'tbody'>) {
@@ -33,7 +42,10 @@ function TableFooter({ className, ...props }: React.ComponentProps<'tfoot'>) {
   return (
     <tfoot
       data-slot="table-footer"
-      className={cn('border-t border-border-subtle bg-layer-accent font-semibold [&>tr]:last:border-b-0', className)}
+      className={cn(
+        'border-t border-border-subtle bg-layer-accent font-semibold [&>tr]:last:border-b-0',
+        className,
+      )}
       {...props}
     />
   )
@@ -69,7 +81,10 @@ function TableCell({ className, ...props }: React.ComponentProps<'td'>) {
   return (
     <td
       data-slot="table-cell"
-      className={cn('h-12 px-4 py-2 align-middle whitespace-nowrap text-muted-foreground [&:has([role=checkbox])]:pr-0', className)}
+      className={cn(
+        'h-12 px-4 py-2 align-middle whitespace-nowrap text-muted-foreground [&:has([role=checkbox])]:pr-0',
+        className,
+      )}
       {...props}
     />
   )

@@ -1,13 +1,6 @@
 'use client'
 
-import {
-  CheckCircle2,
-  Clock,
-  Edit2,
-  Plus,
-  Tags,
-  Wrench,
-} from 'lucide-react'
+import { CheckCircle2, Clock, Edit2, Plus, Tags, Wrench } from 'lucide-react'
 import { useParams } from 'next/navigation'
 import { useState, type FormEvent } from 'react'
 
@@ -83,7 +76,7 @@ export default function ServicesCataloguePage() {
     setSuccessMsg(
       editingService
         ? `Updated service "${srv.name}".`
-        : `Added new service "${srv.name}" to the catalogue.`
+        : `Added new service "${srv.name}" to the catalogue.`,
     )
     setTimeout(() => setSuccessMsg(null), 3000)
   }
@@ -96,51 +89,52 @@ export default function ServicesCataloguePage() {
   return (
     <div className="space-y-6 pb-12">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <span className="text-xs font-bold tracking-[0.32px] text-[#1047FA]">
+          <span className="text-xs font-bold tracking-[0.32px] text-brand-blue-ink">
             Workshop Menu
           </span>
-          <h1 className="text-2xl sm:text-3xl font-semibold text-neutral-900 mt-1">
+          <h1 className="mt-1 text-2xl font-semibold text-foreground sm:text-3xl">
             Services & Maintenance Packages
           </h1>
-          <p className="text-xs text-neutral-500 mt-0.5">
-            Configure services displayed on your public booking page and technician estimate builder.
+          <p className="mt-0.5 text-xs text-helper">
+            Configure services displayed on your public booking page and technician estimate
+            builder.
           </p>
         </div>
 
         <Button
           onClick={handleOpenAdd}
-          className="bg-[#1047FA] hover:bg-blue-700 text-white font-semibold text-xs rounded-full px-4 h-9"
+          className="h-9 rounded-full bg-brand-blue px-4 text-xs font-semibold text-white hover:bg-blue-700"
         >
-          <Plus className="size-4 mr-1.5" />
+          <Plus className="mr-1.5 size-4" />
           Add Service Package
         </Button>
       </div>
 
       {successMsg && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-xs font-bold text-emerald-950 flex items-center gap-2">
-          <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
+        <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-xs font-bold text-emerald-950 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-100">
+          <CheckCircle2 className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
           <span>{successMsg}</span>
         </div>
       )}
 
       {/* Services Table Card */}
-      <Card className="border-neutral-200 overflow-hidden">
-        <CardHeader className="bg-neutral-50/80 border-b border-neutral-100 p-4">
+      <Card className="overflow-hidden border-border">
+        <CardHeader className="border-b border-border-faint bg-muted/80 p-4">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-xs font-bold tracking-[0.32px] text-neutral-500 flex items-center gap-1.5">
-              <Tags className="size-4 text-[#1047FA]" />
+            <CardTitle className="flex items-center gap-1.5 text-xs font-bold tracking-[0.32px] text-helper">
+              <Tags className="size-4 text-brand-blue-ink" />
               Active Catalogue ({services.length} Packages)
             </CardTitle>
-            <span className="text-xs text-neutral-400">Syncs with Online Booking Wizard</span>
+            <span className="text-xs text-subtle-foreground">Syncs with Online Booking Wizard</span>
           </div>
         </CardHeader>
 
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-neutral-50 text-[11px] font-bold text-neutral-400 border-b border-neutral-200">
+              <thead className="border-b border-border bg-muted text-[11px] font-bold text-subtle-foreground">
                 <tr>
                   <th className="px-5 py-3">Service Name & Description</th>
                   <th className="px-4 py-3">Est. Duration</th>
@@ -149,17 +143,17 @@ export default function ServicesCataloguePage() {
                   <th className="px-5 py-3 text-right">Edit</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-neutral-100 text-neutral-700">
+              <tbody className="divide-y divide-border-faint text-muted-foreground">
                 {services.map((srv) => (
-                  <tr key={srv.id} className="hover:bg-neutral-50/60">
-                    <td className="px-5 py-3.5 max-w-md">
+                  <tr key={srv.id} className="hover:bg-muted/60">
+                    <td className="max-w-md px-5 py-3.5">
                       <div className="flex items-start gap-2.5">
-                        <div className="size-7 rounded-lg bg-blue-50 border border-blue-200 text-[#1047FA] flex items-center justify-center shrink-0 mt-0.5">
+                        <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg border border-blue-200 bg-blue-50 text-brand-blue-ink dark:border-blue-800/60 dark:bg-blue-950/40">
                           <Wrench className="size-3.5" />
                         </div>
                         <div>
-                          <p className="font-bold text-neutral-900 text-sm">{srv.name}</p>
-                          <p className="text-[11px] text-neutral-500 leading-relaxed mt-0.5">
+                          <p className="text-sm font-bold text-foreground">{srv.name}</p>
+                          <p className="mt-0.5 text-[11px] leading-relaxed text-helper">
                             {srv.description}
                           </p>
                         </div>
@@ -167,17 +161,21 @@ export default function ServicesCataloguePage() {
                     </td>
 
                     <td className="px-4 py-3.5 whitespace-nowrap">
-                      <span className="inline-flex items-center gap-1 rounded bg-neutral-100 px-2 py-0.5 font-medium text-neutral-700">
-                        <Clock className="size-3 text-neutral-400" />
+                      <span className="inline-flex items-center gap-1 rounded bg-secondary px-2 py-0.5 font-medium text-muted-foreground">
+                        <Clock className="size-3 text-subtle-foreground" />
                         {srv.estimated_duration_minutes} min
                       </span>
                     </td>
 
                     <td className="px-4 py-3.5 whitespace-nowrap">
                       {srv.base_price ? (
-                        <span className="font-bold text-neutral-900">{formatPKR(srv.base_price)}</span>
+                        <span className="font-bold text-foreground">
+                          {formatPKR(srv.base_price)}
+                        </span>
                       ) : (
-                        <span className="text-neutral-400 italic">Price after inspection</span>
+                        <span className="text-subtle-foreground italic">
+                          Price after inspection
+                        </span>
                       )}
                     </td>
 
@@ -194,9 +192,9 @@ export default function ServicesCataloguePage() {
                         variant="ghost"
                         size="sm"
                         onClick={() => handleOpenEdit(srv)}
-                        className="h-8 px-2 text-neutral-600 hover:text-[#1047FA]"
+                        className="h-8 px-2 text-muted-foreground hover:text-brand-blue-ink"
                       >
-                        <Edit2 className="size-3.5 mr-1" />
+                        <Edit2 className="mr-1 size-3.5" />
                         Edit
                       </Button>
                     </td>
@@ -212,17 +210,17 @@ export default function ServicesCataloguePage() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-base font-bold text-neutral-900">
+            <DialogTitle className="text-base font-bold text-foreground">
               {editingService ? 'Edit Service Package' : 'Create New Service Package'}
             </DialogTitle>
-            <DialogDescription className="text-xs text-neutral-500">
+            <DialogDescription className="text-xs text-helper">
               Set service name, scope, duration on bay hoist, and base package pricing.
             </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleSave} className="space-y-4 py-2">
             <div className="space-y-1.5">
-              <Label htmlFor="srvName" className="text-xs font-semibold text-neutral-700">
+              <Label htmlFor="srvName" className="text-xs font-semibold text-muted-foreground">
                 Service Name
               </Label>
               <Input
@@ -230,13 +228,13 @@ export default function ServicesCataloguePage() {
                 placeholder="e.g. Brake Caliper Overhaul & Fluid Bleed"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="text-xs h-9"
+                className="h-9 text-xs"
                 required
               />
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="srvDesc" className="text-xs font-semibold text-neutral-700">
+              <Label htmlFor="srvDesc" className="text-xs font-semibold text-muted-foreground">
                 Description / Scope
               </Label>
               <Textarea
@@ -244,13 +242,13 @@ export default function ServicesCataloguePage() {
                 placeholder="Includes caliper pin lubrication, pad replacement, hydraulic fluid flush, and pressure test."
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="text-xs h-20"
+                className="h-20 text-xs"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label htmlFor="srvDur" className="text-xs font-semibold text-neutral-700">
+                <Label htmlFor="srvDur" className="text-xs font-semibold text-muted-foreground">
                   Est. Duration (minutes)
                 </Label>
                 <Input
@@ -259,13 +257,13 @@ export default function ServicesCataloguePage() {
                   placeholder="60"
                   value={duration}
                   onChange={(e) => setDuration(e.target.value)}
-                  className="text-xs h-9"
+                  className="h-9 text-xs"
                   required
                 />
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="srvPrice" className="text-xs font-semibold text-neutral-700">
+                <Label htmlFor="srvPrice" className="text-xs font-semibold text-muted-foreground">
                   Base Price (PKR)
                 </Label>
                 <Input
@@ -274,20 +272,22 @@ export default function ServicesCataloguePage() {
                   placeholder="Leave blank for inspect"
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}
-                  className="text-xs h-9"
+                  className="h-9 text-xs"
                 />
               </div>
             </div>
 
-            <div className="flex items-center justify-between rounded-lg border border-neutral-200 p-3">
+            <div className="flex items-center justify-between rounded-lg border border-border p-3">
               <div className="space-y-0.5">
-                <span className="text-xs font-bold text-neutral-800">Active & Bookable Online</span>
-                <p className="text-[11px] text-neutral-400">Show on public customer booking portal</p>
+                <span className="text-xs font-bold text-foreground">Active & Bookable Online</span>
+                <p className="text-[11px] text-subtle-foreground">
+                  Show on public customer booking portal
+                </p>
               </div>
               <Switch checked={isActive} onCheckedChange={setIsActive} />
             </div>
 
-            <DialogFooter className="gap-2 sm:gap-0 pt-2">
+            <DialogFooter className="gap-2 pt-2 sm:gap-0">
               <Button
                 type="button"
                 variant="outline"
@@ -298,7 +298,7 @@ export default function ServicesCataloguePage() {
               </Button>
               <Button
                 type="submit"
-                className="bg-[#1047FA] hover:bg-blue-700 text-white font-bold text-xs rounded-full"
+                className="rounded-full bg-brand-blue text-xs font-bold text-white hover:bg-blue-700"
               >
                 {editingService ? 'Save Changes' : 'Create Service'}
               </Button>

@@ -1,9 +1,6 @@
 'use client'
 
-import {
-  ChevronRight,
-  Plus,
-} from 'lucide-react'
+import { ChevronRight, Plus } from 'lucide-react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { useState, type FormEvent } from 'react'
@@ -74,34 +71,34 @@ export default function PurchaseOrdersPage() {
   return (
     <div className="space-y-6 pb-12">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <span className="text-xs font-bold tracking-[0.32px] text-[#1047FA]">
+          <span className="text-xs font-bold tracking-[0.32px] text-brand-blue-ink">
             Procurement & Suppliers
           </span>
-          <h1 className="text-2xl sm:text-3xl font-semibold text-neutral-900 mt-1">
+          <h1 className="mt-1 text-2xl font-semibold text-foreground sm:text-3xl">
             Purchase Orders
           </h1>
-          <p className="text-xs text-neutral-500 mt-0.5">
+          <p className="mt-0.5 text-xs text-helper">
             Track wholesale orders, supplier shipments, and receive components into active stock.
           </p>
         </div>
 
         <Button
           onClick={() => setCreateOpen(true)}
-          className="bg-[#1047FA] hover:bg-blue-700 text-white font-semibold text-xs h-9 rounded-lg"
+          className="h-9 rounded-lg bg-brand-blue text-xs font-semibold text-white hover:bg-blue-700"
         >
-          <Plus className="size-3.5 mr-1" />
+          <Plus className="mr-1 size-3.5" />
           Create Restock PO
         </Button>
       </div>
 
       {/* PO Table */}
-      <Card className="border-neutral-200 overflow-hidden">
+      <Card className="overflow-hidden border-border">
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-neutral-50 text-[11px] font-bold text-neutral-400 border-b border-neutral-200">
+              <thead className="border-b border-border bg-muted text-[11px] font-bold text-subtle-foreground">
                 <tr>
                   <th className="px-5 py-3">PO Number</th>
                   <th className="px-4 py-3">Supplier</th>
@@ -111,25 +108,25 @@ export default function PurchaseOrdersPage() {
                   <th className="px-5 py-3 text-right">Manage</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-neutral-100 text-neutral-700">
+              <tbody className="divide-y divide-border-faint text-muted-foreground">
                 {pos.map((po) => (
-                  <tr key={po.id} className="hover:bg-neutral-50/60">
+                  <tr key={po.id} className="hover:bg-muted/60">
                     <td className="px-5 py-3.5">
                       <Link
                         href={`${base}/purchase-orders/${po.id}`}
-                        className="font-mono font-bold text-[#1047FA] hover:underline"
+                        className="font-mono font-bold text-brand-blue-ink hover:underline"
                       >
                         {po.po_number}
                       </Link>
-                      <p className="text-[11px] text-neutral-400 mt-0.5">
+                      <p className="mt-0.5 text-[11px] text-subtle-foreground">
                         {new Date(po.created_at).toLocaleDateString()}
                       </p>
                     </td>
 
-                    <td className="px-4 py-3.5 font-bold text-neutral-900">{po.supplier}</td>
+                    <td className="px-4 py-3.5 font-bold text-foreground">{po.supplier}</td>
 
                     <td className="px-4 py-3.5">
-                      <p className="font-medium text-neutral-800">
+                      <p className="font-medium text-foreground">
                         {po.items.map((it) => `${it.quantity}× ${it.part_name}`).join(', ')}
                       </p>
                     </td>
@@ -138,17 +135,17 @@ export default function PurchaseOrdersPage() {
                       <span
                         className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold tracking-[0.32px] ${
                           po.status === 'RECEIVED'
-                            ? 'bg-emerald-100 text-emerald-800'
+                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200'
                             : po.status === 'PARTIALLY_RECEIVED'
-                              ? 'bg-blue-100 text-blue-800'
-                              : 'bg-amber-100 text-amber-800'
+                              ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200'
+                              : 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200'
                         }`}
                       >
                         {po.status}
                       </span>
                     </td>
 
-                    <td className="px-4 py-3.5 text-right font-bold text-neutral-900">
+                    <td className="px-4 py-3.5 text-right font-bold text-foreground">
                       {formatPKR(po.total_amount)}
                     </td>
 
@@ -157,11 +154,11 @@ export default function PurchaseOrdersPage() {
                         asChild
                         variant="outline"
                         size="sm"
-                        className="h-7 text-xs font-semibold rounded-full"
+                        className="h-7 rounded-full text-xs font-semibold"
                       >
                         <Link href={`${base}/purchase-orders/${po.id}`}>
                           {po.status === 'RECEIVED' ? 'View' : 'Receive'}
-                          <ChevronRight className="size-3 ml-1" />
+                          <ChevronRight className="ml-1 size-3" />
                         </Link>
                       </Button>
                     </td>
@@ -177,31 +174,33 @@ export default function PurchaseOrdersPage() {
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-base font-bold text-neutral-900">
+            <DialogTitle className="text-base font-bold text-foreground">
               Create Restock Purchase Order
             </DialogTitle>
-            <DialogDescription className="text-xs text-neutral-500">
+            <DialogDescription className="text-xs text-helper">
               Dispatch an order to vendor for warehouse restocking.
             </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleCreatePo} className="space-y-4 py-2">
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-neutral-700">Supplier Name</Label>
+              <Label className="text-xs font-semibold text-muted-foreground">Supplier Name</Label>
               <Input
                 value={supplier}
                 onChange={(e) => setSupplier(e.target.value)}
-                className="text-xs h-9"
+                className="h-9 text-xs"
                 required
               />
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-neutral-700">Part SKU to Order</Label>
+              <Label className="text-xs font-semibold text-muted-foreground">
+                Part SKU to Order
+              </Label>
               <select
                 value={partSku}
                 onChange={(e) => setPartSku(e.target.value)}
-                className="w-full text-xs font-medium rounded-md border border-neutral-200 bg-white px-3 py-2"
+                className="w-full rounded-md border border-border bg-card px-3 py-2 text-xs font-medium"
               >
                 {inventory.map((p) => (
                   <option key={p.id} value={p.sku}>
@@ -213,33 +212,43 @@ export default function PurchaseOrdersPage() {
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-neutral-700">Quantity</Label>
+                <Label className="text-xs font-semibold text-muted-foreground">Quantity</Label>
                 <Input
                   type="number"
                   value={qty}
                   onChange={(e) => setQty(e.target.value)}
-                  className="text-xs h-9"
+                  className="h-9 text-xs"
                   required
                 />
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-neutral-700">Unit Cost (PKR)</Label>
+                <Label className="text-xs font-semibold text-muted-foreground">
+                  Unit Cost (PKR)
+                </Label>
                 <Input
                   type="number"
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}
-                  className="text-xs h-9"
+                  className="h-9 text-xs"
                   required
                 />
               </div>
             </div>
 
-            <DialogFooter className="gap-2 sm:gap-0 pt-2">
-              <Button type="button" variant="outline" onClick={() => setCreateOpen(false)} className="text-xs font-semibold">
+            <DialogFooter className="gap-2 pt-2 sm:gap-0">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setCreateOpen(false)}
+                className="text-xs font-semibold"
+              >
                 Cancel
               </Button>
-              <Button type="submit" className="bg-[#1047FA] text-white font-bold text-xs rounded-full">
+              <Button
+                type="submit"
+                className="rounded-full bg-brand-blue text-xs font-bold text-white"
+              >
                 Issue Purchase Order
               </Button>
             </DialogFooter>

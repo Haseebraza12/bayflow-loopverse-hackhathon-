@@ -1,10 +1,6 @@
 'use client'
 
-import {
-  CheckCircle2,
-  Plus,
-  Users,
-} from 'lucide-react'
+import { CheckCircle2, Plus, Users } from 'lucide-react'
 import { useParams } from 'next/navigation'
 import { useState, type FormEvent } from 'react'
 
@@ -21,12 +17,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useMockStore } from '@/hooks/use-mock-store'
-import {
-  getBookings,
-  getTeamMembers,
-  saveTeamMember,
-  type MockTeamMember,
-} from '@/lib/mock-data'
+import { getBookings, getTeamMembers, saveTeamMember, type MockTeamMember } from '@/lib/mock-data'
 
 export default function TeamManagementPage() {
   const params = useParams()
@@ -59,7 +50,9 @@ export default function TeamManagementPage() {
     setAddDialogOpen(false)
     setName('')
     setEmail('')
-    setSuccessMsg(`${newMember.name} has been added to your workshop team as ${role.replace('_', ' ')}.`)
+    setSuccessMsg(
+      `${newMember.name} has been added to your workshop team as ${role.replace('_', ' ')}.`,
+    )
     setTimeout(() => setSuccessMsg(null), 4000)
   }
 
@@ -78,51 +71,53 @@ export default function TeamManagementPage() {
   return (
     <div className="space-y-6 pb-12">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <span className="text-xs font-bold tracking-[0.32px] text-[#1047FA]">
+          <span className="text-xs font-bold tracking-[0.32px] text-brand-blue-ink">
             Shop Administration
           </span>
-          <h1 className="text-2xl sm:text-3xl font-semibold text-neutral-900 mt-1">
+          <h1 className="mt-1 text-2xl font-semibold text-foreground sm:text-3xl">
             Workshop Team & Staff Roles
           </h1>
-          <p className="text-xs text-neutral-500 mt-0.5">
+          <p className="mt-0.5 text-xs text-helper">
             Manage Service Advisors, Technicians, QC Inspectors, and Parts Specialists.
           </p>
         </div>
 
         <Button
           onClick={() => setAddDialogOpen(true)}
-          className="bg-[#1047FA] hover:bg-blue-700 text-white font-semibold text-xs rounded-lg px-4 h-9"
+          className="h-9 rounded-lg bg-brand-blue px-4 text-xs font-semibold text-white hover:bg-blue-700"
         >
-          <Plus className="size-4 mr-1.5" />
+          <Plus className="mr-1.5 size-4" />
           Add Team Member
         </Button>
       </div>
 
       {successMsg && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-xs font-bold text-emerald-950 flex items-center gap-2">
-          <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
+        <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-xs font-bold text-emerald-950 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-100">
+          <CheckCircle2 className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
           <span>{successMsg}</span>
         </div>
       )}
 
       {/* Staff Members Table Card */}
-      <Card className="border-neutral-200 overflow-hidden">
-        <CardHeader className="bg-neutral-50/80 border-b border-neutral-100 p-4">
+      <Card className="overflow-hidden border-border">
+        <CardHeader className="border-b border-border-faint bg-muted/80 p-4">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-xs font-bold tracking-[0.32px] text-neutral-500 flex items-center gap-1.5">
-              <Users className="size-4 text-[#1047FA]" />
+            <CardTitle className="flex items-center gap-1.5 text-xs font-bold tracking-[0.32px] text-helper">
+              <Users className="size-4 text-brand-blue-ink" />
               Active Team Roster ({team.length})
             </CardTitle>
-            <span className="text-xs text-neutral-400">Owner Fatima Raza and workshop staff</span>
+            <span className="text-xs text-subtle-foreground">
+              Owner Fatima Raza and workshop staff
+            </span>
           </div>
         </CardHeader>
 
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-neutral-50 text-[11px] font-bold text-neutral-400 border-b border-neutral-200">
+              <thead className="border-b border-border bg-muted text-[11px] font-bold text-subtle-foreground">
                 <tr>
                   <th className="px-5 py-3">Team Member</th>
                   <th className="px-4 py-3">Role</th>
@@ -131,7 +126,7 @@ export default function TeamManagementPage() {
                   <th className="px-5 py-3 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-neutral-100 text-neutral-700">
+              <tbody className="divide-y divide-border-faint text-muted-foreground">
                 {team.map((member) => {
                   const isOwner = member.role === 'OWNER'
                   // Count active assigned jobs
@@ -141,19 +136,21 @@ export default function TeamManagementPage() {
                       b.status !== 'CANCELLED' &&
                       (b.assignedTechnicianId === member.id ||
                         b.assignedTechnicianName?.toLowerCase() === member.name.toLowerCase() ||
-                        b.qcInspectorId === member.id)
+                        b.qcInspectorId === member.id),
                   ).length
 
                   return (
-                    <tr key={member.id} className="hover:bg-neutral-50/60">
+                    <tr key={member.id} className="hover:bg-muted/60">
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-3">
-                          <div className="size-8 rounded-full bg-blue-50 border border-blue-200 text-[#1047FA] font-bold flex items-center justify-center text-xs">
+                          <div className="flex size-8 items-center justify-center rounded-full border border-blue-200 bg-blue-50 text-xs font-bold text-brand-blue-ink dark:border-blue-800/60 dark:bg-blue-950/40">
                             {member.name.charAt(0)}
                           </div>
                           <div>
-                            <p className="font-bold text-neutral-900">{member.name}</p>
-                            <p className="text-[11px] text-neutral-400 font-mono">{member.email}</p>
+                            <p className="font-bold text-foreground">{member.name}</p>
+                            <p className="font-mono text-[11px] text-subtle-foreground">
+                              {member.email}
+                            </p>
                           </div>
                         </div>
                       </td>
@@ -162,14 +159,14 @@ export default function TeamManagementPage() {
                         <span
                           className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold tracking-[0.32px] ${
                             member.role === 'OWNER'
-                              ? 'bg-purple-50 text-purple-700 border border-purple-200'
+                              ? 'border border-purple-200 bg-purple-50 text-purple-700 dark:border-purple-800/60 dark:bg-purple-950/40 dark:text-purple-300'
                               : member.role === 'SERVICE_ADVISOR'
-                                ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                                ? 'border border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-300'
                                 : member.role === 'TECHNICIAN'
-                                  ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                                  ? 'border border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800/60 dark:bg-blue-950/40 dark:text-blue-300'
                                   : member.role === 'QC_INSPECTOR'
-                                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                    : 'bg-neutral-100 text-neutral-700 border border-neutral-200'
+                                    ? 'border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-300'
+                                    : 'border border-border bg-secondary text-muted-foreground'
                           }`}
                         >
                           {member.role.replace('_', ' ')}
@@ -178,20 +175,20 @@ export default function TeamManagementPage() {
 
                       <td className="px-4 py-3.5">
                         {member.is_active ? (
-                          <span className="flex items-center gap-1.5 text-emerald-600 font-bold text-[11px]">
+                          <span className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
                             <span className="size-1.5 rounded-full bg-emerald-500" />
                             Active
                           </span>
                         ) : (
-                          <span className="flex items-center gap-1.5 text-neutral-400 font-medium text-[11px]">
-                            <span className="size-1.5 rounded-full bg-neutral-300" />
+                          <span className="flex items-center gap-1.5 text-[11px] font-medium text-subtle-foreground">
+                            <span className="size-1.5 rounded-full bg-layer-selected" />
                             Inactive
                           </span>
                         )}
                       </td>
 
                       <td className="px-4 py-3.5">
-                        <span className="font-semibold text-neutral-900">
+                        <span className="font-semibold text-foreground">
                           {openJobsCount} active bookings
                         </span>
                       </td>
@@ -202,12 +199,9 @@ export default function TeamManagementPage() {
                             <select
                               value={member.role}
                               onChange={(e) =>
-                                handleRoleChange(
-                                  member,
-                                  e.target.value as MockTeamMember['role']
-                                )
+                                handleRoleChange(member, e.target.value as MockTeamMember['role'])
                               }
-                              className="text-[11px] font-semibold rounded border border-neutral-200 bg-white px-2 py-1 text-neutral-700"
+                              className="rounded border border-border bg-card px-2 py-1 text-[11px] font-semibold text-muted-foreground"
                             >
                               <option value="SERVICE_ADVISOR">Service Advisor</option>
                               <option value="TECHNICIAN">Technician</option>
@@ -221,15 +215,17 @@ export default function TeamManagementPage() {
                               onClick={() => handleToggleActive(member)}
                               className={`h-7 px-2 text-[11px] font-semibold ${
                                 member.is_active
-                                  ? 'text-red-600 hover:bg-red-50'
-                                  : 'text-emerald-600 hover:bg-emerald-50'
+                                  ? 'text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/40'
+                                  : 'text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/40'
                               }`}
                             >
                               {member.is_active ? 'Deactivate' : 'Reactivate'}
                             </Button>
                           </div>
                         ) : (
-                          <span className="text-[11px] text-neutral-400 font-medium">Owner account</span>
+                          <span className="text-[11px] font-medium text-subtle-foreground">
+                            Owner account
+                          </span>
                         )}
                       </td>
                     </tr>
@@ -245,17 +241,17 @@ export default function TeamManagementPage() {
       <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-base font-bold text-neutral-900">
+            <DialogTitle className="text-base font-bold text-foreground">
               Invite Workshop Staff Member
             </DialogTitle>
-            <DialogDescription className="text-xs text-neutral-500">
+            <DialogDescription className="text-xs text-helper">
               Assign an operational role to grant access to workshop queues and actions.
             </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleAddMember} className="space-y-4 py-2">
             <div className="space-y-1.5">
-              <Label htmlFor="memName" className="text-xs font-semibold text-neutral-700">
+              <Label htmlFor="memName" className="text-xs font-semibold text-muted-foreground">
                 Full Name
               </Label>
               <Input
@@ -263,13 +259,13 @@ export default function TeamManagementPage() {
                 placeholder="e.g. Kamran Abbasi"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="text-xs h-9"
+                className="h-9 text-xs"
                 required
               />
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="memEmail" className="text-xs font-semibold text-neutral-700">
+              <Label htmlFor="memEmail" className="text-xs font-semibold text-muted-foreground">
                 Email Address
               </Label>
               <Input
@@ -278,22 +274,24 @@ export default function TeamManagementPage() {
                 placeholder="kamran.tech@bayflow.test"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="text-xs h-9"
+                className="h-9 text-xs"
                 required
               />
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="memRole" className="text-xs font-semibold text-neutral-700">
+              <Label htmlFor="memRole" className="text-xs font-semibold text-muted-foreground">
                 Workshop Role
               </Label>
               <select
                 id="memRole"
                 value={role}
                 onChange={(e) => setRole(e.target.value as MockTeamMember['role'])}
-                className="w-full text-xs font-semibold rounded-md border border-neutral-200 bg-white px-3 py-2 text-neutral-800"
+                className="w-full rounded-md border border-border bg-card px-3 py-2 text-xs font-semibold text-foreground"
               >
-                <option value="SERVICE_ADVISOR">Service Advisor (Intake, Estimates & Handover)</option>
+                <option value="SERVICE_ADVISOR">
+                  Service Advisor (Intake, Estimates & Handover)
+                </option>
                 <option value="TECHNICIAN">Technician (Inspections & Repairs)</option>
                 <option value="PARTS_PERSON">Parts Specialist (Inventory & Orders)</option>
                 <option value="QC_INSPECTOR">QC Inspector (Safety & Road Test Validation)</option>
@@ -301,19 +299,21 @@ export default function TeamManagementPage() {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="memPass" className="text-xs font-semibold text-neutral-700">
+              <Label htmlFor="memPass" className="text-xs font-semibold text-muted-foreground">
                 Initial Password
               </Label>
               <Input
                 id="memPass"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="text-xs h-9 font-mono"
+                className="h-9 font-mono text-xs"
               />
-              <p className="text-[10px] text-neutral-400">Default for all demo accounts: BayFlow@2026</p>
+              <p className="text-[10px] text-subtle-foreground">
+                Default for all demo accounts: BayFlow@2026
+              </p>
             </div>
 
-            <DialogFooter className="gap-2 sm:gap-0 pt-2">
+            <DialogFooter className="gap-2 pt-2 sm:gap-0">
               <Button
                 type="button"
                 variant="outline"
@@ -324,7 +324,7 @@ export default function TeamManagementPage() {
               </Button>
               <Button
                 type="submit"
-                className="bg-[#1047FA] hover:bg-blue-700 text-white font-bold text-xs rounded-full"
+                className="rounded-full bg-brand-blue text-xs font-bold text-white hover:bg-blue-700"
               >
                 Add Staff Member
               </Button>

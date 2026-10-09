@@ -30,16 +30,16 @@ export default function PosHubPage() {
   }, [storeReady, user, router])
 
   return (
-    <main id="main" tabIndex={-1} className="flex-1 outline-none py-12 px-4 sm:px-6">
+    <main id="main" tabIndex={-1} className="flex-1 px-4 py-12 outline-none sm:px-6">
       <div className="mx-auto max-w-2xl space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-neutral-900">Your Workshop Hub</h1>
-            <p className="text-xs text-neutral-500 mt-1">Select a shop or create a new branch</p>
+            <h1 className="text-2xl font-bold text-foreground">Your Workshop Hub</h1>
+            <p className="mt-1 text-xs text-helper">Select a shop or create a new branch</p>
           </div>
-          <Button asChild className="bg-[#1047FA] text-white text-xs rounded-full">
+          <Button asChild className="rounded-full bg-brand-blue text-xs text-white">
             <Link href="/pos/shops/new">
-              <Plus className="size-3.5 mr-1" />
+              <Plus className="mr-1 size-3.5" />
               New Workshop
             </Link>
           </Button>
@@ -49,20 +49,22 @@ export default function PosHubPage() {
           {shops.map((shop) => (
             <Card
               key={shop.id}
-              className="border-neutral-200 hover:border-[#1047FA] transition-all cursor-pointer"
+              className="cursor-pointer border-border transition-all hover:border-brand-blue"
               onClick={() => router.push(`/pos/shops/${shop.id}/overview`)}
             >
-              <CardContent className="p-4 flex items-center justify-between">
+              <CardContent className="flex items-center justify-between p-4">
                 <div className="flex items-center gap-3">
-                  <div className="size-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-[#1047FA]">
+                  <div className="flex size-10 items-center justify-center rounded-xl border border-blue-100 bg-blue-50 text-brand-blue-ink dark:border-blue-900/50 dark:bg-blue-950/40">
                     <Building2 className="size-5" />
                   </div>
                   <div>
-                    <h2 className="text-sm font-bold text-neutral-900">{shop.name}</h2>
-                    <p className="text-xs text-neutral-500">{shop.address}, {shop.city}</p>
+                    <h2 className="text-sm font-bold text-foreground">{shop.name}</h2>
+                    <p className="text-xs text-helper">
+                      {shop.address}, {shop.city}
+                    </p>
                   </div>
                 </div>
-                <ChevronRight className="size-4 text-neutral-400" />
+                <ChevronRight className="size-4 text-subtle-foreground" />
               </CardContent>
             </Card>
           ))}

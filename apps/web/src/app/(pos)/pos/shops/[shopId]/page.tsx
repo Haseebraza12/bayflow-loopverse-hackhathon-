@@ -1,12 +1,6 @@
 'use client'
 
-import {
-  CalendarCheck,
-  ClipboardCheck,
-  LayoutDashboard,
-  PackageSearch,
-  Wrench,
-} from 'lucide-react'
+import { CalendarCheck, ClipboardCheck, LayoutDashboard, PackageSearch, Wrench } from 'lucide-react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { useEffect } from 'react'
@@ -45,27 +39,27 @@ export default function ShopHomePage() {
   const base = `/pos/shops/${encodeURIComponent(shopId)}`
 
   return (
-    <div className="py-8 space-y-6">
+    <div className="space-y-6 py-8">
       <div>
-        <h1 className="text-2xl font-bold text-neutral-900">Role Workspaces</h1>
-        <p className="text-xs text-neutral-500 mt-1">
+        <h1 className="text-2xl font-bold text-foreground">Role Workspaces</h1>
+        <p className="mt-1 text-xs text-helper">
           Select a role workspace to launch your workshop tools:
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {ROLE_HOMES.map((home) => (
           <Link key={home.segment} href={`${base}/${home.segment}`}>
-            <Card className="border-neutral-200 hover:border-[#1047FA] transition-all cursor-pointer hover:shadow">
-              <CardContent className="p-5 flex items-center gap-4">
-                <div className="size-11 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-[#1047FA]">
+            <Card className="cursor-pointer border-border transition-all hover:border-brand-blue hover:shadow">
+              <CardContent className="flex items-center gap-4 p-5">
+                <div className="flex size-11 items-center justify-center rounded-xl border border-blue-100 bg-blue-50 text-brand-blue-ink dark:border-blue-900/50 dark:bg-blue-950/40">
                   <home.icon className="size-5" />
                 </div>
                 <div>
-                  <span className="text-[11px] font-bold tracking-[0.32px] text-neutral-400">
+                  <span className="text-[11px] font-bold tracking-[0.32px] text-subtle-foreground">
                     {home.role}
                   </span>
-                  <h2 className="text-sm font-bold text-neutral-900">{home.label}</h2>
+                  <h2 className="text-sm font-bold text-foreground">{home.label}</h2>
                 </div>
               </CardContent>
             </Card>

@@ -1,12 +1,6 @@
 'use client'
 
-import {
-  ArrowLeft,
-  CheckCircle2,
-  PackageCheck,
-  PackageSearch,
-  ShoppingCart,
-} from 'lucide-react'
+import { ArrowLeft, CheckCircle2, PackageCheck, PackageSearch, ShoppingCart } from 'lucide-react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { useState } from 'react'
@@ -61,9 +55,9 @@ export default function PartsJobDetailPage() {
 
   if (!booking) {
     return (
-      <div className="py-16 text-center space-y-4">
-        <h1 className="text-xl font-bold text-neutral-900">Job not found</h1>
-        <Button asChild className="bg-[#1047FA] text-white text-xs rounded-full">
+      <div className="space-y-4 py-16 text-center">
+        <h1 className="text-xl font-bold text-foreground">Job not found</h1>
+        <Button asChild className="rounded-full bg-brand-blue text-xs text-white">
           <Link href={`${base}/parts`}>Back to Parts Queue</Link>
         </Button>
       </div>
@@ -78,7 +72,7 @@ export default function PartsJobDetailPage() {
     const match = inventory.find(
       (p) =>
         p.name.toLowerCase().includes(item.description.toLowerCase()) ||
-        item.description.toLowerCase().includes(p.name.toLowerCase())
+        item.description.toLowerCase().includes(p.name.toLowerCase()),
     )
     const onHand = match ? match.on_hand : 0
     const required = item.quantity
@@ -123,7 +117,9 @@ export default function PartsJobDetailPage() {
     })
 
     setOrderDialogOpen(false)
-    setSuccessToast(`Purchase Order ${newPo.po_number} created with supplier. Status updated to Parts Ordered.`)
+    setSuccessToast(
+      `Purchase Order ${newPo.po_number} created with supplier. Status updated to Parts Ordered.`,
+    )
   }
 
   const handleMarkReady = () => {
@@ -139,7 +135,9 @@ export default function PartsJobDetailPage() {
       ...booking,
       status: 'IN_REPAIR',
     })
-    setSuccessToast(`Parts allocated and handed over to Technician ${booking.assignedTechnicianName || 'Imran'}! Vehicle is now in repair.`)
+    setSuccessToast(
+      `Parts allocated and handed over to Technician ${booking.assignedTechnicianName || 'Imran'}! Vehicle is now in repair.`,
+    )
   }
 
   return (
@@ -148,7 +146,7 @@ export default function PartsJobDetailPage() {
       <div>
         <Link
           href={`${base}/parts`}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-neutral-600 hover:text-[#1047FA]"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-brand-blue-ink"
         >
           <ArrowLeft className="size-3.5" />
           <span>Back to Parts Queue</span>
@@ -156,27 +154,31 @@ export default function PartsJobDetailPage() {
       </div>
 
       {successToast && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-xs font-bold text-emerald-950 flex items-center gap-2">
-          <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
+        <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-xs font-bold text-emerald-950 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-100">
+          <CheckCircle2 className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
           <span>{successToast}</span>
         </div>
       )}
 
       {/* Header & Action Bar */}
-      <div className="rounded-2xl border border-neutral-200 bg-white p-6 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="space-y-4 rounded-2xl border border-border bg-card p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <span className="font-mono text-xl sm:text-2xl font-semibold text-[#1047FA]">
+              <span className="font-mono text-xl font-semibold text-brand-blue-ink sm:text-2xl">
                 {booking.reference}
               </span>
               <StatusBadge status={booking.status} audience="staff" size="md" />
             </div>
-            <p className="text-sm font-bold text-neutral-900 font-mono">
-              {booking.licensePlate} • {booking.vehicleYear} {booking.vehicleMake} {booking.vehicleModel}
+            <p className="font-mono text-sm font-bold text-foreground">
+              {booking.licensePlate} • {booking.vehicleYear} {booking.vehicleMake}{' '}
+              {booking.vehicleModel}
             </p>
-            <p className="text-xs text-neutral-500">
-              Assigned Technician: <strong className="text-neutral-800">{booking.assignedTechnicianName || 'Imran'}</strong>
+            <p className="text-xs text-helper">
+              Assigned Technician:{' '}
+              <strong className="text-foreground">
+                {booking.assignedTechnicianName || 'Imran'}
+              </strong>
             </p>
           </div>
 
@@ -185,9 +187,9 @@ export default function PartsJobDetailPage() {
             {anyShortage && booking.status === 'PARTS_PENDING' && (
               <Button
                 onClick={() => setOrderDialogOpen(true)}
-                className="bg-[#1047FA] hover:bg-blue-700 text-white font-bold text-xs h-9 px-4"
+                className="h-9 bg-brand-blue px-4 text-xs font-bold text-white hover:bg-blue-700"
               >
-                <ShoppingCart className="size-3.5 mr-1.5" />
+                <ShoppingCart className="mr-1.5 size-3.5" />
                 Order Missing Parts ({partRows.filter((r) => r.shortage > 0).length})
               </Button>
             )}
@@ -195,9 +197,9 @@ export default function PartsJobDetailPage() {
             {!anyShortage && booking.status === 'PARTS_PENDING' && (
               <Button
                 onClick={handleMarkReady}
-                className="bg-[#00c070] hover:bg-emerald-600 text-white font-bold text-xs h-9 px-4 rounded-full"
+                className="h-9 rounded-full bg-brand-green px-4 text-xs font-bold text-white hover:bg-emerald-600"
               >
-                <CheckCircle2 className="size-3.5 mr-1.5" />
+                <CheckCircle2 className="mr-1.5 size-3.5" />
                 Mark Parts Ready
               </Button>
             )}
@@ -205,7 +207,7 @@ export default function PartsJobDetailPage() {
             {booking.status === 'PARTS_ORDERED' && (
               <Button
                 onClick={handleMarkReady}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs h-9 px-4 rounded-full"
+                className="h-9 rounded-full bg-blue-600 px-4 text-xs font-bold text-white hover:bg-blue-700"
               >
                 Receive Shipment & Mark Ready
               </Button>
@@ -214,9 +216,9 @@ export default function PartsJobDetailPage() {
             {booking.status === 'PARTS_READY' && (
               <Button
                 onClick={handleAllocateParts}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-9 px-4 rounded-full"
+                className="h-9 rounded-full bg-emerald-600 px-4 text-xs font-bold text-white hover:bg-emerald-700"
               >
-                <PackageCheck className="size-3.5 mr-1.5" />
+                <PackageCheck className="mr-1.5 size-3.5" />
                 Allocate Parts to Technician
               </Button>
             )}
@@ -225,17 +227,17 @@ export default function PartsJobDetailPage() {
       </div>
 
       {/* Parts Requirements vs Stock Table */}
-      <Card className="border-neutral-200 overflow-hidden">
-        <CardHeader className="bg-neutral-50/80 border-b border-neutral-100 p-4">
-          <CardTitle className="text-xs font-bold tracking-[0.32px] text-neutral-500 flex items-center gap-1.5">
-            <PackageSearch className="size-4 text-[#1047FA]" />
+      <Card className="overflow-hidden border-border">
+        <CardHeader className="border-b border-border-faint bg-muted/80 p-4">
+          <CardTitle className="flex items-center gap-1.5 text-xs font-bold tracking-[0.32px] text-helper">
+            <PackageSearch className="size-4 text-brand-blue-ink" />
             Required Parts vs Available Warehouse Inventory
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-neutral-50 text-[11px] font-bold text-neutral-400 border-b border-neutral-200">
+              <thead className="border-b border-border bg-muted text-[11px] font-bold text-subtle-foreground">
                 <tr>
                   <th className="px-5 py-2.5">Part Name & SKU</th>
                   <th className="px-4 py-2.5 text-center">Required</th>
@@ -244,44 +246,44 @@ export default function PartsJobDetailPage() {
                   <th className="px-5 py-2.5 text-right">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-neutral-100 text-neutral-700">
+              <tbody className="divide-y divide-border-faint text-muted-foreground">
                 {partRows.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="p-6 text-center text-neutral-400">
+                    <td colSpan={5} className="p-6 text-center text-subtle-foreground">
                       No part components required — this is a labor-only service.
                     </td>
                   </tr>
                 ) : (
                   partRows.map((r, idx) => (
-                    <tr key={idx} className="hover:bg-neutral-50/60">
+                    <tr key={idx} className="hover:bg-muted/60">
                       <td className="px-5 py-3">
-                        <p className="font-bold text-neutral-900">{r.description}</p>
-                        <p className="text-[11px] font-mono text-neutral-400">{r.sku}</p>
+                        <p className="font-bold text-foreground">{r.description}</p>
+                        <p className="font-mono text-[11px] text-subtle-foreground">{r.sku}</p>
                       </td>
                       <td className="px-4 py-3 text-center font-semibold">{r.required}</td>
                       <td className="px-4 py-3 text-center">
                         <span
-                          className={`font-bold ${r.onHand >= r.required ? 'text-emerald-700' : 'text-amber-700'}`}
+                          className={`font-bold ${r.onHand >= r.required ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-700 dark:text-amber-300'}`}
                         >
                           {r.onHand} in stock
                         </span>
                       </td>
                       <td className="px-4 py-3 text-center font-bold">
                         {r.shortage > 0 ? (
-                          <span className="text-red-600 bg-red-50 px-2 py-0.5 rounded">
+                          <span className="rounded bg-red-50 px-2 py-0.5 text-red-600 dark:bg-red-950/40 dark:text-red-400">
                             Short {r.shortage}
                           </span>
                         ) : (
-                          <span className="text-emerald-600">None</span>
+                          <span className="text-emerald-600 dark:text-emerald-400">None</span>
                         )}
                       </td>
                       <td className="px-5 py-3 text-right">
                         {r.shortage > 0 ? (
-                          <span className="rounded bg-red-100 text-red-800 text-[10px] font-bold px-2 py-0.5">
+                          <span className="rounded bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-800 dark:bg-red-900/40 dark:text-red-200">
                             Order Required
                           </span>
                         ) : (
-                          <span className="rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5">
+                          <span className="rounded bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200">
                             Available in Bin
                           </span>
                         )}
@@ -299,38 +301,45 @@ export default function PartsJobDetailPage() {
       <Dialog open={orderDialogOpen} onOpenChange={setOrderDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-base font-bold text-neutral-900">
+            <DialogTitle className="text-base font-bold text-foreground">
               Create Supplier Purchase Order
             </DialogTitle>
-            <DialogDescription className="text-xs text-neutral-500">
+            <DialogDescription className="text-xs text-helper">
               A Purchase Order will be created for the shortage items and linked to this job.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2 text-xs">
             <div className="space-y-1">
-              <Label className="text-xs font-semibold text-neutral-700">Supplier Name</Label>
+              <Label className="text-xs font-semibold text-muted-foreground">Supplier Name</Label>
               <Input
                 value={supplierName}
                 onChange={(e) => setSupplierName(e.target.value)}
-                className="text-xs h-9"
+                className="h-9 text-xs"
               />
             </div>
-            <div className="rounded-lg bg-neutral-50 p-3 space-y-1 border border-neutral-100">
-              <span className="font-bold text-neutral-900">Items to Order:</span>
+            <div className="space-y-1 rounded-lg border border-border-faint bg-muted p-3">
+              <span className="font-bold text-foreground">Items to Order:</span>
               {partRows
                 .filter((r) => r.shortage > 0)
                 .map((r, i) => (
-                  <p key={i} className="text-neutral-600">
+                  <p key={i} className="text-muted-foreground">
                     • {r.shortage} × {r.description} ({formatPKR(r.unitCost)} each)
                   </p>
                 ))}
             </div>
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setOrderDialogOpen(false)} className="text-xs font-semibold">
+            <Button
+              variant="outline"
+              onClick={() => setOrderDialogOpen(false)}
+              className="text-xs font-semibold"
+            >
               Cancel
             </Button>
-            <Button onClick={handleCreatePo} className="bg-[#1047FA] text-white text-xs font-bold rounded-full">
+            <Button
+              onClick={handleCreatePo}
+              className="rounded-full bg-brand-blue text-xs font-bold text-white"
+            >
               Confirm & Dispatch PO
             </Button>
           </DialogFooter>

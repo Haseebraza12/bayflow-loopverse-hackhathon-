@@ -29,12 +29,7 @@ import {
 } from '@/components/ui/dialog'
 import { useMockStore } from '@/hooks/use-mock-store'
 import { formatPKR } from '@/lib/format'
-import {
-  getBookingById,
-  getTeamMembers,
-  saveBooking,
-  type MockBooking,
-} from '@/lib/mock-data'
+import { getBookingById, getTeamMembers, saveBooking, type MockBooking } from '@/lib/mock-data'
 
 export default function ServiceAdvisorBookingDetailPage() {
   const params = useParams()
@@ -55,9 +50,9 @@ export default function ServiceAdvisorBookingDetailPage() {
 
   if (!booking) {
     return (
-      <div className="py-16 text-center space-y-4">
-        <h1 className="text-xl font-bold text-neutral-900">Booking not found</h1>
-        <Button asChild className="bg-[#1047FA] text-white text-xs rounded-full">
+      <div className="space-y-4 py-16 text-center">
+        <h1 className="text-xl font-bold text-foreground">Booking not found</h1>
+        <Button asChild className="rounded-full bg-brand-blue text-xs text-white">
           <Link href={`${base}/bookings`}>Back to Bookings Queue</Link>
         </Button>
       </div>
@@ -137,7 +132,7 @@ export default function ServiceAdvisorBookingDetailPage() {
       <div>
         <Link
           href={`${base}/bookings`}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-neutral-600 hover:text-[#1047FA]"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-brand-blue-ink"
         >
           <ArrowLeft className="size-3.5" />
           <span>Back to Bookings Queue</span>
@@ -145,35 +140,41 @@ export default function ServiceAdvisorBookingDetailPage() {
       </div>
 
       {successToast && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-xs font-bold text-emerald-950 flex items-center gap-2">
-          <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
+        <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-xs font-bold text-emerald-950 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-100">
+          <CheckCircle2 className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
           <span>{successToast}</span>
         </div>
       )}
 
       {/* Main Header & Action Bar */}
-      <div className="rounded-2xl border border-neutral-200 bg-white p-6 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="space-y-4 rounded-2xl border border-border bg-card p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <span className="font-mono text-xl sm:text-2xl font-semibold text-[#1047FA]">
+              <span className="font-mono text-xl font-semibold text-brand-blue-ink sm:text-2xl">
                 {booking.reference}
               </span>
               <button
                 type="button"
                 onClick={handleCopyRef}
-                className="rounded-full border border-neutral-200 p-1 text-neutral-400 hover:text-neutral-700"
+                className="rounded-full border border-border p-1 text-subtle-foreground hover:text-muted-foreground"
               >
                 <Copy className="size-3.5" />
               </button>
-              {copied && <span className="text-[10px] text-emerald-600 font-bold">Copied!</span>}
+              {copied && (
+                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                  Copied!
+                </span>
+              )}
               <StatusBadge status={booking.status} audience="staff" size="md" />
             </div>
 
-            <p className="text-sm font-bold text-neutral-900">
-              {booking.customerName} • <span className="font-mono text-neutral-700">{booking.licensePlate}</span> ({booking.vehicleYear} {booking.vehicleMake} {booking.vehicleModel})
+            <p className="text-sm font-bold text-foreground">
+              {booking.customerName} •{' '}
+              <span className="font-mono text-muted-foreground">{booking.licensePlate}</span> (
+              {booking.vehicleYear} {booking.vehicleMake} {booking.vehicleModel})
             </p>
-            <p className="text-xs text-neutral-500">
+            <p className="text-xs text-helper">
               Scheduled: {booking.scheduledDate} at {booking.scheduledTime}
             </p>
           </div>
@@ -183,7 +184,7 @@ export default function ServiceAdvisorBookingDetailPage() {
             {booking.status === 'PENDING' && (
               <Button
                 onClick={handleConfirmIntake}
-                className="bg-[#1047FA] hover:bg-blue-700 text-white font-bold text-xs h-9 px-4 rounded-full"
+                className="h-9 rounded-full bg-brand-blue px-4 text-xs font-bold text-white hover:bg-blue-700"
               >
                 Confirm Booking Intake
               </Button>
@@ -192,9 +193,9 @@ export default function ServiceAdvisorBookingDetailPage() {
             {booking.status === 'CONFIRMED' && (
               <Button
                 onClick={() => setAssignTechOpen(true)}
-                className="bg-[#1047FA] hover:bg-blue-700 text-white font-bold text-xs h-9 px-4"
+                className="h-9 bg-brand-blue px-4 text-xs font-bold text-white hover:bg-blue-700"
               >
-                <UserCheck className="size-3.5 mr-1.5" />
+                <UserCheck className="mr-1.5 size-3.5" />
                 Assign Technician
               </Button>
             )}
@@ -202,9 +203,9 @@ export default function ServiceAdvisorBookingDetailPage() {
             {booking.status === 'ESTIMATE_REVIEW' && (
               <Button
                 onClick={handleSendEstimateToCustomer}
-                className="bg-[#00c070] hover:bg-emerald-600 text-white font-bold text-xs h-9 px-4 rounded-full"
+                className="h-9 rounded-full bg-brand-green px-4 text-xs font-bold text-white hover:bg-emerald-600"
               >
-                <Send className="size-3.5 mr-1.5" />
+                <Send className="mr-1.5 size-3.5" />
                 Send Estimate to Customer
               </Button>
             )}
@@ -212,9 +213,9 @@ export default function ServiceAdvisorBookingDetailPage() {
             {booking.status === 'ESTIMATE_APPROVED' && (
               <Button
                 onClick={() => setAssignPartsOpen(true)}
-                className="bg-[#1047FA] hover:bg-blue-700 text-white font-bold text-xs h-9 px-4"
+                className="h-9 bg-brand-blue px-4 text-xs font-bold text-white hover:bg-blue-700"
               >
-                <PackageSearch className="size-3.5 mr-1.5" />
+                <PackageSearch className="mr-1.5 size-3.5" />
                 Assign Parts Specialist
               </Button>
             )}
@@ -224,14 +225,14 @@ export default function ServiceAdvisorBookingDetailPage() {
                 <Button
                   onClick={handleNotifyReady}
                   variant="outline"
-                  className="text-xs font-semibold h-9 rounded-full"
+                  className="h-9 rounded-full text-xs font-semibold"
                 >
-                  <Phone className="size-3.5 mr-1.5 text-[#1047FA]" />
+                  <Phone className="mr-1.5 size-3.5 text-brand-blue-ink" />
                   Notify Customer Ready
                 </Button>
                 <Button
                   onClick={handleCompleteBooking}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-9 px-4 rounded-full"
+                  className="h-9 rounded-full bg-emerald-600 px-4 text-xs font-bold text-white hover:bg-emerald-700"
                 >
                   Complete & Settle
                 </Button>
@@ -242,22 +243,22 @@ export default function ServiceAdvisorBookingDetailPage() {
       </div>
 
       {/* Main Grid: Estimate & Assignment Details */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Left Column (2 spans): Estimate & Inspection Details */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="space-y-6 lg:col-span-2">
           {/* Estimate Table */}
-          <Card className="border-neutral-200 overflow-hidden">
-            <CardHeader className="bg-neutral-50/80 border-b border-neutral-100 p-4 flex flex-row items-center justify-between">
-              <CardTitle className="text-xs font-bold tracking-[0.32px] text-neutral-500 flex items-center gap-1.5">
-                <FileText className="size-4 text-[#1047FA]" />
+          <Card className="overflow-hidden border-border">
+            <CardHeader className="flex flex-row items-center justify-between border-b border-border-faint bg-muted/80 p-4">
+              <CardTitle className="flex items-center gap-1.5 text-xs font-bold tracking-[0.32px] text-helper">
+                <FileText className="size-4 text-brand-blue-ink" />
                 Technician Inspection & Estimate ({booking.estimateItems.length} Items)
               </CardTitle>
               {booking.estimateApproved ? (
-                <span className="rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5">
+                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200">
                   Customer Approved
                 </span>
               ) : (
-                <span className="text-xs font-mono text-neutral-500 font-semibold">
+                <span className="font-mono text-xs font-semibold text-helper">
                   Status: {booking.status}
                 </span>
               )}
@@ -265,7 +266,7 @@ export default function ServiceAdvisorBookingDetailPage() {
             <CardContent className="p-0">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-neutral-50 text-[11px] font-bold text-neutral-400 border-b border-neutral-200">
+                  <thead className="border-b border-border bg-muted text-[11px] font-bold text-subtle-foreground">
                     <tr>
                       <th className="px-5 py-2.5">Line Description</th>
                       <th className="px-4 py-2.5">Type</th>
@@ -274,16 +275,18 @@ export default function ServiceAdvisorBookingDetailPage() {
                       <th className="px-5 py-2.5 text-right">Total</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-neutral-100 text-neutral-700">
+                  <tbody className="divide-y divide-border-faint text-muted-foreground">
                     {booking.estimateItems.map((item) => (
                       <tr key={item.id}>
-                        <td className="px-5 py-3 font-semibold text-neutral-900">{item.description}</td>
+                        <td className="px-5 py-3 font-semibold text-foreground">
+                          {item.description}
+                        </td>
                         <td className="px-4 py-3">
                           <span
-                            className={`rounded px-1.5 py-0.2 text-[10px] font-bold ${
+                            className={`py-0.2 rounded px-1.5 text-[10px] font-bold ${
                               item.type === 'PART'
-                                ? 'bg-blue-50 text-blue-700'
-                                : 'bg-neutral-100 text-neutral-700'
+                                ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300'
+                                : 'bg-secondary text-muted-foreground'
                             }`}
                           >
                             {item.type}
@@ -291,18 +294,18 @@ export default function ServiceAdvisorBookingDetailPage() {
                         </td>
                         <td className="px-4 py-3 text-center">{item.quantity}</td>
                         <td className="px-4 py-3 text-right">{formatPKR(item.unit_price)}</td>
-                        <td className="px-5 py-3 text-right font-bold text-neutral-900">
+                        <td className="px-5 py-3 text-right font-bold text-foreground">
                           {formatPKR(item.total)}
                         </td>
                       </tr>
                     ))}
                   </tbody>
-                  <tfoot className="border-t border-neutral-200 bg-neutral-50/60 font-bold">
+                  <tfoot className="border-t border-border bg-muted/60 font-bold">
                     <tr>
-                      <td colSpan={4} className="px-5 py-3 text-right text-neutral-600">
+                      <td colSpan={4} className="px-5 py-3 text-right text-muted-foreground">
                         Grand Total
                       </td>
-                      <td className="px-5 py-3 text-right font-semibold text-sm text-[#1047FA]">
+                      <td className="px-5 py-3 text-right text-sm font-semibold text-brand-blue-ink">
                         {formatPKR(booking.estimateTotal)}
                       </td>
                     </tr>
@@ -311,9 +314,9 @@ export default function ServiceAdvisorBookingDetailPage() {
               </div>
 
               {booking.inspectionNotes && (
-                <div className="p-4 border-t border-neutral-100 bg-blue-50/20 text-xs">
-                  <span className="font-bold text-neutral-900">Technician Findings:</span>
-                  <p className="mt-1 text-neutral-700 leading-relaxed italic">
+                <div className="border-t border-border-faint bg-blue-50/20 p-4 text-xs dark:bg-blue-950/30">
+                  <span className="font-bold text-foreground">Technician Findings:</span>
+                  <p className="mt-1 leading-relaxed text-muted-foreground italic">
                     &quot;{booking.inspectionNotes}&quot;
                   </p>
                 </div>
@@ -324,39 +327,44 @@ export default function ServiceAdvisorBookingDetailPage() {
 
         {/* Right Column: Customer & Staff Assignment Card */}
         <div className="space-y-6">
-          <Card className="border-neutral-200">
-            <CardHeader className="pb-3 border-b border-neutral-100">
-              <CardTitle className="text-xs font-bold tracking-[0.32px] text-neutral-500 flex items-center gap-1.5">
-                <User className="size-3.5 text-[#1047FA]" />
+          <Card className="border-border">
+            <CardHeader className="border-b border-border-faint pb-3">
+              <CardTitle className="flex items-center gap-1.5 text-xs font-bold tracking-[0.32px] text-helper">
+                <User className="size-3.5 text-brand-blue-ink" />
                 Customer Contact
               </CardTitle>
             </CardHeader>
-            <CardContent className="pt-4 text-xs space-y-3">
+            <CardContent className="space-y-3 pt-4 text-xs">
               <div>
-                <p className="font-bold text-neutral-900 text-sm">{booking.customerName}</p>
-                <div className="flex items-center gap-1.5 text-neutral-600 mt-1">
-                  <Phone className="size-3.5 text-neutral-400" />
-                  <a href={`tel:${booking.customerPhone}`} className="text-[#1047FA] hover:underline font-medium">
+                <p className="text-sm font-bold text-foreground">{booking.customerName}</p>
+                <div className="mt-1 flex items-center gap-1.5 text-muted-foreground">
+                  <Phone className="size-3.5 text-subtle-foreground" />
+                  <a
+                    href={`tel:${booking.customerPhone}`}
+                    className="font-medium text-brand-blue-ink hover:underline"
+                  >
                     {booking.customerPhone}
                   </a>
                 </div>
-                <div className="flex items-center gap-1.5 text-neutral-500 mt-0.5">
-                  <Mail className="size-3.5 text-neutral-400" />
+                <div className="mt-0.5 flex items-center gap-1.5 text-helper">
+                  <Mail className="size-3.5 text-subtle-foreground" />
                   <span>{booking.customerEmail}</span>
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-neutral-100 space-y-1">
-                <span className="text-[10px] font-bold text-neutral-400">Assigned Technician</span>
-                <p className="font-bold text-neutral-900">
+              <div className="space-y-1 border-t border-border-faint pt-3">
+                <span className="text-[10px] font-bold text-subtle-foreground">
+                  Assigned Technician
+                </span>
+                <p className="font-bold text-foreground">
                   {booking.assignedTechnicianName || 'Not yet assigned'}
                 </p>
               </div>
 
-              <div className="pt-2 border-t border-neutral-100 space-y-1">
-                <span className="text-[10px] font-bold text-neutral-400">Vehicle</span>
-                <p className="font-mono font-bold text-neutral-900">{booking.licensePlate}</p>
-                <p className="text-neutral-500">
+              <div className="space-y-1 border-t border-border-faint pt-2">
+                <span className="text-[10px] font-bold text-subtle-foreground">Vehicle</span>
+                <p className="font-mono font-bold text-foreground">{booking.licensePlate}</p>
+                <p className="text-helper">
                   {booking.vehicleYear} {booking.vehicleMake} {booking.vehicleModel}
                 </p>
               </div>
@@ -369,11 +377,12 @@ export default function ServiceAdvisorBookingDetailPage() {
       <Dialog open={assignTechOpen} onOpenChange={setAssignTechOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-base font-bold text-neutral-900">
+            <DialogTitle className="text-base font-bold text-foreground">
               Assign Workshop Technician
             </DialogTitle>
-            <DialogDescription className="text-xs text-neutral-500">
-              Select a certified technician to inspect {booking.vehicleMake} {booking.vehicleModel} ({booking.licensePlate}).
+            <DialogDescription className="text-xs text-helper">
+              Select a certified technician to inspect {booking.vehicleMake} {booking.vehicleModel}{' '}
+              ({booking.licensePlate}).
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2">
@@ -381,30 +390,39 @@ export default function ServiceAdvisorBookingDetailPage() {
               <div
                 key={tech.id}
                 onClick={() => setSelectedTech(tech.id)}
-                className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer text-xs transition-colors ${
+                className={`flex cursor-pointer items-center justify-between rounded-xl border p-3 text-xs transition-colors ${
                   selectedTech === tech.id
-                    ? 'border-[#1047FA] bg-blue-50/50'
-                    : 'border-neutral-200 hover:border-neutral-300'
+                    ? 'border-brand-blue bg-blue-50/50 dark:bg-blue-950/30'
+                    : 'border-border hover:border-border-medium'
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <div className="size-8 rounded-full bg-blue-100 text-[#1047FA] font-bold flex items-center justify-center">
+                  <div className="flex size-8 items-center justify-center rounded-full bg-blue-100 font-bold text-brand-blue-ink dark:bg-blue-900/40">
                     {tech.name.charAt(0)}
                   </div>
                   <div>
-                    <p className="font-bold text-neutral-900">{tech.name}</p>
-                    <p className="text-[11px] text-neutral-500">{tech.email}</p>
+                    <p className="font-bold text-foreground">{tech.name}</p>
+                    <p className="text-[11px] text-helper">{tech.email}</p>
                   </div>
                 </div>
-                {selectedTech === tech.id && <CheckCircle2 className="size-4 text-[#1047FA]" />}
+                {selectedTech === tech.id && (
+                  <CheckCircle2 className="size-4 text-brand-blue-ink" />
+                )}
               </div>
             ))}
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setAssignTechOpen(false)} className="text-xs font-semibold">
+            <Button
+              variant="outline"
+              onClick={() => setAssignTechOpen(false)}
+              className="text-xs font-semibold"
+            >
               Cancel
             </Button>
-            <Button onClick={handleAssignTechnician} className="bg-[#1047FA] text-white text-xs font-bold rounded-full">
+            <Button
+              onClick={handleAssignTechnician}
+              className="rounded-full bg-brand-blue text-xs font-bold text-white"
+            >
               Confirm Assignment
             </Button>
           </DialogFooter>
@@ -415,11 +433,12 @@ export default function ServiceAdvisorBookingDetailPage() {
       <Dialog open={assignPartsOpen} onOpenChange={setAssignPartsOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-base font-bold text-neutral-900">
+            <DialogTitle className="text-base font-bold text-foreground">
               Assign Parts Specialist
             </DialogTitle>
-            <DialogDescription className="text-xs text-neutral-500">
-              Route approved parts list to the inventory specialist to check availability or order stock.
+            <DialogDescription className="text-xs text-helper">
+              Route approved parts list to the inventory specialist to check availability or order
+              stock.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2">
@@ -427,30 +446,39 @@ export default function ServiceAdvisorBookingDetailPage() {
               <div
                 key={person.id}
                 onClick={() => setSelectedPartsPerson(person.id)}
-                className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer text-xs transition-colors ${
+                className={`flex cursor-pointer items-center justify-between rounded-xl border p-3 text-xs transition-colors ${
                   selectedPartsPerson === person.id
-                    ? 'border-[#1047FA] bg-blue-50/50'
-                    : 'border-neutral-200 hover:border-neutral-300'
+                    ? 'border-brand-blue bg-blue-50/50 dark:bg-blue-950/30'
+                    : 'border-border hover:border-border-medium'
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <div className="size-8 rounded-full bg-blue-100 text-[#1047FA] font-bold flex items-center justify-center">
+                  <div className="flex size-8 items-center justify-center rounded-full bg-blue-100 font-bold text-brand-blue-ink dark:bg-blue-900/40">
                     {person.name.charAt(0)}
                   </div>
                   <div>
-                    <p className="font-bold text-neutral-900">{person.name}</p>
-                    <p className="text-[11px] text-neutral-500">{person.email}</p>
+                    <p className="font-bold text-foreground">{person.name}</p>
+                    <p className="text-[11px] text-helper">{person.email}</p>
                   </div>
                 </div>
-                {selectedPartsPerson === person.id && <CheckCircle2 className="size-4 text-[#1047FA]" />}
+                {selectedPartsPerson === person.id && (
+                  <CheckCircle2 className="size-4 text-brand-blue-ink" />
+                )}
               </div>
             ))}
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setAssignPartsOpen(false)} className="text-xs font-semibold">
+            <Button
+              variant="outline"
+              onClick={() => setAssignPartsOpen(false)}
+              className="text-xs font-semibold"
+            >
               Cancel
             </Button>
-            <Button onClick={handleAssignParts} className="bg-[#1047FA] text-white text-xs font-bold rounded-full">
+            <Button
+              onClick={handleAssignParts}
+              className="rounded-full bg-brand-blue text-xs font-bold text-white"
+            >
               Send to Parts Specialist
             </Button>
           </DialogFooter>

@@ -243,7 +243,8 @@ export const INITIAL_SERVICES: MockService[] = [
     id: 'srv-oil-change',
     shopId: 'shop-lahore-auto-care',
     name: 'Periodic Oil & Filter Service',
-    description: 'Includes full synthetic 5W-30 motor oil change, genuine oil filter replacement, and 24-point safety check.',
+    description:
+      'Includes full synthetic 5W-30 motor oil change, genuine oil filter replacement, and 24-point safety check.',
     estimated_duration_minutes: 60,
     base_price: 4500,
     is_active: true,
@@ -252,7 +253,8 @@ export const INITIAL_SERVICES: MockService[] = [
     id: 'srv-brake-pads',
     shopId: 'shop-lahore-auto-care',
     name: 'Front Brake Pads Replacement',
-    description: 'Inspection and replacement of front brake pads, caliper lubrication, and rotor surface inspection.',
+    description:
+      'Inspection and replacement of front brake pads, caliper lubrication, and rotor surface inspection.',
     estimated_duration_minutes: 90,
     base_price: 8500,
     is_active: true,
@@ -261,7 +263,8 @@ export const INITIAL_SERVICES: MockService[] = [
     id: 'srv-computer-scan',
     shopId: 'shop-lahore-auto-care',
     name: 'Computer Diagnostic & OBD Scan',
-    description: 'Full ECU health scan, reading check engine fault codes, sensor live data evaluation and diagnostic report.',
+    description:
+      'Full ECU health scan, reading check engine fault codes, sensor live data evaluation and diagnostic report.',
     estimated_duration_minutes: 45,
     base_price: 3000,
     is_active: true,
@@ -270,7 +273,8 @@ export const INITIAL_SERVICES: MockService[] = [
     id: 'srv-ac-service',
     shopId: 'shop-lahore-auto-care',
     name: 'AC Gas Top-up & Leak Inspection',
-    description: 'Refrigerant pressure check, vacuum leak test, compressor performance evaluation, and evaporator cleaning.',
+    description:
+      'Refrigerant pressure check, vacuum leak test, compressor performance evaluation, and evaporator cleaning.',
     estimated_duration_minutes: 60,
     base_price: 6000,
     is_active: true,
@@ -279,7 +283,8 @@ export const INITIAL_SERVICES: MockService[] = [
     id: 'srv-alignment',
     shopId: 'shop-lahore-auto-care',
     name: 'Wheel Alignment & Balancing',
-    description: '4-wheel computerized laser alignment and dynamic tire balancing for smooth steering.',
+    description:
+      '4-wheel computerized laser alignment and dynamic tire balancing for smooth steering.',
     estimated_duration_minutes: 45,
     base_price: 2500,
     is_active: true,
@@ -288,7 +293,8 @@ export const INITIAL_SERVICES: MockService[] = [
     id: 'srv-tune-up',
     shopId: 'shop-lahore-auto-care',
     name: 'Engine Tune-Up & Spark Plugs',
-    description: 'Throttle body cleaning, spark plug inspection/replacement, air filter clean, fuel injector treatment.',
+    description:
+      'Throttle body cleaning, spark plug inspection/replacement, air filter clean, fuel injector treatment.',
     estimated_duration_minutes: 90,
     base_price: 7500,
     is_active: true,
@@ -374,7 +380,12 @@ export const INITIAL_PURCHASE_ORDERS: MockPurchaseOrder[] = [
     status: 'RECEIVED',
     items: [
       { part_sku: 'OF-TY-01', part_name: 'Oil Filter Cartridge', quantity: 15, unit_price: 1200 },
-      { part_sku: 'BP-FR-02', part_name: 'Semi-Metallic Front Brake Pads Set', quantity: 6, unit_price: 4500 },
+      {
+        part_sku: 'BP-FR-02',
+        part_name: 'Semi-Metallic Front Brake Pads Set',
+        quantity: 6,
+        unit_price: 4500,
+      },
     ],
     total_amount: 45000,
   },
@@ -386,21 +397,80 @@ export const INITIAL_PURCHASE_ORDERS: MockPurchaseOrder[] = [
     created_at: '2026-10-08T14:30:00Z',
     status: 'ORDERED',
     items: [
-      { part_sku: 'BR-VENT-01', part_name: 'Vented Brake Rotors Pair', quantity: 4, unit_price: 10500 },
-      { part_sku: 'SP-IRID-04', part_name: 'Iridium Spark Plugs Set of 4', quantity: 8, unit_price: 3600 },
+      {
+        part_sku: 'BR-VENT-01',
+        part_name: 'Vented Brake Rotors Pair',
+        quantity: 4,
+        unit_price: 10500,
+      },
+      {
+        part_sku: 'SP-IRID-04',
+        part_name: 'Iridium Spark Plugs Set of 4',
+        quantity: 8,
+        unit_price: 3600,
+      },
     ],
     total_amount: 70800,
   },
 ]
 
 export const INITIAL_TEAM: MockTeamMember[] = [
-  { id: 'usr-fatima', shopId: 'shop-lahore-auto-care', name: 'Fatima Raza', email: 'fatima.owner@bayflow.test', role: 'OWNER', is_active: true },
-  { id: 'usr-bilal', shopId: 'shop-lahore-auto-care', name: 'Bilal', email: 'bilal.sa@bayflow.test', role: 'SERVICE_ADVISOR', is_active: true },
-  { id: 'usr-imran', shopId: 'shop-lahore-auto-care', name: 'Imran', email: 'imran.tech@bayflow.test', role: 'TECHNICIAN', is_active: true },
-  { id: 'usr-hamza', shopId: 'shop-lahore-auto-care', name: 'Hamza', email: 'hamza.tech@bayflow.test', role: 'TECHNICIAN', is_active: true },
-  { id: 'usr-sara', shopId: 'shop-lahore-auto-care', name: 'Sara', email: 'sara.qc@bayflow.test', role: 'QC_INSPECTOR', is_active: true },
-  { id: 'usr-hina', shopId: 'shop-lahore-auto-care', name: 'Hina', email: 'hina.qc@bayflow.test', role: 'QC_INSPECTOR', is_active: true },
-  { id: 'usr-usman', shopId: 'shop-lahore-auto-care', name: 'Usman', email: 'usman.parts@bayflow.test', role: 'PARTS_PERSON', is_active: true },
+  {
+    id: 'usr-fatima',
+    shopId: 'shop-lahore-auto-care',
+    name: 'Fatima Raza',
+    email: 'fatima.owner@bayflow.test',
+    role: 'OWNER',
+    is_active: true,
+  },
+  {
+    id: 'usr-bilal',
+    shopId: 'shop-lahore-auto-care',
+    name: 'Bilal',
+    email: 'bilal.sa@bayflow.test',
+    role: 'SERVICE_ADVISOR',
+    is_active: true,
+  },
+  {
+    id: 'usr-imran',
+    shopId: 'shop-lahore-auto-care',
+    name: 'Imran',
+    email: 'imran.tech@bayflow.test',
+    role: 'TECHNICIAN',
+    is_active: true,
+  },
+  {
+    id: 'usr-hamza',
+    shopId: 'shop-lahore-auto-care',
+    name: 'Hamza',
+    email: 'hamza.tech@bayflow.test',
+    role: 'TECHNICIAN',
+    is_active: true,
+  },
+  {
+    id: 'usr-sara',
+    shopId: 'shop-lahore-auto-care',
+    name: 'Sara',
+    email: 'sara.qc@bayflow.test',
+    role: 'QC_INSPECTOR',
+    is_active: true,
+  },
+  {
+    id: 'usr-hina',
+    shopId: 'shop-lahore-auto-care',
+    name: 'Hina',
+    email: 'hina.qc@bayflow.test',
+    role: 'QC_INSPECTOR',
+    is_active: true,
+  },
+  {
+    id: 'usr-usman',
+    shopId: 'shop-lahore-auto-care',
+    name: 'Usman',
+    email: 'usman.parts@bayflow.test',
+    role: 'PARTS_PERSON',
+    is_active: true,
+  },
 ]
 
 export const INITIAL_BOOKINGS: MockBooking[] = [
@@ -423,13 +493,49 @@ export const INITIAL_BOOKINGS: MockBooking[] = [
     status: 'IN_REPAIR',
     assignedTechnicianId: 'usr-imran',
     assignedTechnicianName: 'Imran',
-    inspectionNotes: 'Brake pads worn to 2mm. Disc rotor surface has minor grooves. Oil level low by 0.5L.',
+    inspectionNotes:
+      'Brake pads worn to 2mm. Disc rotor surface has minor grooves. Oil level low by 0.5L.',
     estimateItems: [
-      { id: 'est-1', description: 'Periodic Oil & Filter Service (Labor)', type: 'LABOR', quantity: 1, unit_price: 1500, total: 1500 },
-      { id: 'est-2', description: 'Engine Oil 5W-30 Full Synthetic 4L', type: 'PART', quantity: 1, unit_price: 6800, total: 6800 },
-      { id: 'est-3', description: 'Oil Filter Cartridge', type: 'PART', quantity: 1, unit_price: 1500, total: 1500 },
-      { id: 'est-4', description: 'Front Brake Pads Set', type: 'PART', quantity: 1, unit_price: 5500, total: 5500 },
-      { id: 'est-5', description: 'Brake Pads Installation & Bleeding', type: 'LABOR', quantity: 1, unit_price: 2000, total: 2000 },
+      {
+        id: 'est-1',
+        description: 'Periodic Oil & Filter Service (Labor)',
+        type: 'LABOR',
+        quantity: 1,
+        unit_price: 1500,
+        total: 1500,
+      },
+      {
+        id: 'est-2',
+        description: 'Engine Oil 5W-30 Full Synthetic 4L',
+        type: 'PART',
+        quantity: 1,
+        unit_price: 6800,
+        total: 6800,
+      },
+      {
+        id: 'est-3',
+        description: 'Oil Filter Cartridge',
+        type: 'PART',
+        quantity: 1,
+        unit_price: 1500,
+        total: 1500,
+      },
+      {
+        id: 'est-4',
+        description: 'Front Brake Pads Set',
+        type: 'PART',
+        quantity: 1,
+        unit_price: 5500,
+        total: 5500,
+      },
+      {
+        id: 'est-5',
+        description: 'Brake Pads Installation & Bleeding',
+        type: 'LABOR',
+        quantity: 1,
+        unit_price: 2000,
+        total: 2000,
+      },
     ],
     estimateTotal: 17300,
     estimateApproved: true,
@@ -456,11 +562,33 @@ export const INITIAL_BOOKINGS: MockBooking[] = [
     status: 'AWAITING_CUSTOMER',
     assignedTechnicianId: 'usr-hamza',
     assignedTechnicianName: 'Hamza',
-    inspectionNotes: 'AC condenser has minor dirt blockage. Refrigerant low. Fault code P0134 cleared.',
+    inspectionNotes:
+      'AC condenser has minor dirt blockage. Refrigerant low. Fault code P0134 cleared.',
     estimateItems: [
-      { id: 'est-6', description: 'AC Gas Top-up & Vacuum Test', type: 'LABOR', quantity: 1, unit_price: 6000, total: 6000 },
-      { id: 'est-7', description: 'Cabin Filter Replacement', type: 'PART', quantity: 1, unit_price: 1800, total: 1800 },
-      { id: 'est-8', description: 'Computer Diagnostic OBD Scan', type: 'LABOR', quantity: 1, unit_price: 3000, total: 3000 },
+      {
+        id: 'est-6',
+        description: 'AC Gas Top-up & Vacuum Test',
+        type: 'LABOR',
+        quantity: 1,
+        unit_price: 6000,
+        total: 6000,
+      },
+      {
+        id: 'est-7',
+        description: 'Cabin Filter Replacement',
+        type: 'PART',
+        quantity: 1,
+        unit_price: 1800,
+        total: 1800,
+      },
+      {
+        id: 'est-8',
+        description: 'Computer Diagnostic OBD Scan',
+        type: 'LABOR',
+        quantity: 1,
+        unit_price: 3000,
+        total: 3000,
+      },
     ],
     estimateTotal: 10800,
     estimateApproved: false,
@@ -489,8 +617,22 @@ export const INITIAL_BOOKINGS: MockBooking[] = [
     assignedTechnicianName: 'Imran',
     inspectionNotes: 'Repair completed. Test drove vehicle. Brakes bedding in nicely.',
     estimateItems: [
-      { id: 'est-9', description: 'Front Brake Pads Set', type: 'PART', quantity: 1, unit_price: 5500, total: 5500 },
-      { id: 'est-10', description: 'Installation & Rotor Dressing', type: 'LABOR', quantity: 1, unit_price: 2500, total: 2500 },
+      {
+        id: 'est-9',
+        description: 'Front Brake Pads Set',
+        type: 'PART',
+        quantity: 1,
+        unit_price: 5500,
+        total: 5500,
+      },
+      {
+        id: 'est-10',
+        description: 'Installation & Rotor Dressing',
+        type: 'LABOR',
+        quantity: 1,
+        unit_price: 2500,
+        total: 2500,
+      },
     ],
     estimateTotal: 8000,
     estimateApproved: true,
@@ -542,9 +684,17 @@ export const INITIAL_BOOKINGS: MockBooking[] = [
     assignedTechnicianName: 'Hamza',
     qcInspectorId: 'usr-sara',
     qcPassed: true,
-    qcNotes: 'Laser alignment checked within factory camber/caster tolerance. Tire pressures calibrated to 32 PSI.',
+    qcNotes:
+      'Laser alignment checked within factory camber/caster tolerance. Tire pressures calibrated to 32 PSI.',
     estimateItems: [
-      { id: 'est-11', description: 'Laser Alignment & 4-Wheel Balancing', type: 'LABOR', quantity: 1, unit_price: 2500, total: 2500 },
+      {
+        id: 'est-11',
+        description: 'Laser Alignment & 4-Wheel Balancing',
+        type: 'LABOR',
+        quantity: 1,
+        unit_price: 2500,
+        total: 2500,
+      },
     ],
     estimateTotal: 2500,
     estimateApproved: true,
@@ -575,10 +725,38 @@ export const INITIAL_BOOKINGS: MockBooking[] = [
     qcPassed: true,
     qcNotes: 'Spark plugs torqued to spec. Engine runs smoothly. Oil pressure normal.',
     estimateItems: [
-      { id: 'est-12', description: 'Engine Oil 5W-30 Full Synthetic 4L', type: 'PART', quantity: 1, unit_price: 6800, total: 6800 },
-      { id: 'est-13', description: 'Oil Filter Cartridge', type: 'PART', quantity: 1, unit_price: 1500, total: 1500 },
-      { id: 'est-14', description: 'Iridium Spark Plugs Set of 4', type: 'PART', quantity: 1, unit_price: 4200, total: 4200 },
-      { id: 'est-15', description: 'Oil Change & Tune-up Labor', type: 'LABOR', quantity: 1, unit_price: 4000, total: 4000 },
+      {
+        id: 'est-12',
+        description: 'Engine Oil 5W-30 Full Synthetic 4L',
+        type: 'PART',
+        quantity: 1,
+        unit_price: 6800,
+        total: 6800,
+      },
+      {
+        id: 'est-13',
+        description: 'Oil Filter Cartridge',
+        type: 'PART',
+        quantity: 1,
+        unit_price: 1500,
+        total: 1500,
+      },
+      {
+        id: 'est-14',
+        description: 'Iridium Spark Plugs Set of 4',
+        type: 'PART',
+        quantity: 1,
+        unit_price: 4200,
+        total: 4200,
+      },
+      {
+        id: 'est-15',
+        description: 'Oil Change & Tune-up Labor',
+        type: 'LABOR',
+        quantity: 1,
+        unit_price: 4000,
+        total: 4000,
+      },
     ],
     estimateTotal: 16500,
     estimateApproved: true,
@@ -832,7 +1010,7 @@ export function setCurrentUser(user: CurrentUserSession): void {
 }
 
 export function createBookingRecord(
-  data: Omit<MockBooking, 'id' | 'reference' | 'createdAt' | 'updatedAt'>
+  data: Omit<MockBooking, 'id' | 'reference' | 'createdAt' | 'updatedAt'>,
 ): MockBooking {
   const randNum = Math.floor(100 + Math.random() * 900)
   const id = `bk-${Date.now()}`
@@ -857,4 +1035,3 @@ export function createBookingRecord(
 
   return newBooking
 }
-

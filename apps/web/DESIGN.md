@@ -23,20 +23,46 @@ installing `@carbon/react`. Build new screens from those components and the toke
 
 ### Layering (Carbon g10, built from the existing Open Color gray scale)
 
-| Token | Utility | Value | Use |
-|---|---|---|---|
-| `--canvas` | `bg-canvas` | `#f1f3f5` | Page background behind tiles |
-| `--layer` | `bg-layer` | `#ffffff` | Tiles, data tables, side nav, modals |
-| `--layer-hover` | `bg-layer-hover` | `#f1f3f5` | Row / item hover on a layer |
-| `--layer-accent` | `bg-layer-accent` | `#e9ecef` | Table header row, progress track |
-| `--layer-selected` | `bg-layer-selected` | `#dee2e6` | Selected row, active side-nav item |
-| `--field` | `bg-field` | `#f1f3f5` | Text inputs, selects, textareas |
-| `--field-hover` | `bg-field-hover` | `#e9ecef` | Field hover |
-| `--border-subtle` | `border-border-subtle` | `#dee2e6` | Dividers, row rules |
-| `--border-strong` | `border-border-strong` | `#868e96` | Field bottom rule |
-| `--text-helper` | `text-helper` | `#6c757d` | Helper text, placeholders, group labels |
+| Token              | Utility                | Value     | Use                                     |
+| ------------------ | ---------------------- | --------- | --------------------------------------- |
+| `--canvas`         | `bg-canvas`            | `#f1f3f5` | Page background behind tiles            |
+| `--layer`          | `bg-layer`             | `#ffffff` | Tiles, data tables, side nav, modals    |
+| `--layer-hover`    | `bg-layer-hover`       | `#f1f3f5` | Row / item hover on a layer             |
+| `--layer-accent`   | `bg-layer-accent`      | `#e9ecef` | Table header row, progress track        |
+| `--layer-selected` | `bg-layer-selected`    | `#dee2e6` | Selected row, active side-nav item      |
+| `--field`          | `bg-field`             | `#f1f3f5` | Text inputs, selects, textareas         |
+| `--field-hover`    | `bg-field-hover`       | `#e9ecef` | Field hover                             |
+| `--border-subtle`  | `border-border-subtle` | `#dee2e6` | Dividers, row rules                     |
+| `--border-strong`  | `border-border-strong` | `#868e96` | Field bottom rule                       |
+| `--text-helper`    | `text-helper`          | `#6c757d` | Helper text, placeholders, group labels |
 
 Brand, status and CTA colours are unchanged (`--primary`, `--cta`, `--brand-*`, `--status-*`).
+
+### Brand and neutral extensions
+
+| Token                                | Utility                                        | Light                 | Dark                  | Use                                                                 |
+| ------------------------------------ | ---------------------------------------------- | --------------------- | --------------------- | ------------------------------------------------------------------- |
+| `--brand-blue`                       | `bg-brand-blue`                                | `#1047fa`             | `#2a5cff`             | Action fills: primary buttons on the Carbon screens, selected chips |
+| `--brand-blue-hover`                 | `hover:bg-brand-blue-hover`                    | `#0935c7`             | `#3b69ff`             | Hover of those fills                                                |
+| `--brand-blue-ink`                   | `text-brand-blue-ink`                          | `#1047fa`             | `#8aa8ff`             | Links, references, icons and text in the brand blue                 |
+| `--brand-blue-subtle`                | `bg-brand-blue-subtle`                         | `#eef2ff`             | `#14214a`             | Tinted brand surfaces                                               |
+| `--brand-green`                      | `bg-brand-green`                               | `#00c070`             | `#00c070`             | The public header's Sign in and positive actions                    |
+| `--subtle-foreground`                | `text-subtle-foreground`                       | `#adb5bd`             | `#6f7c98`             | Placeholders, quiet icons, meta                                     |
+| `--border-faint` / `--border-medium` | `border-border-faint` / `border-border-medium` | `#f1f3f5` / `#ced4da` | `#1a2439` / `#34405c` | Hairline dividers / emphasised borders                              |
+| `--destructive-strong`               | `bg-destructive-strong`                        | `#c92a2a`             | `#c92a2a`             | Solid danger fills (white label)                                    |
+
+### Light and dark themes (D93)
+
+Every token has a light value in `:root` and a dark value in `.dark`; `next-themes` toggles `.dark` on
+`<html>` (system preference by default, `ThemeToggle` to choose). Rules:
+
+- Colour only through tokens: `text-foreground`, `text-muted-foreground`, `text-helper`, `bg-card`,
+  `bg-muted`, `border-border`, the brand tokens above. No hex values and no `bg-white` / `neutral-*` in
+  screens.
+- Palette hues (emerald, amber, red, …) are fine for status accents, but always with a `dark:`
+  counterpart: tint `bg-x-50 dark:bg-x-950/40`, ink `text-x-700 dark:text-x-300`, border
+  `border-x-200 dark:border-x-800/60`. Solid fills (`bg-x-600 text-white`) need none.
+- Surfaces that are dark in both themes (POS header, auth brand panel) keep fixed colours.
 
 ### Spacing
 
@@ -45,17 +71,17 @@ Carbon's 2px/8px scale maps to Tailwind steps: 2 `0.5` · 4 `1` · 8 `2` · 12 `
 
 ### Type (Archivo body, Pragati Narrow headings; Caveat only for the landing handwriting)
 
-| Utility | Size / line | Use |
-|---|---|---|
-| `type-label-01` | 12 / 16, 0.32px | Field labels, tags, table meta |
-| `type-helper-01` | 12 / 16, helper colour | Helper and caption text |
-| `type-body-compact-01` | 14 / 18, 0.16px | Dense UI text, table cells |
-| `type-body-01` | 14 / 20, 0.16px | Paragraphs |
-| `type-heading-compact-01` | 14 / 18, 600 | Tile and section titles |
-| `type-heading-compact-02` | 16 / 22, 600 | Card titles |
-| `type-heading-03` | 20 / 28 | Modal titles |
-| `type-heading-04` | 28 / 36 | POS page titles |
-| `type-heading-05` | 32 / 40 | Customer-portal page titles |
+| Utility                   | Size / line            | Use                            |
+| ------------------------- | ---------------------- | ------------------------------ |
+| `type-label-01`           | 12 / 16, 0.32px        | Field labels, tags, table meta |
+| `type-helper-01`          | 12 / 16, helper colour | Helper and caption text        |
+| `type-body-compact-01`    | 14 / 18, 0.16px        | Dense UI text, table cells     |
+| `type-body-01`            | 14 / 20, 0.16px        | Paragraphs                     |
+| `type-heading-compact-01` | 14 / 18, 600           | Tile and section titles        |
+| `type-heading-compact-02` | 16 / 22, 600           | Card titles                    |
+| `type-heading-03`         | 20 / 28                | Modal titles                   |
+| `type-heading-04`         | 28 / 36                | POS page titles                |
+| `type-heading-05`         | 32 / 40                | Customer-portal page titles    |
 
 ### Motion and elevation
 
@@ -71,22 +97,22 @@ buttons it sits on the edge with a 1px inner gap. Invalid fields use the same ou
 
 ## Components
 
-| Component | Carbon equivalent | Spec |
-|---|---|---|
-| `Button` | Button | Pill. `sm` 32px, default 40px, `lg` 48px; 14px regular label. Variants: `default` (primary), `cta`, `outline` (tertiary), `secondary`, `ghost`, `destructive` (danger), `link`. One primary/CTA per view. |
-| `Input`, `Textarea`, `NativeSelect`, `SelectTrigger`, `InputGroup` | Text input, Select | 40px, `bg-field`, square, 1px `border-strong` bottom rule, inset focus outline. |
-| `Label` | Form label | `label-01`, muted colour, sits 8px above the field. |
-| `Card` | Tile | `bg-layer`, no border, radius or shadow, 16px padding (`size="sm"` 12px). Place on `bg-canvas`. |
-| `Table` | Data table | Header row `bg-layer-accent`, 48px, semibold; body rows 48px with a subtle rule, hover `bg-layer-hover`; 16px cell padding. |
-| `Tabs` | Tabs (line) | 40px tabs over a 1px rule; active tab gets a 2px `--primary` bar and semibold label. |
-| `Badge` | Tag | 24px pill, `label-01`. Status variants keep the booking-phase colours. |
-| `Alert` | Inline notification | Square, 3px leading bar in the variant colour. |
-| `Dialog`, `AlertDialog`, `Sheet` | Modal, Side panel | Square `bg-layer`, `shadow-float`, 50% neutral overlay, `heading-03` title. |
-| `DropdownMenu`, `Select` content, `Popover`, `Command` | Menu, Popover | Square, `shadow-float`, 40px items with 16px side padding. |
-| `Checkbox` | Checkbox | 16px, 2px radius, 1px foreground border. |
-| `Accordion` | Accordion | 40px rows, 16px padding, hover fill (no underline). |
-| `Tooltip` | Tooltip | Dark, 2px radius, `label-01`. |
-| `Progress`, `Skeleton` | Progress bar, Skeleton | Square; `bg-layer-accent` track. |
+| Component                                                          | Carbon equivalent      | Spec                                                                                                                                                                                                      |
+| ------------------------------------------------------------------ | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Button`                                                           | Button                 | Pill. `sm` 32px, default 40px, `lg` 48px; 14px regular label. Variants: `default` (primary), `cta`, `outline` (tertiary), `secondary`, `ghost`, `destructive` (danger), `link`. One primary/CTA per view. |
+| `Input`, `Textarea`, `NativeSelect`, `SelectTrigger`, `InputGroup` | Text input, Select     | 40px, `bg-field`, square, 1px `border-strong` bottom rule, inset focus outline.                                                                                                                           |
+| `Label`                                                            | Form label             | `label-01`, muted colour, sits 8px above the field.                                                                                                                                                       |
+| `Card`                                                             | Tile                   | `bg-layer`, no border, radius or shadow, 16px padding (`size="sm"` 12px). Place on `bg-canvas`.                                                                                                           |
+| `Table`                                                            | Data table             | Header row `bg-layer-accent`, 48px, semibold; body rows 48px with a subtle rule, hover `bg-layer-hover`; 16px cell padding.                                                                               |
+| `Tabs`                                                             | Tabs (line)            | 40px tabs over a 1px rule; active tab gets a 2px `--primary` bar and semibold label.                                                                                                                      |
+| `Badge`                                                            | Tag                    | 24px pill, `label-01`. Status variants keep the booking-phase colours.                                                                                                                                    |
+| `Alert`                                                            | Inline notification    | Square, 3px leading bar in the variant colour.                                                                                                                                                            |
+| `Dialog`, `AlertDialog`, `Sheet`                                   | Modal, Side panel      | Square `bg-layer`, `shadow-float`, 50% neutral overlay, `heading-03` title.                                                                                                                               |
+| `DropdownMenu`, `Select` content, `Popover`, `Command`             | Menu, Popover          | Square, `shadow-float`, 40px items with 16px side padding.                                                                                                                                                |
+| `Checkbox`                                                         | Checkbox               | 16px, 2px radius, 1px foreground border.                                                                                                                                                                  |
+| `Accordion`                                                        | Accordion              | 40px rows, 16px padding, hover fill (no underline).                                                                                                                                                       |
+| `Tooltip`                                                          | Tooltip                | Dark, 2px radius, `label-01`.                                                                                                                                                                             |
+| `Progress`, `Skeleton`                                             | Progress bar, Skeleton | Square; `bg-layer-accent` track.                                                                                                                                                                          |
 
 ## Shell (`components/layout/`)
 

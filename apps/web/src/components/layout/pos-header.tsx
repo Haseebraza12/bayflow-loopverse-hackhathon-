@@ -14,13 +14,9 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
+import { ThemeToggle } from '@/components/theme/theme-toggle'
 import { useMockStore } from '@/hooks/use-mock-store'
-import {
-  getCurrentUser,
-  getShops,
-  setCurrentUser,
-  type CurrentUserSession,
-} from '@/lib/mock-data'
+import { getCurrentUser, getShops, setCurrentUser, type CurrentUserSession } from '@/lib/mock-data'
 
 import { Logo } from './logo'
 
@@ -87,7 +83,8 @@ export function PosHeader() {
   // items, and square header panels that drop flush from the bar.
   const item =
     'flex h-12 items-center gap-2 px-4 text-sm tracking-[0.16px] text-neutral-300 transition-colors duration-[110ms] ease-productive hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-white aria-expanded:bg-white/10 aria-expanded:text-white'
-  const panel = 'absolute top-full z-50 w-64 border-t border-white/10 bg-[#1e293b] py-2 shadow-float'
+  const panel =
+    'absolute top-full z-50 w-64 border-t border-white/10 bg-[#1e293b] py-2 shadow-float'
   const panelLabel = 'px-4 pt-2 pb-1 text-xs tracking-[0.32px] text-neutral-400'
   const panelItem =
     'flex min-h-10 w-full items-center justify-between gap-3 px-4 py-2 text-left text-sm tracking-[0.16px] text-neutral-200 transition-colors duration-[70ms] ease-productive hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-white'
@@ -121,7 +118,9 @@ export function PosHeader() {
               className={item}
             >
               <Building2 className="size-4 text-neutral-400" aria-hidden="true" />
-              <span className="max-w-[130px] truncate sm:max-w-none">{activeShop?.name ?? 'Select Shop'}</span>
+              <span className="max-w-[130px] truncate sm:max-w-none">
+                {activeShop?.name ?? 'Select Shop'}
+              </span>
               <ChevronDown className="size-4 text-neutral-400" aria-hidden="true" />
             </button>
 
@@ -137,7 +136,9 @@ export function PosHeader() {
                     className={panelItem}
                   >
                     <span className="truncate">{s.name}</span>
-                    {s.id === user.shopId && <Check className="size-4 text-white" aria-hidden="true" />}
+                    {s.id === user.shopId && (
+                      <Check className="size-4 text-white" aria-hidden="true" />
+                    )}
                   </button>
                 ))}
                 <div className="my-2 border-t border-white/10" />
@@ -186,7 +187,9 @@ export function PosHeader() {
                     className={panelItem}
                   >
                     <span>{r.label}</span>
-                    {r.role === user.role && <Check className="size-4 text-white" aria-hidden="true" />}
+                    {r.role === user.role && (
+                      <Check className="size-4 text-white" aria-hidden="true" />
+                    )}
                   </button>
                 ))}
               </div>
@@ -202,6 +205,10 @@ export function PosHeader() {
             <Globe className="size-4" aria-hidden="true" />
             <span>Website</span>
           </Link>
+
+          <div className="flex items-center px-1">
+            <ThemeToggle tone="nav" className="rounded-none" />
+          </div>
 
           <Link href="/login" className={item} title="Sign out">
             <LogOut className="size-4" aria-hidden="true" />

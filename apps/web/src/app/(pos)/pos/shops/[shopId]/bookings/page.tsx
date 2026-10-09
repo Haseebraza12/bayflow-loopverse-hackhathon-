@@ -1,13 +1,6 @@
 'use client'
 
-import {
-  CalendarCheck,
-  ChevronRight,
-  Clock,
-  Plus,
-  Search,
-  Wrench,
-} from 'lucide-react'
+import { CalendarCheck, ChevronRight, Clock, Plus, Search, Wrench } from 'lucide-react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { useState } from 'react'
@@ -97,37 +90,40 @@ export default function ServiceAdvisorBookingsPage() {
   return (
     <div className="space-y-6 pb-12">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <span className="text-xs font-bold tracking-[0.32px] text-[#1047FA]">
+          <span className="text-xs font-bold tracking-[0.32px] text-brand-blue-ink">
             Service Advisor Workspace
           </span>
-          <h1 className="text-2xl sm:text-3xl font-semibold text-neutral-900 mt-1">
+          <h1 className="mt-1 text-2xl font-semibold text-foreground sm:text-3xl">
             Bookings & Work Orders Queue
           </h1>
-          <p className="text-xs text-neutral-500 mt-0.5">
+          <p className="mt-0.5 text-xs text-helper">
             Confirm customer intakes, assign technicians, review estimates, and coordinate pick-ups.
           </p>
         </div>
 
-        <Button asChild className="bg-[#1047FA] text-white text-xs font-semibold h-9 rounded-lg rounded-full">
+        <Button
+          asChild
+          className="h-9 rounded-full rounded-lg bg-brand-blue text-xs font-semibold text-white"
+        >
           <Link href="/book">
-            <Plus className="size-3.5 mr-1" />
+            <Plus className="mr-1 size-3.5" />
             New Walk-in Booking
           </Link>
         </Button>
       </div>
 
       {/* Preset Filter Tabs & Search Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+      <div className="flex flex-col justify-between gap-3 pt-2 sm:flex-row sm:items-center">
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
           <button
             type="button"
             onClick={() => setFilterPreset('needs_sa')}
-            className={`rounded-lg px-3.5 py-1.5 text-xs font-bold transition-colors whitespace-nowrap ${
+            className={`rounded-lg px-3.5 py-1.5 text-xs font-bold whitespace-nowrap transition-colors ${
               filterPreset === 'needs_sa'
-                ? 'bg-[#1047FA] text-white'
-                : 'bg-white border border-neutral-200 text-neutral-600 hover:border-blue-300'
+                ? 'bg-brand-blue text-white'
+                : 'border border-border bg-card text-muted-foreground hover:border-blue-300 dark:hover:border-blue-700/70'
             }`}
           >
             Needs SA Action
@@ -136,10 +132,10 @@ export default function ServiceAdvisorBookingsPage() {
           <button
             type="button"
             onClick={() => setFilterPreset('in_progress')}
-            className={`rounded-lg px-3.5 py-1.5 text-xs font-bold transition-colors whitespace-nowrap ${
+            className={`rounded-lg px-3.5 py-1.5 text-xs font-bold whitespace-nowrap transition-colors ${
               filterPreset === 'in_progress'
-                ? 'bg-[#1047FA] text-white'
-                : 'bg-white border border-neutral-200 text-neutral-600 hover:border-blue-300'
+                ? 'bg-brand-blue text-white'
+                : 'border border-border bg-card text-muted-foreground hover:border-blue-300 dark:hover:border-blue-700/70'
             }`}
           >
             Workshop in Progress
@@ -148,10 +144,10 @@ export default function ServiceAdvisorBookingsPage() {
           <button
             type="button"
             onClick={() => setFilterPreset('all')}
-            className={`rounded-lg px-3.5 py-1.5 text-xs font-bold transition-colors whitespace-nowrap ${
+            className={`rounded-lg px-3.5 py-1.5 text-xs font-bold whitespace-nowrap transition-colors ${
               filterPreset === 'all'
-                ? 'bg-[#1047FA] text-white'
-                : 'bg-white border border-neutral-200 text-neutral-600 hover:border-blue-300'
+                ? 'bg-brand-blue text-white'
+                : 'border border-border bg-card text-muted-foreground hover:border-blue-300 dark:hover:border-blue-700/70'
             }`}
           >
             All Bookings ({allBookings.length})
@@ -159,31 +155,29 @@ export default function ServiceAdvisorBookingsPage() {
         </div>
 
         <div className="relative w-full sm:w-72">
-          <Search className="absolute left-3 top-2.5 size-4 text-neutral-400" />
+          <Search className="absolute top-2.5 left-3 size-4 text-subtle-foreground" />
           <Input
             placeholder="Search ref, plate, or customer..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 h-9 text-xs bg-white"
+            className="h-9 bg-card pl-9 text-xs"
           />
         </div>
       </div>
 
       {/* Bookings Queue Table */}
-      <Card className="border-neutral-200 overflow-hidden">
+      <Card className="overflow-hidden border-border">
         <CardContent className="p-0">
           {filteredBookings.length === 0 ? (
-            <div className="p-12 text-center space-y-2">
-              <CalendarCheck className="mx-auto size-10 text-neutral-300" />
-              <p className="text-sm font-bold text-neutral-900">All caught up!</p>
-              <p className="text-xs text-neutral-500">
-                No bookings match your current filter criteria.
-              </p>
+            <div className="space-y-2 p-12 text-center">
+              <CalendarCheck className="mx-auto size-10 text-border-medium" />
+              <p className="text-sm font-bold text-foreground">All caught up!</p>
+              <p className="text-xs text-helper">No bookings match your current filter criteria.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-neutral-50 text-[11px] font-bold text-neutral-400 border-b border-neutral-200">
+                <thead className="border-b border-border bg-muted text-[11px] font-bold text-subtle-foreground">
                   <tr>
                     <th className="px-5 py-3">Reference / Slot</th>
                     <th className="px-4 py-3">Customer & Vehicle</th>
@@ -194,37 +188,39 @@ export default function ServiceAdvisorBookingsPage() {
                     <th className="px-5 py-3 text-right">Open</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-neutral-100 text-neutral-700">
+                <tbody className="divide-y divide-border-faint text-muted-foreground">
                   {filteredBookings.map((b) => {
                     const nextStep = getNextStep(b)
 
                     return (
-                      <tr key={b.id} className="hover:bg-neutral-50/70">
+                      <tr key={b.id} className="hover:bg-muted/70">
                         <td className="px-5 py-3.5 whitespace-nowrap">
                           <Link
                             href={`${base}/bookings/${b.id}`}
-                            className="font-mono font-bold text-[#1047FA] hover:underline"
+                            className="font-mono font-bold text-brand-blue-ink hover:underline"
                           >
                             {b.reference}
                           </Link>
-                          <div className="flex items-center gap-1 text-[11px] text-neutral-400 mt-0.5">
+                          <div className="mt-0.5 flex items-center gap-1 text-[11px] text-subtle-foreground">
                             <Clock className="size-3" />
-                            <span>{b.scheduledTime} ({b.scheduledDate})</span>
+                            <span>
+                              {b.scheduledTime} ({b.scheduledDate})
+                            </span>
                           </div>
                         </td>
 
                         <td className="px-4 py-3.5">
-                          <p className="font-bold text-neutral-900">{b.customerName}</p>
-                          <p className="font-mono text-[11px] text-neutral-600">
+                          <p className="font-bold text-foreground">{b.customerName}</p>
+                          <p className="font-mono text-[11px] text-muted-foreground">
                             {b.licensePlate} • {b.vehicleYear} {b.vehicleMake} {b.vehicleModel}
                           </p>
                         </td>
 
-                        <td className="px-4 py-3.5 max-w-xs">
-                          <div className="truncate text-neutral-800 font-medium">
+                        <td className="max-w-xs px-4 py-3.5">
+                          <div className="truncate font-medium text-foreground">
                             {b.services.join(', ')}
                           </div>
-                          <span className="text-[11px] text-neutral-400">
+                          <span className="text-[11px] text-subtle-foreground">
                             Est: {formatPKR(b.estimateTotal)}
                           </span>
                         </td>
@@ -235,12 +231,12 @@ export default function ServiceAdvisorBookingsPage() {
 
                         <td className="px-4 py-3.5 whitespace-nowrap">
                           {b.assignedTechnicianName ? (
-                            <span className="flex items-center gap-1 text-neutral-800 font-medium">
-                              <Wrench className="size-3 text-neutral-400" />
+                            <span className="flex items-center gap-1 font-medium text-foreground">
+                              <Wrench className="size-3 text-subtle-foreground" />
                               {b.assignedTechnicianName}
                             </span>
                           ) : (
-                            <span className="text-neutral-400 italic">Unassigned</span>
+                            <span className="text-subtle-foreground italic">Unassigned</span>
                           )}
                         </td>
 
@@ -249,14 +245,14 @@ export default function ServiceAdvisorBookingsPage() {
                             <span
                               className={`rounded px-2 py-0.5 text-[11px] font-bold ${
                                 nextStep.urgent
-                                  ? 'bg-amber-100 text-amber-800'
-                                  : 'bg-neutral-100 text-neutral-600'
+                                  ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200'
+                                  : 'bg-secondary text-muted-foreground'
                               }`}
                             >
                               {nextStep.label}
                             </span>
                           ) : (
-                            <span className="text-neutral-400 text-[11px]">In progress</span>
+                            <span className="text-[11px] text-subtle-foreground">In progress</span>
                           )}
                         </td>
 
@@ -265,11 +261,11 @@ export default function ServiceAdvisorBookingsPage() {
                             asChild
                             variant="outline"
                             size="sm"
-                            className="h-7 text-xs font-semibold border-neutral-200 rounded-full"
+                            className="h-7 rounded-full border-border text-xs font-semibold"
                           >
                             <Link href={`${base}/bookings/${b.id}`}>
                               Manage
-                              <ChevronRight className="size-3 ml-1" />
+                              <ChevronRight className="ml-1 size-3" />
                             </Link>
                           </Button>
                         </td>

@@ -52,7 +52,7 @@ Versions were read from the npm registry on 2026-10-09. Exact versions are pinne
 **Not used, on purpose:**
 - Server Actions or Route Handlers for data. All data goes through the FastAPI backend (§2.4).
 - `next/image` for shop logos. Logos are arbitrary URLs (D55), so they render with Avatar and `<img>`.
-- `cacheComponents`, `reactCompiler`, `next-themes`.
+- `cacheComponents`, `reactCompiler`.
 - A global client-state library. TanStack Query, the URL and React state are enough.
 
 ### 2.2 `apps/web` folder structure
@@ -745,8 +745,8 @@ Configuration lives in CSS. There is no `tailwind.config.ts` and no PostCSS conf
 @import "tw-animate-css";          /* shadcn: replaces tailwindcss-animate */
 @import "shadcn/tailwind.css";     /* shipped by the shadcn package (keyframes + data-* variants); added by init */
 
-/* Class-based dark variant: OS dark mode must NOT half-activate shadcn's dark: utilities.
-   We never add .dark in P0 (§3.11). Tailwind's default dark variant is prefers-color-scheme. */
+/* Class-based dark variant: next-themes adds .dark to <html> (§3.11, D93), so `dark:` follows the
+   user's choice, not only the OS. Tailwind's default dark variant is prefers-color-scheme. */
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
@@ -893,11 +893,12 @@ Both load through `next/font/google`, which self-hosts them so the browser makes
 
 ### 3.11 Dark mode decision
 
-**Light theme only for P0–P2.**
-- **Why:** the brief does not ask for dark mode, the navy hero and header already give a strong brand moment, and one theme halves the visual QA and contrast work during the hackathon.
-- **Guard:** `@custom-variant dark` is class-based and `.dark` is never added, so users with OS dark mode never see half-dark shadcn components. `color-scheme: light` keeps native controls and scrollbars light.
-- **No `next-themes`.** shadcn's generated `sonner.tsx` reads the theme through `next-themes`; that lookup was removed, the toaster is fixed to `theme="light"`, and `next-themes` is not a dependency.
-- **Later (P3):** tokens are only declared in `:root`, so dark mode is a `.dark { … }` block plus a toggle.
+**Light and dark themes (D93, amends the earlier light-only decision).**
+- **How:** `next-themes` (class strategy, `attribute="class"`, `defaultTheme="system"`, `disableTransitionOnChange`) puts `.dark` on `<html>` before hydration, so `<html>` carries `suppressHydrationWarning`. `ThemeToggle` (`components/theme/theme-toggle.tsx`, a `DropdownMenu` with Light / Dark / System) sits in the public header, the POS header and the auth pages. The sun/moon icon swaps through `dark:` classes, so the trigger renders identically on server and client.
+- **Tokens:** every colour token has a light value in `:root` (unchanged from §3.2) and a dark value in `.dark` — a navy-black Carbon g100 version of the same palette: canvas `#0A0F1C`, layer `#111A2D`, foreground `#E6EAF2`, primary `#DBE3F7` on navy text, brand blue fill `#2A5CFF` with ink `#8AA8FF`, status hues as light inks on tinted dark fills. `color-scheme: dark` makes native controls and scrollbars follow.
+- **Screens use tokens only.** Neutral steps map to `foreground`, `muted-foreground`, `helper`, `subtle-foreground`, `card`, `muted`, `secondary`, `border`, `border-faint` and `border-medium`; the Carbon screens' blue and green map to `brand-blue` / `brand-blue-ink` / `brand-blue-hover` / `brand-blue-subtle` / `brand-green` / `brand-green-hover`; chromatic palette classes keep their light class plus an explicit `dark:` counterpart. Surfaces that are dark in both themes (the POS header, the auth brand panel) keep their fixed colours.
+- **Danger fills** use `--destructive-strong` (white label stays AA); `--destructive` lightens to `#FF6B6B` in dark for text.
+- **Toasts** follow the resolved theme (`sonner.tsx` reads `useTheme().resolvedTheme`).
 
 ### 3.12 shadcn/ui setup and component inventory
 
@@ -1377,7 +1378,7 @@ Computed with the WCAG relative-luminance formula. Requirements: 4.5 : 1 for tex
 3. **shadcn base.** ✅ Resolved by D1: shadcn/ui initialised with Radix primitives (`-b radix`).
 4. **`capabilities` on memberships.** ✅ Resolved by D66: `GET /api/v1/me` returns server-computed `capabilities` per membership (glossary §2.4); the UI shows non-booking buttons only from them (§2.8).
 5. **Fonts.** Inter + JetBrains Mono are a proposal; the brief does not specify typography.
-6. ✅ **Resolved by D1 (amended): light theme only** for the hackathon, without `next-themes` (§3.11).
+6. ✅ **Resolved by D93: light and dark themes** with `next-themes`, following the OS by default (§3.11).
 7. **Staff status labels** (§3.3). ✅ Resolved: the labels and phases were merged into glossary §3 (and `StatusPhase`, §5).
 8. **Booking-creation idempotency.** Should the wizard send an `Idempotency-Key` header, so a network retry after a lost response cannot create a second booking? This needs API support (tracked as spec 03 Open question 2); until then the wizard disables its button while the request is pending.
 

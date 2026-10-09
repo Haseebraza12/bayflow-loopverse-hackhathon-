@@ -12,7 +12,8 @@ const buttonVariants = cva(
     variants: {
       variant: {
         // Carbon primary
-        default: 'bg-primary text-primary-foreground hover:bg-primary-hover active:bg-primary-hover',
+        default:
+          'bg-primary text-primary-foreground hover:bg-primary-hover active:bg-primary-hover',
         // BayFlow: the one orange conversion button per customer-portal screen (spec 09 §3.1, R7).
         cta: 'bg-cta text-cta-foreground hover:bg-cta-hover active:bg-cta-hover',
         // Carbon tertiary: outlined in the primary colour, fills on hover
@@ -22,11 +23,10 @@ const buttonVariants = cva(
         secondary:
           'bg-secondary text-secondary-foreground hover:bg-layer-selected aria-expanded:bg-layer-selected',
         // Carbon ghost
-        ghost:
-          'bg-transparent text-primary hover:bg-layer-hover aria-expanded:bg-layer-hover',
+        ghost: 'bg-transparent text-primary hover:bg-layer-hover aria-expanded:bg-layer-hover',
         // Carbon danger (solid)
         destructive:
-          'bg-destructive text-destructive-foreground hover:bg-[color-mix(in_oklch,var(--destructive),black_12%)] focus-visible:outline-destructive',
+          'bg-destructive-strong text-destructive-foreground hover:bg-[color-mix(in_oklch,var(--destructive-strong),black_12%)] focus-visible:outline-destructive',
         link: 'h-auto! rounded-none! px-0! text-primary underline-offset-4 hover:underline',
       },
       size: {

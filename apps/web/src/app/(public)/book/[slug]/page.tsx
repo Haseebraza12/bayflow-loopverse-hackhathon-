@@ -24,12 +24,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { useMockStore } from '@/hooks/use-mock-store'
 import { formatPKR } from '@/lib/format'
-import {
-  createBookingRecord,
-  getCurrentUser,
-  getServices,
-  getShopBySlug,
-} from '@/lib/mock-data'
+import { createBookingRecord, getCurrentUser, getServices, getShopBySlug } from '@/lib/mock-data'
 
 const TIME_SLOTS = [
   '09:00 am',
@@ -68,7 +63,7 @@ function BookingWizardContent() {
   // Step 4 State: Customer & Vehicle
   const [customerName, setCustomerName] = useState(currentUser.name || 'Ahmed Raza')
   const [customerEmail, setCustomerEmail] = useState(
-    currentUser.email || 'ahmed.customer@bayflow.test'
+    currentUser.email || 'ahmed.customer@bayflow.test',
   )
   const [customerPhone, setCustomerPhone] = useState('+92 300 5544332')
   const [vehicleMake, setVehicleMake] = useState('Toyota')
@@ -94,9 +89,11 @@ function BookingWizardContent() {
   if (!shop) {
     return (
       <div className="mx-auto max-w-4xl px-4 py-16 text-center">
-        <h1 className="text-2xl font-bold text-neutral-900">Workshop Not Found</h1>
-        <p className="mt-2 text-neutral-600">Please choose a valid workshop to book an appointment.</p>
-        <Button asChild className="mt-6 bg-[#1047FA] text-white rounded-full">
+        <h1 className="text-2xl font-bold text-foreground">Workshop Not Found</h1>
+        <p className="mt-2 text-muted-foreground">
+          Please choose a valid workshop to book an appointment.
+        </p>
+        <Button asChild className="mt-6 rounded-full bg-brand-blue text-white">
           <Link href="/book">Choose a Workshop</Link>
         </Button>
       </div>
@@ -199,18 +196,18 @@ function BookingWizardContent() {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-50/70 pb-24">
+    <div className="min-h-screen bg-muted/70 pb-24">
       {/* Stepper Progress Header */}
-      <div className="border-b border-neutral-200 bg-white">
+      <div className="border-b border-border bg-card">
         <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <div className="flex items-center gap-2 text-xs font-bold tracking-[0.32px] text-[#1047FA] mb-1">
+              <div className="mb-1 flex items-center gap-2 text-xs font-bold tracking-[0.32px] text-brand-blue-ink">
                 <span>Step {currentStep} of 5</span>
                 <span>•</span>
-                <span className="text-neutral-500 font-semibold">{shop.name}</span>
+                <span className="font-semibold text-helper">{shop.name}</span>
               </div>
-              <h1 className="text-2xl font-semibold text-neutral-900">
+              <h1 className="text-2xl font-semibold text-foreground">
                 {currentStep === 2 && 'Choose Services & Describe Issue'}
                 {currentStep === 3 && 'Pick an Appointment Time'}
                 {currentStep === 4 && 'Your Vehicle & Contact Details'}
@@ -240,15 +237,15 @@ function BookingWizardContent() {
                       }}
                       className={`flex size-7 items-center justify-center rounded-full text-xs font-bold transition-all ${
                         isCurrent
-                          ? 'bg-[#1047FA] text-white ring-2 ring-blue-200'
+                          ? 'bg-brand-blue text-white ring-2 ring-blue-200 dark:ring-blue-800/60'
                           : isPassed
-                            ? 'bg-emerald-600 text-white cursor-pointer'
-                            : 'bg-neutral-100 text-neutral-400'
+                            ? 'cursor-pointer bg-emerald-600 text-white'
+                            : 'bg-secondary text-subtle-foreground'
                       }`}
                     >
                       {isPassed ? <Check className="size-3.5" /> : s.step}
                     </button>
-                    {s.step < 5 && <div className="h-0.5 w-3 sm:w-6 bg-neutral-200" />}
+                    {s.step < 5 && <div className="h-0.5 w-3 bg-layer-accent sm:w-6" />}
                   </div>
                 )
               })}
@@ -259,12 +256,15 @@ function BookingWizardContent() {
 
       {/* Main Wizard Area */}
       <div className="mx-auto max-w-5xl px-4 pt-8 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
           {/* Left: Step Form Content (2 spans) */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="space-y-6 lg:col-span-2">
             {error && (
-              <Alert variant="destructive" className="border-red-200 bg-red-50 text-red-900">
-                <AlertCircle className="size-4 text-red-600" />
+              <Alert
+                variant="destructive"
+                className="border-red-200 bg-red-50 text-red-900 dark:border-red-800/60 dark:bg-red-950/40 dark:text-red-100"
+              >
+                <AlertCircle className="size-4 text-red-600 dark:text-red-400" />
                 <AlertDescription className="text-xs">{error}</AlertDescription>
               </Alert>
             )}
@@ -273,9 +273,10 @@ function BookingWizardContent() {
             {currentStep === 2 && (
               <div className="space-y-6">
                 <div>
-                  <h2 className="text-base font-bold text-neutral-900">Select services requested</h2>
-                  <p className="text-xs text-neutral-500 mt-0.5">
-                    Select one or more services. You will approve the formal technician estimate before any physical work starts.
+                  <h2 className="text-base font-bold text-foreground">Select services requested</h2>
+                  <p className="mt-0.5 text-xs text-helper">
+                    Select one or more services. You will approve the formal technician estimate
+                    before any physical work starts.
                   </p>
                 </div>
 
@@ -286,10 +287,10 @@ function BookingWizardContent() {
                       <div
                         key={srv.id}
                         onClick={() => handleToggleService(srv.id)}
-                        className={`flex items-start gap-3.5 rounded-xl border p-4 cursor-pointer transition-all ${
+                        className={`flex cursor-pointer items-start gap-3.5 rounded-xl border p-4 transition-all ${
                           isSelected
-                            ? 'border-[#1047FA] bg-blue-50/40'
-                            : 'border-neutral-200 bg-white hover:border-neutral-300'
+                            ? 'border-brand-blue bg-blue-50/40 dark:bg-blue-950/30'
+                            : 'border-border bg-card hover:border-border-medium'
                         }`}
                       >
                         <Checkbox
@@ -299,15 +300,13 @@ function BookingWizardContent() {
                         />
                         <div className="flex-1 space-y-1">
                           <div className="flex items-center justify-between">
-                            <h3 className="font-bold text-neutral-900 text-sm">{srv.name}</h3>
-                            <span className="text-xs font-bold text-neutral-900">
+                            <h3 className="text-sm font-bold text-foreground">{srv.name}</h3>
+                            <span className="text-xs font-bold text-foreground">
                               {srv.base_price ? formatPKR(srv.base_price) : 'Inspection needed'}
                             </span>
                           </div>
-                          <p className="text-xs text-neutral-500 leading-relaxed">
-                            {srv.description}
-                          </p>
-                          <div className="flex items-center gap-1.5 text-[11px] text-neutral-400 pt-0.5">
+                          <p className="text-xs leading-relaxed text-helper">{srv.description}</p>
+                          <div className="flex items-center gap-1.5 pt-0.5 text-[11px] text-subtle-foreground">
                             <Clock className="size-3" />
                             <span>Approx. {srv.estimated_duration_minutes} minutes</span>
                           </div>
@@ -319,7 +318,7 @@ function BookingWizardContent() {
 
                 {/* Additional notes textarea */}
                 <div className="space-y-2 pt-2">
-                  <Label htmlFor="notes" className="text-xs font-bold text-neutral-700">
+                  <Label htmlFor="notes" className="text-xs font-bold text-muted-foreground">
                     Describe any symptoms, noises, or concerns (Optional)
                   </Label>
                   <Textarea
@@ -327,10 +326,11 @@ function BookingWizardContent() {
                     placeholder="e.g. Check engine light illuminated yesterday, mild squeaking when braking above 50 km/h..."
                     value={customerNotes}
                     onChange={(e) => setCustomerNotes(e.target.value)}
-                    className="text-xs h-24 bg-white"
+                    className="h-24 bg-card text-xs"
                   />
-                  <p className="text-[11px] text-neutral-400">
-                    Our Service Advisor and assigned Technician read your notes before commencing inspection.
+                  <p className="text-[11px] text-subtle-foreground">
+                    Our Service Advisor and assigned Technician read your notes before commencing
+                    inspection.
                   </p>
                 </div>
               </div>
@@ -340,16 +340,18 @@ function BookingWizardContent() {
             {currentStep === 3 && (
               <div className="space-y-6">
                 <div>
-                  <h2 className="text-base font-bold text-neutral-900">Select Date & Preferred Slot</h2>
-                  <p className="text-xs text-neutral-500 mt-0.5">
+                  <h2 className="text-base font-bold text-foreground">
+                    Select Date & Preferred Slot
+                  </h2>
+                  <p className="mt-0.5 text-xs text-helper">
                     Appointments are guaranteed on the workshop bay floor with allocated capacity.
                   </p>
                 </div>
 
                 {/* Date Picker Buttons */}
                 <div className="space-y-2">
-                  <Label className="text-xs font-bold text-neutral-700">Choose Day</Label>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <Label className="text-xs font-bold text-muted-foreground">Choose Day</Label>
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                     {[
                       { date: '2026-10-12', label: 'Mon, Oct 12' },
                       { date: '2026-10-13', label: 'Tue, Oct 13' },
@@ -364,8 +366,8 @@ function BookingWizardContent() {
                         onClick={() => setScheduledDate(d.date)}
                         className={`rounded-xl border p-3 text-center text-xs font-semibold transition-all ${
                           scheduledDate === d.date
-                            ? 'border-[#1047FA] bg-[#1047FA] text-white'
-                            : 'border-neutral-200 bg-white text-neutral-700 hover:border-blue-300'
+                            ? 'border-brand-blue bg-brand-blue text-white'
+                            : 'border-border bg-card text-muted-foreground hover:border-blue-300 dark:hover:border-blue-700/70'
                         }`}
                       >
                         {d.label}
@@ -377,10 +379,14 @@ function BookingWizardContent() {
                 {/* Time Slot Chips */}
                 <div className="space-y-2 pt-3">
                   <div className="flex items-center justify-between">
-                    <Label className="text-xs font-bold text-neutral-700">Choose Arrival Slot</Label>
-                    <span className="text-[11px] text-neutral-400">Shop timezone: {shop.timezone}</span>
+                    <Label className="text-xs font-bold text-muted-foreground">
+                      Choose Arrival Slot
+                    </Label>
+                    <span className="text-[11px] text-subtle-foreground">
+                      Shop timezone: {shop.timezone}
+                    </span>
                   </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                  <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
                     {TIME_SLOTS.map((time) => {
                       const isSelected = scheduledTime === time
                       return (
@@ -390,12 +396,14 @@ function BookingWizardContent() {
                           onClick={() => setScheduledTime(time)}
                           className={`rounded-xl border p-3 text-center text-xs font-bold transition-all ${
                             isSelected
-                              ? 'border-[#1047FA] bg-[#1047FA] text-white'
-                              : 'border-neutral-200 bg-white text-neutral-800 hover:border-neutral-300'
+                              ? 'border-brand-blue bg-brand-blue text-white'
+                              : 'border-border bg-card text-foreground hover:border-border-medium'
                           }`}
                         >
                           <div className="flex items-center justify-center gap-1.5">
-                            <Clock className={`size-3.5 ${isSelected ? 'text-white' : 'text-neutral-400'}`} />
+                            <Clock
+                              className={`size-3.5 ${isSelected ? 'text-white' : 'text-subtle-foreground'}`}
+                            />
                             <span>{time}</span>
                           </div>
                         </button>
@@ -404,10 +412,11 @@ function BookingWizardContent() {
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-4 flex items-start gap-3">
-                  <Info className="size-4 text-[#1047FA] shrink-0 mt-0.5" />
-                  <p className="text-xs text-blue-900 leading-relaxed">
-                    Arriving at your scheduled slot guarantees that a Service Advisor and bay lift are pre-allocated for intake and computer diagnostics.
+                <div className="flex items-start gap-3 rounded-xl border border-blue-100 bg-blue-50/50 p-4 dark:border-blue-900/50 dark:bg-blue-950/30">
+                  <Info className="mt-0.5 size-4 shrink-0 text-brand-blue-ink" />
+                  <p className="text-xs leading-relaxed text-blue-900 dark:text-blue-100">
+                    Arriving at your scheduled slot guarantees that a Service Advisor and bay lift
+                    are pre-allocated for intake and computer diagnostics.
                   </p>
                 </div>
               </div>
@@ -417,20 +426,26 @@ function BookingWizardContent() {
             {currentStep === 4 && (
               <div className="space-y-6">
                 <div>
-                  <h2 className="text-base font-bold text-neutral-900">Contact & Vehicle Information</h2>
-                  <p className="text-xs text-neutral-500 mt-0.5">
-                    We use these details to contact you with your digital inspection report and estimate.
+                  <h2 className="text-base font-bold text-foreground">
+                    Contact & Vehicle Information
+                  </h2>
+                  <p className="mt-0.5 text-xs text-helper">
+                    We use these details to contact you with your digital inspection report and
+                    estimate.
                   </p>
                 </div>
 
                 {/* Customer Details Box */}
-                <div className="rounded-xl border border-neutral-200 bg-white p-5 space-y-4">
-                  <h3 className="text-xs font-bold tracking-[0.32px] text-neutral-400">
+                <div className="space-y-4 rounded-xl border border-border bg-card p-5">
+                  <h3 className="text-xs font-bold tracking-[0.32px] text-subtle-foreground">
                     Customer Information
                   </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div className="space-y-1.5">
-                      <Label htmlFor="cName" className="text-xs font-semibold text-neutral-700">
+                      <Label
+                        htmlFor="cName"
+                        className="text-xs font-semibold text-muted-foreground"
+                      >
                         Full Name
                       </Label>
                       <Input
@@ -438,11 +453,14 @@ function BookingWizardContent() {
                         value={customerName}
                         onChange={(e) => setCustomerName(e.target.value)}
                         placeholder="e.g. Ahmed Raza"
-                        className="text-xs h-9"
+                        className="h-9 text-xs"
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="cPhone" className="text-xs font-semibold text-neutral-700">
+                      <Label
+                        htmlFor="cPhone"
+                        className="text-xs font-semibold text-muted-foreground"
+                      >
                         Phone Number
                       </Label>
                       <Input
@@ -450,11 +468,14 @@ function BookingWizardContent() {
                         value={customerPhone}
                         onChange={(e) => setCustomerPhone(e.target.value)}
                         placeholder="+92 300 1234567"
-                        className="text-xs h-9"
+                        className="h-9 text-xs"
                       />
                     </div>
                     <div className="space-y-1.5 sm:col-span-2">
-                      <Label htmlFor="cEmail" className="text-xs font-semibold text-neutral-700">
+                      <Label
+                        htmlFor="cEmail"
+                        className="text-xs font-semibold text-muted-foreground"
+                      >
                         Email Address (for inspection reports)
                       </Label>
                       <Input
@@ -463,21 +484,24 @@ function BookingWizardContent() {
                         value={customerEmail}
                         onChange={(e) => setCustomerEmail(e.target.value)}
                         placeholder="name@example.test"
-                        className="text-xs h-9"
+                        className="h-9 text-xs"
                       />
                     </div>
                   </div>
                 </div>
 
                 {/* Vehicle Details Box */}
-                <div className="rounded-xl border border-neutral-200 bg-white p-5 space-y-4">
-                  <h3 className="text-xs font-bold tracking-[0.32px] text-neutral-400 flex items-center gap-1.5">
-                    <Car className="size-3.5 text-neutral-500" />
+                <div className="space-y-4 rounded-xl border border-border bg-card p-5">
+                  <h3 className="flex items-center gap-1.5 text-xs font-bold tracking-[0.32px] text-subtle-foreground">
+                    <Car className="size-3.5 text-helper" />
                     Vehicle Information
                   </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                     <div className="space-y-1.5">
-                      <Label htmlFor="vMake" className="text-xs font-semibold text-neutral-700">
+                      <Label
+                        htmlFor="vMake"
+                        className="text-xs font-semibold text-muted-foreground"
+                      >
                         Make
                       </Label>
                       <Input
@@ -485,11 +509,14 @@ function BookingWizardContent() {
                         value={vehicleMake}
                         onChange={(e) => setVehicleMake(e.target.value)}
                         placeholder="Toyota"
-                        className="text-xs h-9"
+                        className="h-9 text-xs"
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="vModel" className="text-xs font-semibold text-neutral-700">
+                      <Label
+                        htmlFor="vModel"
+                        className="text-xs font-semibold text-muted-foreground"
+                      >
                         Model
                       </Label>
                       <Input
@@ -497,11 +524,14 @@ function BookingWizardContent() {
                         value={vehicleModel}
                         onChange={(e) => setVehicleModel(e.target.value)}
                         placeholder="Corolla GLi"
-                        className="text-xs h-9"
+                        className="h-9 text-xs"
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="vYear" className="text-xs font-semibold text-neutral-700">
+                      <Label
+                        htmlFor="vYear"
+                        className="text-xs font-semibold text-muted-foreground"
+                      >
                         Year
                       </Label>
                       <Input
@@ -510,11 +540,14 @@ function BookingWizardContent() {
                         value={vehicleYear}
                         onChange={(e) => setVehicleYear(e.target.value)}
                         placeholder="2020"
-                        className="text-xs h-9"
+                        className="h-9 text-xs"
                       />
                     </div>
                     <div className="space-y-1.5 sm:col-span-2">
-                      <Label htmlFor="vPlate" className="text-xs font-semibold text-neutral-700">
+                      <Label
+                        htmlFor="vPlate"
+                        className="text-xs font-semibold text-muted-foreground"
+                      >
                         Registration Plate
                       </Label>
                       <Input
@@ -522,11 +555,14 @@ function BookingWizardContent() {
                         value={licensePlate}
                         onChange={(e) => setLicensePlate(e.target.value.toUpperCase())}
                         placeholder="LEA-20-4491"
-                        className="text-xs h-9 font-mono"
+                        className="h-9 font-mono text-xs"
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="vMileage" className="text-xs font-semibold text-neutral-700">
+                      <Label
+                        htmlFor="vMileage"
+                        className="text-xs font-semibold text-muted-foreground"
+                      >
                         Mileage (km)
                       </Label>
                       <Input
@@ -534,7 +570,7 @@ function BookingWizardContent() {
                         value={mileageKm}
                         onChange={(e) => setMileageKm(e.target.value)}
                         placeholder="45000"
-                        className="text-xs h-9"
+                        className="h-9 text-xs"
                       />
                     </div>
                   </div>
@@ -546,22 +582,24 @@ function BookingWizardContent() {
             {currentStep === 5 && (
               <div className="space-y-6">
                 <div>
-                  <h2 className="text-base font-bold text-neutral-900">Review Booking Summary</h2>
-                  <p className="text-xs text-neutral-500 mt-0.5">
+                  <h2 className="text-base font-bold text-foreground">Review Booking Summary</h2>
+                  <p className="mt-0.5 text-xs text-helper">
                     Please review your booking details before confirmation.
                   </p>
                 </div>
 
                 <div className="space-y-4">
                   {/* Shop & Slot */}
-                  <div className="rounded-xl border border-neutral-200 bg-white p-4 flex items-start justify-between">
+                  <div className="flex items-start justify-between rounded-xl border border-border bg-card p-4">
                     <div className="space-y-1 text-xs">
-                      <span className="font-bold tracking-[0.32px] text-neutral-400 text-[10px]">
+                      <span className="text-[10px] font-bold tracking-[0.32px] text-subtle-foreground">
                         Workshop & Time
                       </span>
-                      <p className="font-bold text-neutral-900 text-sm">{shop.name}</p>
-                      <p className="text-neutral-500">{shop.address}, {shop.city}</p>
-                      <p className="font-semibold text-[#1047FA] pt-1">
+                      <p className="text-sm font-bold text-foreground">{shop.name}</p>
+                      <p className="text-helper">
+                        {shop.address}, {shop.city}
+                      </p>
+                      <p className="pt-1 font-semibold text-brand-blue-ink">
                         {scheduledDate} at {scheduledTime}
                       </p>
                     </div>
@@ -569,30 +607,33 @@ function BookingWizardContent() {
                       variant="ghost"
                       size="sm"
                       onClick={() => setCurrentStep(3)}
-                      className="text-xs text-[#1047FA]"
+                      className="text-xs text-brand-blue-ink"
                     >
                       Edit
                     </Button>
                   </div>
 
                   {/* Services Selected */}
-                  <div className="rounded-xl border border-neutral-200 bg-white p-4 flex items-start justify-between">
-                    <div className="space-y-2 text-xs flex-1">
-                      <span className="font-bold tracking-[0.32px] text-neutral-400 text-[10px]">
+                  <div className="flex items-start justify-between rounded-xl border border-border bg-card p-4">
+                    <div className="flex-1 space-y-2 text-xs">
+                      <span className="text-[10px] font-bold tracking-[0.32px] text-subtle-foreground">
                         Selected Services ({selectedServices.length})
                       </span>
                       <div className="space-y-1.5 pt-1">
                         {selectedServices.map((s) => (
-                          <div key={s.id} className="flex items-center justify-between text-xs pr-4">
-                            <span className="font-medium text-neutral-800">{s.name}</span>
-                            <span className="font-semibold text-neutral-900">
+                          <div
+                            key={s.id}
+                            className="flex items-center justify-between pr-4 text-xs"
+                          >
+                            <span className="font-medium text-foreground">{s.name}</span>
+                            <span className="font-semibold text-foreground">
                               {s.base_price ? formatPKR(s.base_price) : 'On inspection'}
                             </span>
                           </div>
                         ))}
                       </div>
                       {customerNotes && (
-                        <div className="mt-2 rounded bg-neutral-50 p-2 text-[11px] text-neutral-600 italic">
+                        <div className="mt-2 rounded bg-muted p-2 text-[11px] text-muted-foreground italic">
                           &ldquo;{customerNotes}&rdquo;
                         </div>
                       )}
@@ -601,21 +642,23 @@ function BookingWizardContent() {
                       variant="ghost"
                       size="sm"
                       onClick={() => setCurrentStep(2)}
-                      className="text-xs text-[#1047FA]"
+                      className="text-xs text-brand-blue-ink"
                     >
                       Edit
                     </Button>
                   </div>
 
                   {/* Vehicle & Customer */}
-                  <div className="rounded-xl border border-neutral-200 bg-white p-4 flex items-start justify-between">
+                  <div className="flex items-start justify-between rounded-xl border border-border bg-card p-4">
                     <div className="space-y-1 text-xs">
-                      <span className="font-bold tracking-[0.32px] text-neutral-400 text-[10px]">
+                      <span className="text-[10px] font-bold tracking-[0.32px] text-subtle-foreground">
                         Customer & Vehicle
                       </span>
-                      <p className="font-bold text-neutral-900">{customerName} • {customerPhone}</p>
-                      <p className="text-neutral-500">{customerEmail}</p>
-                      <p className="font-mono font-semibold text-neutral-800 pt-1">
+                      <p className="font-bold text-foreground">
+                        {customerName} • {customerPhone}
+                      </p>
+                      <p className="text-helper">{customerEmail}</p>
+                      <p className="pt-1 font-mono font-semibold text-foreground">
                         {licensePlate} — {vehicleYear} {vehicleMake} {vehicleModel}
                       </p>
                     </div>
@@ -623,7 +666,7 @@ function BookingWizardContent() {
                       variant="ghost"
                       size="sm"
                       onClick={() => setCurrentStep(4)}
-                      className="text-xs text-[#1047FA]"
+                      className="text-xs text-brand-blue-ink"
                     >
                       Edit
                     </Button>
@@ -631,35 +674,33 @@ function BookingWizardContent() {
                 </div>
 
                 {/* Important Notice */}
-                <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-4 flex items-start gap-3">
-                  <ShieldCheck className="size-5 text-emerald-600 shrink-0 mt-0.5" />
-                  <p className="text-xs text-emerald-950 leading-relaxed">
-                    <strong>Zero hidden costs:</strong> You will receive an itemized estimate after inspection with parts and labor clearly distinguished. You approve or reject it before any repair work commences.
+                <div className="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50/50 p-4 dark:border-emerald-800/60 dark:bg-emerald-950/30">
+                  <ShieldCheck className="mt-0.5 size-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                  <p className="text-xs leading-relaxed text-emerald-950 dark:text-emerald-100">
+                    <strong>Zero hidden costs:</strong> You will receive an itemized estimate after
+                    inspection with parts and labor clearly distinguished. You approve or reject it
+                    before any repair work commences.
                   </p>
                 </div>
               </div>
             )}
 
             {/* Stepper Navigation Buttons */}
-            <div className="pt-4 border-t border-neutral-200 flex items-center justify-between">
+            <div className="flex items-center justify-between border-t border-border pt-4">
               {currentStep > 2 ? (
                 <Button
                   type="button"
                   variant="outline"
                   onClick={handlePrevStep}
-                  className="text-xs font-semibold rounded-full"
+                  className="rounded-full text-xs font-semibold"
                 >
-                  <ArrowLeft className="size-3.5 mr-1.5" />
+                  <ArrowLeft className="mr-1.5 size-3.5" />
                   Back
                 </Button>
               ) : (
-                <Button
-                  asChild
-                  variant="outline"
-                  className="text-xs font-semibold rounded-full"
-                >
+                <Button asChild variant="outline" className="rounded-full text-xs font-semibold">
                   <Link href="/book">
-                    <ArrowLeft className="size-3.5 mr-1.5" />
+                    <ArrowLeft className="mr-1.5 size-3.5" />
                     Change Workshop
                   </Link>
                 </Button>
@@ -669,17 +710,17 @@ function BookingWizardContent() {
                 <Button
                   type="button"
                   onClick={handleNextStep}
-                  className="bg-[#1047FA] hover:bg-blue-700 text-white font-semibold text-xs px-6 rounded-full"
+                  className="rounded-full bg-brand-blue px-6 text-xs font-semibold text-white hover:bg-blue-700"
                 >
                   Continue
-                  <ChevronRight className="size-3.5 ml-1.5" />
+                  <ChevronRight className="ml-1.5 size-3.5" />
                 </Button>
               ) : (
                 <Button
                   type="button"
                   disabled={isSubmitting}
                   onClick={handleConfirmBooking}
-                  className="bg-[#00c070] hover:bg-emerald-600 text-white font-bold text-sm px-8 h-11 rounded-full"
+                  className="h-11 rounded-full bg-brand-green px-8 text-sm font-bold text-white hover:bg-emerald-600"
                 >
                   {isSubmitting ? 'Confirming Appointment...' : 'Confirm Appointment'}
                 </Button>
@@ -689,39 +730,42 @@ function BookingWizardContent() {
 
           {/* Right Sticky Order Summary */}
           <div className="space-y-4">
-            <Card className="border-neutral-200 sticky top-20">
-              <CardHeader className="pb-3 border-b border-neutral-100">
-                <CardTitle className="text-sm font-bold text-neutral-900 flex items-center gap-1.5">
-                  <Building2 className="size-4 text-[#1047FA]" />
+            <Card className="sticky top-20 border-border">
+              <CardHeader className="border-b border-border-faint pb-3">
+                <CardTitle className="flex items-center gap-1.5 text-sm font-bold text-foreground">
+                  <Building2 className="size-4 text-brand-blue-ink" />
                   Booking Summary
                 </CardTitle>
-                <CardDescription className="text-xs text-neutral-500">
-                  {shop.name}
-                </CardDescription>
+                <CardDescription className="text-xs text-helper">{shop.name}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4 pt-4 text-xs">
                 <div className="space-y-1">
-                  <span className="text-[10px] font-bold text-neutral-400">Location</span>
-                  <p className="font-medium text-neutral-800">{shop.address}</p>
-                  <p className="text-neutral-500">{shop.city}</p>
+                  <span className="text-[10px] font-bold text-subtle-foreground">Location</span>
+                  <p className="font-medium text-foreground">{shop.address}</p>
+                  <p className="text-helper">{shop.city}</p>
                 </div>
 
-                <div className="space-y-1 border-t border-neutral-100 pt-3">
-                  <span className="text-[10px] font-bold text-neutral-400">Selected Slot</span>
-                  <p className="font-semibold text-[#1047FA]">
+                <div className="space-y-1 border-t border-border-faint pt-3">
+                  <span className="text-[10px] font-bold text-subtle-foreground">
+                    Selected Slot
+                  </span>
+                  <p className="font-semibold text-brand-blue-ink">
                     {scheduledDate} at {scheduledTime}
                   </p>
                 </div>
 
-                <div className="space-y-2 border-t border-neutral-100 pt-3">
-                  <span className="text-[10px] font-bold text-neutral-400">
+                <div className="space-y-2 border-t border-border-faint pt-3">
+                  <span className="text-[10px] font-bold text-subtle-foreground">
                     Services ({selectedServices.length})
                   </span>
                   <div className="space-y-1.5">
                     {selectedServices.map((s) => (
-                      <div key={s.id} className="flex items-center justify-between text-neutral-700">
+                      <div
+                        key={s.id}
+                        className="flex items-center justify-between text-muted-foreground"
+                      >
                         <span className="truncate pr-2">{s.name}</span>
-                        <span className="font-medium text-neutral-900 shrink-0">
+                        <span className="shrink-0 font-medium text-foreground">
                           {s.base_price ? formatPKR(s.base_price) : 'Inspection'}
                         </span>
                       </div>
@@ -730,14 +774,15 @@ function BookingWizardContent() {
                 </div>
 
                 {estimatedTotal > 0 && (
-                  <div className="border-t border-neutral-100 pt-3 flex items-center justify-between font-bold text-neutral-900">
+                  <div className="flex items-center justify-between border-t border-border-faint pt-3 font-bold text-foreground">
                     <span>Estimated Base</span>
-                    <span className="text-[#1047FA] text-sm">{formatPKR(estimatedTotal)}</span>
+                    <span className="text-sm text-brand-blue-ink">{formatPKR(estimatedTotal)}</span>
                   </div>
                 )}
 
-                <div className="rounded-lg bg-neutral-50 p-2.5 text-[11px] text-neutral-500 leading-normal">
-                  Final costs are verified with you once the vehicle is inspected on the workshop hoist.
+                <div className="rounded-lg bg-muted p-2.5 text-[11px] leading-normal text-helper">
+                  Final costs are verified with you once the vehicle is inspected on the workshop
+                  hoist.
                 </div>
               </CardContent>
             </Card>
@@ -750,7 +795,13 @@ function BookingWizardContent() {
 
 export default function BookingWizardPage() {
   return (
-    <Suspense fallback={<div className="p-12 text-center text-xs text-neutral-400">Loading booking appointment...</div>}>
+    <Suspense
+      fallback={
+        <div className="p-12 text-center text-xs text-subtle-foreground">
+          Loading booking appointment...
+        </div>
+      }
+    >
       <BookingWizardContent />
     </Suspense>
   )

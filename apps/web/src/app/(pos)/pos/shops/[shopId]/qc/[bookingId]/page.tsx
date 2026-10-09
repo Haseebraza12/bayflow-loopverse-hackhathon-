@@ -1,12 +1,6 @@
 'use client'
 
-import {
-  AlertTriangle,
-  ArrowLeft,
-  CheckCircle2,
-  ShieldCheck,
-  XCircle,
-} from 'lucide-react'
+import { AlertTriangle, ArrowLeft, CheckCircle2, ShieldCheck, XCircle } from 'lucide-react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -78,12 +72,12 @@ export default function QcInspectionPage() {
 
   const [checklist, setChecklist] = useState<ChecklistItem[]>(DEFAULT_CHECKLIST)
   const [inspectorNotes, setInspectorNotes] = useState(
-    'All safety checks verified. Road test completed on main boulevard.'
+    'All safety checks verified. Road test completed on main boulevard.',
   )
   const [failDialogOpen, setFailDialogOpen] = useState(false)
   const [issueTitle, setIssueTitle] = useState('Minor fluid seep detected at oil drain plug')
   const [issueDesc, setIssueDesc] = useState(
-    'Re-torque crush washer to factory specification and re-clean engine undershield.'
+    'Re-torque crush washer to factory specification and re-clean engine undershield.',
   )
   const [toastMsg, setToastMsg] = useState<string | null>(null)
 
@@ -91,9 +85,9 @@ export default function QcInspectionPage() {
 
   if (!booking) {
     return (
-      <div className="py-16 text-center space-y-4">
-        <h1 className="text-xl font-bold text-neutral-900">Job not found</h1>
-        <Button asChild className="bg-[#1047FA] text-white text-xs rounded-full">
+      <div className="space-y-4 py-16 text-center">
+        <h1 className="text-xl font-bold text-foreground">Job not found</h1>
+        <Button asChild className="rounded-full bg-brand-blue text-xs text-white">
           <Link href={`${base}/qc`}>Back to QC Queue</Link>
         </Button>
       </div>
@@ -101,9 +95,7 @@ export default function QcInspectionPage() {
   }
 
   const handleToggleChecklist = (key: string, passed: boolean) => {
-    setChecklist((prev) =>
-      prev.map((item) => (item.key === key ? { ...item, passed } : item))
-    )
+    setChecklist((prev) => prev.map((item) => (item.key === key ? { ...item, passed } : item)))
   }
 
   const allPassed = checklist.every((item) => item.passed)
@@ -133,7 +125,9 @@ export default function QcInspectionPage() {
     }
     saveBooking(updated)
     setFailDialogOpen(false)
-    setToastMsg(`Job returned to Technician ${booking.assignedTechnicianName || 'Imran'} with noted issue.`)
+    setToastMsg(
+      `Job returned to Technician ${booking.assignedTechnicianName || 'Imran'} with noted issue.`,
+    )
     setTimeout(() => {
       router.push(`${base}/qc`)
     }, 1500)
@@ -145,7 +139,7 @@ export default function QcInspectionPage() {
       <div>
         <Link
           href={`${base}/qc`}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-neutral-600 hover:text-[#1047FA]"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-brand-blue-ink"
         >
           <ArrowLeft className="size-3.5" />
           <span>Back to QC Queue</span>
@@ -153,28 +147,31 @@ export default function QcInspectionPage() {
       </div>
 
       {toastMsg && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-xs font-bold text-emerald-950 flex items-center gap-2">
-          <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
+        <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-xs font-bold text-emerald-950 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-100">
+          <CheckCircle2 className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
           <span>{toastMsg}</span>
         </div>
       )}
 
       {/* Header & Status Card */}
-      <div className="rounded-2xl border border-neutral-200 bg-white p-6 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="space-y-4 rounded-2xl border border-border bg-card p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <span className="font-mono text-xl sm:text-2xl font-semibold text-[#1047FA]">
+              <span className="font-mono text-xl font-semibold text-brand-blue-ink sm:text-2xl">
                 {booking.licensePlate}
               </span>
               <StatusBadge status={booking.status} audience="staff" size="md" />
-              <span className="text-xs font-mono text-neutral-400">{booking.reference}</span>
+              <span className="font-mono text-xs text-subtle-foreground">{booking.reference}</span>
             </div>
-            <p className="text-sm font-bold text-neutral-900">
+            <p className="text-sm font-bold text-foreground">
               {booking.vehicleYear} {booking.vehicleMake} {booking.vehicleModel}
             </p>
-            <p className="text-xs text-neutral-500">
-              Repair Technician: <strong className="text-neutral-800">{booking.assignedTechnicianName || 'Imran'}</strong>
+            <p className="text-xs text-helper">
+              Repair Technician:{' '}
+              <strong className="text-foreground">
+                {booking.assignedTechnicianName || 'Imran'}
+              </strong>
             </p>
           </div>
 
@@ -182,18 +179,18 @@ export default function QcInspectionPage() {
             <Button
               onClick={handlePassQc}
               disabled={!allPassed}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-9 px-5 rounded-full"
+              className="h-9 rounded-full bg-emerald-600 px-5 text-xs font-bold text-white hover:bg-emerald-700"
             >
-              <CheckCircle2 className="size-4 mr-1.5" />
+              <CheckCircle2 className="mr-1.5 size-4" />
               Pass QC & Authorize Handover
             </Button>
 
             <Button
               variant="outline"
               onClick={() => setFailDialogOpen(true)}
-              className="border-red-200 text-red-600 hover:bg-red-50 text-xs font-bold h-9 px-4"
+              className="h-9 border-red-200 px-4 text-xs font-bold text-red-600 hover:bg-red-50 dark:border-red-800/60 dark:text-red-400 dark:hover:bg-red-950/40"
             >
-              <XCircle className="size-4 mr-1.5" />
+              <XCircle className="mr-1.5 size-4" />
               Fail QC & Return to Tech
             </Button>
           </div>
@@ -201,37 +198,37 @@ export default function QcInspectionPage() {
       </div>
 
       {/* 5-Point QC Checklist */}
-      <Card className="border-neutral-200 overflow-hidden">
-        <CardHeader className="bg-neutral-50/80 border-b border-neutral-100 p-4">
-          <CardTitle className="text-xs font-bold tracking-[0.32px] text-neutral-500 flex items-center gap-1.5">
-            <ShieldCheck className="size-4 text-[#1047FA]" />
+      <Card className="overflow-hidden border-border">
+        <CardHeader className="border-b border-border-faint bg-muted/80 p-4">
+          <CardTitle className="flex items-center gap-1.5 text-xs font-bold tracking-[0.32px] text-helper">
+            <ShieldCheck className="size-4 text-brand-blue-ink" />
             Mandatory 5-Point Vehicle Inspection Protocol
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-0 divide-y divide-neutral-100">
+        <CardContent className="divide-y divide-border-faint p-0">
           {checklist.map((item) => (
             <div
               key={item.key}
-              className={`p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors ${
-                item.passed ? 'bg-white' : 'bg-red-50/30'
+              className={`flex flex-col justify-between gap-4 p-4 transition-colors sm:flex-row sm:items-center sm:p-5 ${
+                item.passed ? 'bg-card' : 'bg-red-50/30 dark:bg-red-950/30'
               }`}
             >
-              <div className="space-y-1 max-w-xl">
-                <h3 className="font-bold text-neutral-900 text-sm flex items-center gap-2">
+              <div className="max-w-xl space-y-1">
+                <h3 className="flex items-center gap-2 text-sm font-bold text-foreground">
                   {item.title}
                 </h3>
-                <p className="text-xs text-neutral-600 leading-relaxed">{item.desc}</p>
+                <p className="text-xs leading-relaxed text-muted-foreground">{item.desc}</p>
               </div>
 
               {/* Pass / Fail Toggle */}
-              <div className="flex items-center gap-1.5 self-start sm:self-center bg-neutral-100 p-1 rounded-xl">
+              <div className="flex items-center gap-1.5 self-start rounded-xl bg-secondary p-1 sm:self-center">
                 <button
                   type="button"
                   onClick={() => handleToggleChecklist(item.key, true)}
                   className={`rounded-lg px-4 py-1.5 text-xs font-bold transition-all ${
                     item.passed
                       ? 'bg-emerald-600 text-white'
-                      : 'text-neutral-600 hover:text-neutral-900'
+                      : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   Pass
@@ -242,7 +239,7 @@ export default function QcInspectionPage() {
                   className={`rounded-lg px-4 py-1.5 text-xs font-bold transition-all ${
                     !item.passed
                       ? 'bg-red-600 text-white'
-                      : 'text-neutral-600 hover:text-neutral-900'
+                      : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   Fail
@@ -254,21 +251,22 @@ export default function QcInspectionPage() {
       </Card>
 
       {/* Inspector Notes */}
-      <Card className="border-neutral-200">
-        <CardHeader className="pb-3 border-b border-neutral-100">
-          <CardTitle className="text-xs font-bold tracking-[0.32px] text-neutral-500">
+      <Card className="border-border">
+        <CardHeader className="border-b border-border-faint pb-3">
+          <CardTitle className="text-xs font-bold tracking-[0.32px] text-helper">
             Inspector Certification Statement
           </CardTitle>
         </CardHeader>
-        <CardContent className="pt-4 space-y-3">
+        <CardContent className="space-y-3 pt-4">
           <Textarea
             value={inspectorNotes}
             onChange={(e) => setInspectorNotes(e.target.value)}
             placeholder="Record tyre pressure readings, brake test comments, diagnostic scanner notes..."
-            className="text-xs h-24"
+            className="h-24 text-xs"
           />
-          <p className="text-[11px] text-neutral-400">
-            This certification note is stored on the customer booking record and confirms road-worthiness.
+          <p className="text-[11px] text-subtle-foreground">
+            This certification note is stored on the customer booking record and confirms
+            road-worthiness.
           </p>
         </CardContent>
       </Card>
@@ -277,42 +275,52 @@ export default function QcInspectionPage() {
       <Dialog open={failDialogOpen} onOpenChange={setFailDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-base font-bold text-red-950 flex items-center gap-2">
-              <AlertTriangle className="size-5 text-red-600" />
+            <DialogTitle className="flex items-center gap-2 text-base font-bold text-red-950 dark:text-red-100">
+              <AlertTriangle className="size-5 text-red-600 dark:text-red-400" />
               Fail QC & Return Job to Bay
             </DialogTitle>
-            <DialogDescription className="text-xs text-neutral-500">
-              The booking will be placed back into IN_REPAIR. Specify the issue found so Technician {booking.assignedTechnicianName || 'Imran'} can rectify it.
+            <DialogDescription className="text-xs text-helper">
+              The booking will be placed back into IN_REPAIR. Specify the issue found so Technician{' '}
+              {booking.assignedTechnicianName || 'Imran'} can rectify it.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-3 py-2 text-xs">
             <div className="space-y-1">
-              <Label className="text-xs font-semibold text-neutral-700">Issue Title</Label>
+              <Label className="text-xs font-semibold text-muted-foreground">Issue Title</Label>
               <Input
                 value={issueTitle}
                 onChange={(e) => setIssueTitle(e.target.value)}
-                className="text-xs h-9"
+                className="h-9 text-xs"
                 required
               />
             </div>
 
             <div className="space-y-1">
-              <Label className="text-xs font-semibold text-neutral-700">Detailed Defect Description</Label>
+              <Label className="text-xs font-semibold text-muted-foreground">
+                Detailed Defect Description
+              </Label>
               <Textarea
                 value={issueDesc}
                 onChange={(e) => setIssueDesc(e.target.value)}
-                className="text-xs h-24"
+                className="h-24 text-xs"
                 required
               />
             </div>
           </div>
 
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setFailDialogOpen(false)} className="text-xs font-semibold">
+            <Button
+              variant="outline"
+              onClick={() => setFailDialogOpen(false)}
+              className="text-xs font-semibold"
+            >
               Cancel
             </Button>
-            <Button onClick={handleConfirmFailQc} className="bg-red-600 text-white text-xs font-bold rounded-full">
+            <Button
+              onClick={handleConfirmFailQc}
+              className="rounded-full bg-red-600 text-xs font-bold text-white"
+            >
               Confirm Return to Technician
             </Button>
           </DialogFooter>

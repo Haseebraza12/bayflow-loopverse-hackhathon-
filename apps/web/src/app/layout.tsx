@@ -39,14 +39,19 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: '#1047FA',
-  colorScheme: 'light',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#1047FA' },
+    { media: '(prefers-color-scheme: dark)', color: '#0a0f1c' },
+  ],
+  colorScheme: 'light dark',
 }
 
 export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
+    // next-themes sets `class="dark"` and `color-scheme` on <html> before React hydrates (D93).
     <html
       lang="en"
+      suppressHydrationWarning
       className={cn(
         archivo.variable,
         pragatiNarrow.variable,
@@ -58,7 +63,7 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
           React hydrates; this accepts the DOM's attributes for this one element only. */}
       <body
         suppressHydrationWarning
-        className="flex min-h-dvh flex-col bg-white text-[#171c26] antialiased"
+        className="flex min-h-dvh flex-col bg-background text-foreground antialiased"
       >
         <SkipLink />
         <Providers>{children}</Providers>

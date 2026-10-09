@@ -3,7 +3,7 @@
  * Purely illustrative: everything is aria-hidden and the data is sample data.
  */
 
-const panel = 'rounded-xl bg-white shadow-sm ring-1 ring-neutral-200'
+const panel = 'rounded-xl bg-card shadow-sm ring-1 ring-border'
 
 function Workflow() {
   const cols = [
@@ -14,15 +14,15 @@ function Workflow() {
   return (
     <div className="flex w-full gap-2">
       {cols.map((c) => (
-        <div key={c.name} className="flex-1 rounded-lg bg-white/70 p-1.5 ring-1 ring-neutral-200">
-          <p className="px-1 pb-1.5 text-[9px] font-semibold tracking-wide text-neutral-400 uppercase">
+        <div key={c.name} className="flex-1 rounded-lg bg-card/70 p-1.5 ring-1 ring-border">
+          <p className="px-1 pb-1.5 text-[9px] font-semibold tracking-wide text-subtle-foreground uppercase">
             {c.name}
           </p>
           <div className="space-y-1.5">
             {c.jobs.map((j) => (
               <div
                 key={j}
-                className="rounded-md bg-white px-1.5 py-1.5 text-[10px] text-neutral-700 shadow-sm ring-1 ring-neutral-200"
+                className="rounded-md bg-card px-1.5 py-1.5 text-[10px] text-muted-foreground shadow-sm ring-1 ring-border"
               >
                 {j}
               </div>
@@ -37,21 +37,21 @@ function Workflow() {
 function Estimates() {
   return (
     <div className={`${panel} w-full max-w-[220px] p-3`}>
-      <p className="text-[10px] font-semibold text-neutral-400">EST-2041 · Honda Civic</p>
+      <p className="text-[10px] font-semibold text-subtle-foreground">EST-2041 · Honda Civic</p>
       {[
         ['Brake pads (front)', '8,500'],
         ['Labour · 1.5 h', '3,000'],
       ].map(([item, price]) => (
-        <div key={item} className="mt-2 flex justify-between text-[11px] text-neutral-700">
+        <div key={item} className="mt-2 flex justify-between text-[11px] text-muted-foreground">
           <span>{item}</span>
           <span className="tabular-nums">{price}</span>
         </div>
       ))}
-      <div className="mt-2 flex justify-between border-t border-neutral-100 pt-2 text-[11px] font-semibold text-neutral-900">
+      <div className="mt-2 flex justify-between border-t border-border-faint pt-2 text-[11px] font-semibold text-foreground">
         <span>Total</span>
         <span className="tabular-nums">Rs 11,500</span>
       </div>
-      <div className="mt-3 rounded-md bg-neutral-900 py-1.5 text-center text-[11px] font-semibold text-white">
+      <div className="mt-3 rounded-md bg-foreground py-1.5 text-center text-[11px] font-semibold text-background">
         Approve estimate
       </div>
     </div>
@@ -68,15 +68,15 @@ function Inventory() {
     <div className={`${panel} w-full max-w-[230px] space-y-2.5 p-3`}>
       {items.map((i) => (
         <div key={i.name}>
-          <div className="flex justify-between text-[10px] text-neutral-600">
+          <div className="flex justify-between text-[10px] text-muted-foreground">
             <span>{i.name}</span>
-            <span className={i.low ? 'font-semibold text-[#e8590c]' : 'text-neutral-400'}>
+            <span className={i.low ? 'font-semibold text-brand-orange' : 'text-subtle-foreground'}>
               {i.low ? 'Low' : `${i.stock}%`}
             </span>
           </div>
-          <div className="mt-1 h-1.5 rounded-full bg-neutral-100">
+          <div className="mt-1 h-1.5 rounded-full bg-secondary">
             <div
-              className={`h-full rounded-full ${i.low ? 'bg-[#e8590c]' : 'bg-neutral-800'}`}
+              className={`h-full rounded-full ${i.low ? 'bg-brand-orange' : 'bg-foreground/80'}`}
               style={{ width: `${i.stock}%` }}
             />
           </div>
@@ -88,7 +88,7 @@ function Inventory() {
 
 function Inspections() {
   const checks = [
-    { name: 'Tyres', state: 'Good', dot: 'bg-[#00c070]' },
+    { name: 'Tyres', state: 'Good', dot: 'bg-brand-green' },
     { name: 'Brake pads', state: 'Replace', dot: 'bg-red-500' },
     { name: 'Battery', state: 'Watch', dot: 'bg-amber-400' },
   ]
@@ -97,11 +97,11 @@ function Inspections() {
       {checks.map((c) => (
         <div
           key={c.name}
-          className="flex items-center gap-2 border-b border-neutral-100 px-2 py-2 text-[11px] last:border-0"
+          className="flex items-center gap-2 border-b border-border-faint px-2 py-2 text-[11px] last:border-0"
         >
           <span className={`size-2 rounded-full ${c.dot}`} />
-          <span className="flex-1 text-neutral-700">{c.name}</span>
-          <span className="text-neutral-400">{c.state}</span>
+          <span className="flex-1 text-muted-foreground">{c.name}</span>
+          <span className="text-subtle-foreground">{c.state}</span>
         </div>
       ))}
     </div>
@@ -115,12 +115,12 @@ function Packages() {
       <div className={`${panel} absolute inset-x-3 top-3 h-16 opacity-80`} />
       <div className={`${panel} absolute inset-x-0 top-6 p-3`}>
         <div className="flex items-center justify-between">
-          <p className="text-[11px] font-semibold text-neutral-900">Full Service</p>
-          <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-semibold text-neutral-700">
+          <p className="text-[11px] font-semibold text-foreground">Full Service</p>
+          <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
             Rs 9,999
           </span>
         </div>
-        <p className="mt-1.5 text-[10px] text-neutral-400">Oil · Filters · 30-point check</p>
+        <p className="mt-1.5 text-[10px] text-subtle-foreground">Oil · Filters · 30-point check</p>
       </div>
     </div>
   )
@@ -128,19 +128,19 @@ function Packages() {
 
 function Procurement() {
   const orders = [
-    { po: 'PO-118', vendor: 'Atlas Parts', status: 'Received', tone: 'text-[#00c070]' },
-    { po: 'PO-119', vendor: 'Lahore Spares', status: 'Ordered', tone: 'text-[#1047FA]' },
-    { po: 'PO-120', vendor: 'AutoHub', status: 'Draft', tone: 'text-neutral-400' },
+    { po: 'PO-118', vendor: 'Atlas Parts', status: 'Received', tone: 'text-brand-green' },
+    { po: 'PO-119', vendor: 'Lahore Spares', status: 'Ordered', tone: 'text-brand-blue-ink' },
+    { po: 'PO-120', vendor: 'AutoHub', status: 'Draft', tone: 'text-subtle-foreground' },
   ]
   return (
     <div className={`${panel} w-full max-w-[230px] p-1.5`}>
       {orders.map((o) => (
         <div
           key={o.po}
-          className="flex items-center gap-2 border-b border-neutral-100 px-2 py-2 text-[11px] last:border-0"
+          className="flex items-center gap-2 border-b border-border-faint px-2 py-2 text-[11px] last:border-0"
         >
-          <span className="font-semibold text-neutral-900">{o.po}</span>
-          <span className="flex-1 truncate text-neutral-500">{o.vendor}</span>
+          <span className="font-semibold text-foreground">{o.po}</span>
+          <span className="flex-1 truncate text-helper">{o.vendor}</span>
           <span className={`font-semibold ${o.tone}`}>{o.status}</span>
         </div>
       ))}

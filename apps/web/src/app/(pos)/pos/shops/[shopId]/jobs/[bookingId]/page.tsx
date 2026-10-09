@@ -48,9 +48,9 @@ export default function TechnicianJobDetailPage() {
 
   if (!booking) {
     return (
-      <div className="py-16 text-center space-y-4">
-        <h1 className="text-xl font-bold text-neutral-900">Job not found</h1>
-        <Button asChild className="bg-[#1047FA] text-white text-xs rounded-full">
+      <div className="space-y-4 py-16 text-center">
+        <h1 className="text-xl font-bold text-foreground">Job not found</h1>
+        <Button asChild className="rounded-full bg-brand-blue text-xs text-white">
           <Link href={`${base}/jobs`}>Back to My Jobs</Link>
         </Button>
       </div>
@@ -139,7 +139,7 @@ export default function TechnicianJobDetailPage() {
       <div>
         <Link
           href={`${base}/jobs`}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-neutral-600 hover:text-[#1047FA]"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-brand-blue-ink"
         >
           <ArrowLeft className="size-3.5" />
           <span>Back to Assigned Jobs</span>
@@ -147,27 +147,29 @@ export default function TechnicianJobDetailPage() {
       </div>
 
       {successToast && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-xs font-bold text-emerald-950 flex items-center gap-2">
-          <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
+        <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-xs font-bold text-emerald-950 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-100">
+          <CheckCircle2 className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
           <span>{successToast}</span>
         </div>
       )}
 
       {/* Vehicle Header & Action Bar */}
-      <div className="rounded-2xl border border-neutral-200 bg-white p-6 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="space-y-4 rounded-2xl border border-border bg-card p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <span className="font-mono text-xl sm:text-2xl font-semibold text-[#1047FA]">
+              <span className="font-mono text-xl font-semibold text-brand-blue-ink sm:text-2xl">
                 {booking.licensePlate}
               </span>
               <StatusBadge status={booking.status} audience="staff" size="md" />
-              <span className="text-xs font-mono text-neutral-400">Ref: {booking.reference}</span>
+              <span className="font-mono text-xs text-subtle-foreground">
+                Ref: {booking.reference}
+              </span>
             </div>
-            <p className="text-sm font-bold text-neutral-900">
+            <p className="text-sm font-bold text-foreground">
               {booking.vehicleYear} {booking.vehicleMake} {booking.vehicleModel}
             </p>
-            <p className="text-xs text-neutral-500">
+            <p className="text-xs text-helper">
               Assigned slot: {booking.scheduledDate} at {booking.scheduledTime}
             </p>
           </div>
@@ -177,9 +179,9 @@ export default function TechnicianJobDetailPage() {
             {booking.status === 'ASSIGNED' && (
               <Button
                 onClick={handleStartInspection}
-                className="bg-[#1047FA] hover:bg-blue-700 text-white font-bold text-xs h-9 px-4 rounded-full"
+                className="h-9 rounded-full bg-brand-blue px-4 text-xs font-bold text-white hover:bg-blue-700"
               >
-                <Play className="size-3.5 mr-1" />
+                <Play className="mr-1 size-3.5" />
                 Start Inspection
               </Button>
             )}
@@ -187,9 +189,9 @@ export default function TechnicianJobDetailPage() {
             {booking.status === 'INSPECTING' && (
               <Button
                 onClick={handleSubmitEstimate}
-                className="bg-[#00c070] hover:bg-emerald-600 text-white font-bold text-xs h-9 px-4 rounded-full"
+                className="h-9 rounded-full bg-brand-green px-4 text-xs font-bold text-white hover:bg-emerald-600"
               >
-                <Send className="size-3.5 mr-1.5" />
+                <Send className="mr-1.5 size-3.5" />
                 Submit Estimate to SA
               </Button>
             )}
@@ -197,9 +199,9 @@ export default function TechnicianJobDetailPage() {
             {booking.status === 'PARTS_READY' && (
               <Button
                 onClick={handleStartRepair}
-                className="bg-[#1047FA] hover:bg-blue-700 text-white font-bold text-xs h-9 px-4 rounded-full"
+                className="h-9 rounded-full bg-brand-blue px-4 text-xs font-bold text-white hover:bg-blue-700"
               >
-                <Wrench className="size-3.5 mr-1" />
+                <Wrench className="mr-1 size-3.5" />
                 Start Repair
               </Button>
             )}
@@ -207,9 +209,9 @@ export default function TechnicianJobDetailPage() {
             {booking.status === 'IN_REPAIR' && (
               <Button
                 onClick={handleSendToQc}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-9 px-4 rounded-full"
+                className="h-9 rounded-full bg-emerald-600 px-4 text-xs font-bold text-white hover:bg-emerald-700"
               >
-                <ClipboardCheck className="size-3.5 mr-1.5" />
+                <ClipboardCheck className="mr-1.5 size-3.5" />
                 Finish Repair & Send to QC
               </Button>
             )}
@@ -218,21 +220,21 @@ export default function TechnicianJobDetailPage() {
       </div>
 
       {/* Main Grid: Estimate Lines Builder & Inspection Notes */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Left Column (2 spans): Estimate Items Builder */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="space-y-6 lg:col-span-2">
           {/* Estimate Builder Card */}
-          <Card className="border-neutral-200 overflow-hidden">
-            <CardHeader className="bg-neutral-50/80 border-b border-neutral-100 p-4">
-              <CardTitle className="text-xs font-bold tracking-[0.32px] text-neutral-500 flex items-center gap-1.5">
-                <FileText className="size-4 text-[#1047FA]" />
+          <Card className="overflow-hidden border-border">
+            <CardHeader className="border-b border-border-faint bg-muted/80 p-4">
+              <CardTitle className="flex items-center gap-1.5 text-xs font-bold tracking-[0.32px] text-helper">
+                <FileText className="size-4 text-brand-blue-ink" />
                 Estimate Line Items (Parts & Labor)
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-neutral-50 text-[11px] font-bold text-neutral-400 border-b border-neutral-200">
+                  <thead className="border-b border-border bg-muted text-[11px] font-bold text-subtle-foreground">
                     <tr>
                       <th className="px-5 py-2.5">Description</th>
                       <th className="px-4 py-2.5">Type</th>
@@ -242,16 +244,18 @@ export default function TechnicianJobDetailPage() {
                       <th className="px-3 py-2.5 text-right"></th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-neutral-100 text-neutral-700">
+                  <tbody className="divide-y divide-border-faint text-muted-foreground">
                     {items.map((it) => (
                       <tr key={it.id}>
-                        <td className="px-5 py-3 font-semibold text-neutral-900">{it.description}</td>
+                        <td className="px-5 py-3 font-semibold text-foreground">
+                          {it.description}
+                        </td>
                         <td className="px-4 py-3">
                           <span
-                            className={`rounded px-1.5 py-0.2 text-[10px] font-bold ${
+                            className={`py-0.2 rounded px-1.5 text-[10px] font-bold ${
                               it.type === 'PART'
-                                ? 'bg-blue-50 text-blue-700'
-                                : 'bg-neutral-100 text-neutral-700'
+                                ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300'
+                                : 'bg-secondary text-muted-foreground'
                             }`}
                           >
                             {it.type}
@@ -259,14 +263,14 @@ export default function TechnicianJobDetailPage() {
                         </td>
                         <td className="px-4 py-3 text-center">{it.quantity}</td>
                         <td className="px-4 py-3 text-right">{formatPKR(it.unit_price)}</td>
-                        <td className="px-5 py-3 text-right font-bold text-neutral-900">
+                        <td className="px-5 py-3 text-right font-bold text-foreground">
                           {formatPKR(it.total)}
                         </td>
                         <td className="px-3 py-3 text-right">
                           <button
                             type="button"
                             onClick={() => handleDeleteLineItem(it.id)}
-                            className="text-neutral-400 hover:text-red-600 p-1 rounded"
+                            className="rounded p-1 text-subtle-foreground hover:text-red-600 dark:hover:text-red-400"
                             title="Remove item"
                           >
                             <Trash2 className="size-3.5" />
@@ -275,12 +279,12 @@ export default function TechnicianJobDetailPage() {
                       </tr>
                     ))}
                   </tbody>
-                  <tfoot className="border-t border-neutral-200 bg-neutral-50/60 font-bold">
+                  <tfoot className="border-t border-border bg-muted/60 font-bold">
                     <tr>
-                      <td colSpan={4} className="px-5 py-3 text-right text-neutral-600">
+                      <td colSpan={4} className="px-5 py-3 text-right text-muted-foreground">
                         Total Estimate
                       </td>
-                      <td className="px-5 py-3 text-right font-semibold text-sm text-[#1047FA]">
+                      <td className="px-5 py-3 text-right text-sm font-semibold text-brand-blue-ink">
                         {formatPKR(items.reduce((sum, it) => sum + it.total, 0))}
                       </td>
                       <td></td>
@@ -290,21 +294,21 @@ export default function TechnicianJobDetailPage() {
               </div>
 
               {/* Add New Line Item Form */}
-              <div className="p-4 bg-neutral-50/40 border-t border-neutral-200 space-y-3">
-                <span className="text-[11px] font-bold tracking-[0.32px] text-neutral-500">
+              <div className="space-y-3 border-t border-border bg-muted/40 p-4">
+                <span className="text-[11px] font-bold tracking-[0.32px] text-helper">
                   Add Item or Labor Operation
                 </span>
-                <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 text-xs">
+                <div className="grid grid-cols-1 gap-2 text-xs sm:grid-cols-12">
                   <Input
                     placeholder="Item description (e.g. Front Brake Pad Set)"
                     value={newLineDesc}
                     onChange={(e) => setNewLineDesc(e.target.value)}
-                    className="sm:col-span-5 h-8 text-xs bg-white"
+                    className="h-8 bg-card text-xs sm:col-span-5"
                   />
                   <select
                     value={newLineType}
                     onChange={(e) => setNewLineType(e.target.value as 'PART' | 'LABOR')}
-                    className="sm:col-span-2 h-8 rounded-md border border-neutral-200 bg-white px-2 text-xs"
+                    className="h-8 rounded-md border border-border bg-card px-2 text-xs sm:col-span-2"
                   >
                     <option value="PART">Part</option>
                     <option value="LABOR">Labor</option>
@@ -314,20 +318,20 @@ export default function TechnicianJobDetailPage() {
                     placeholder="Qty"
                     value={newLineQty}
                     onChange={(e) => setNewLineQty(e.target.value)}
-                    className="sm:col-span-2 h-8 text-xs bg-white text-center"
+                    className="h-8 bg-card text-center text-xs sm:col-span-2"
                   />
                   <Input
                     type="number"
                     placeholder="Unit Price"
                     value={newLinePrice}
                     onChange={(e) => setNewLinePrice(e.target.value)}
-                    className="sm:col-span-2 h-8 text-xs bg-white text-right"
+                    className="h-8 bg-card text-right text-xs sm:col-span-2"
                   />
                   <Button
                     type="button"
                     onClick={handleAddLineItem}
                     size="sm"
-                    className="sm:col-span-1 h-8 bg-[#1047FA] text-white p-0 rounded-full"
+                    className="h-8 rounded-full bg-brand-blue p-0 text-white sm:col-span-1"
                     title="Add line"
                   >
                     <Plus className="size-4" />
@@ -338,21 +342,22 @@ export default function TechnicianJobDetailPage() {
           </Card>
 
           {/* Inspection Notes */}
-          <Card className="border-neutral-200">
-            <CardHeader className="pb-3 border-b border-neutral-100">
-              <CardTitle className="text-xs font-bold tracking-[0.32px] text-neutral-500">
+          <Card className="border-border">
+            <CardHeader className="border-b border-border-faint pb-3">
+              <CardTitle className="text-xs font-bold tracking-[0.32px] text-helper">
                 Diagnostic & Inspection Notes
               </CardTitle>
             </CardHeader>
-            <CardContent className="pt-4 space-y-3">
+            <CardContent className="space-y-3 pt-4">
               <Textarea
                 placeholder="Detail fault codes (OBD-II), measured pad thickness, visual leak findings..."
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                className="text-xs h-28"
+                className="h-28 text-xs"
               />
-              <p className="text-[11px] text-neutral-400">
-                These notes will be reviewed by the Service Advisor and shared on the customer&apos;s digital report.
+              <p className="text-[11px] text-subtle-foreground">
+                These notes will be reviewed by the Service Advisor and shared on the
+                customer&apos;s digital report.
               </p>
             </CardContent>
           </Card>
@@ -360,27 +365,27 @@ export default function TechnicianJobDetailPage() {
 
         {/* Right Column: Customer Complaint & Job Context */}
         <div className="space-y-6">
-          <Card className="border-neutral-200">
-            <CardHeader className="pb-3 border-b border-neutral-100">
-              <CardTitle className="text-xs font-bold tracking-[0.32px] text-neutral-500">
+          <Card className="border-border">
+            <CardHeader className="border-b border-border-faint pb-3">
+              <CardTitle className="text-xs font-bold tracking-[0.32px] text-helper">
                 Customer Complaint & Services
               </CardTitle>
             </CardHeader>
-            <CardContent className="pt-4 text-xs space-y-3">
+            <CardContent className="space-y-3 pt-4 text-xs">
               <div>
-                <span className="text-[10px] font-bold text-neutral-400">Requested Work</span>
-                <div className="space-y-1 mt-1">
+                <span className="text-[10px] font-bold text-subtle-foreground">Requested Work</span>
+                <div className="mt-1 space-y-1">
                   {booking.services.map((s, idx) => (
-                    <div key={idx} className="font-semibold text-neutral-900">
+                    <div key={idx} className="font-semibold text-foreground">
                       • {s}
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-neutral-100">
-                <span className="text-[10px] font-bold text-neutral-400">Customer Notes</span>
-                <p className="mt-1 text-neutral-700 italic bg-neutral-50 p-3 rounded-lg border border-neutral-100">
+              <div className="border-t border-border-faint pt-3">
+                <span className="text-[10px] font-bold text-subtle-foreground">Customer Notes</span>
+                <p className="mt-1 rounded-lg border border-border-faint bg-muted p-3 text-muted-foreground italic">
                   &quot;{booking.customerName} reported: Routine scheduled service.&quot;
                 </p>
               </div>

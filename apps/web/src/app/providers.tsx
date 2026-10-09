@@ -2,6 +2,7 @@
 
 import { QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
+import { ThemeProvider } from 'next-themes'
 import type { ReactNode } from 'react'
 
 import { Toaster } from '@/components/ui/sonner'
@@ -20,14 +21,17 @@ export function Providers({ children }: ProvidersProps) {
   const isMobile = useIsMobile()
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        {children}
-        {/* Toasts: bottom-right on desktop, top-centre below md, at most 3 (spec 09 §4.9). */}
-        <Toaster position={isMobile ? 'top-center' : 'bottom-right'} visibleToasts={3} />
-      </TooltipProvider>
-      {/* Rendered only when NODE_ENV === 'development'; a no-op in production builds. */}
-      <ReactQueryDevtools initialIsOpen={false} />
-    </QueryClientProvider>
+    // Light / dark theme (D93): `.dark` on <html>, following the OS until the user picks one.
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          {children}
+          {/* Toasts: bottom-right on desktop, top-centre below md, at most 3 (spec 09 §4.9). */}
+          <Toaster position={isMobile ? 'top-center' : 'bottom-right'} visibleToasts={3} />
+        </TooltipProvider>
+        {/* Rendered only when NODE_ENV === 'development'; a no-op in production builds. */}
+        <ReactQueryDevtools initialIsOpen={false} />
+      </QueryClientProvider>
+    </ThemeProvider>
   )
 }

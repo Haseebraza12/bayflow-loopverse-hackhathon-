@@ -1,9 +1,6 @@
 'use client'
 
-import {
-  ArrowLeft,
-  Building2,
-} from 'lucide-react'
+import { ArrowLeft, Building2 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState, type FormEvent } from 'react'
@@ -34,7 +31,11 @@ export default function CreateShopPage() {
 
     setIsSubmitting(true)
 
-    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || `shop-${Date.now()}`
+    const slug =
+      name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '') || `shop-${Date.now()}`
     const id = `shop-${slug}`
 
     const newShop: MockShop = {
@@ -77,25 +78,25 @@ export default function CreateShopPage() {
   }
 
   return (
-    <div className="py-10 px-4 sm:px-6 max-w-3xl mx-auto space-y-6">
+    <div className="mx-auto max-w-3xl space-y-6 px-4 py-10 sm:px-6">
       <Link
         href="/pos"
-        className="inline-flex items-center gap-1.5 text-xs font-semibold text-neutral-600 hover:text-[#1047FA]"
+        className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-brand-blue-ink"
       >
         <ArrowLeft className="size-3.5" />
         <span>Back to POS Hub</span>
       </Link>
 
-      <Card className="border-neutral-200">
+      <Card className="border-border">
         <CardHeader className="space-y-1">
-          <div className="flex items-center gap-2 text-xs font-bold tracking-[0.32px] text-[#1047FA]">
+          <div className="flex items-center gap-2 text-xs font-bold tracking-[0.32px] text-brand-blue-ink">
             <Building2 className="size-4" />
             Shop Setup & Onboarding
           </div>
-          <CardTitle className="text-2xl font-bold text-neutral-900">
+          <CardTitle className="text-2xl font-bold text-foreground">
             Create a New Auto Repair Workshop
           </CardTitle>
-          <CardDescription className="text-xs text-neutral-500">
+          <CardDescription className="text-xs text-helper">
             Set up workshop bays, appointment duration, opening schedule and public listing.
           </CardDescription>
         </CardHeader>
@@ -104,12 +105,12 @@ export default function CreateShopPage() {
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* General Profile */}
             <div className="space-y-4">
-              <h3 className="text-xs font-bold tracking-[0.32px] text-neutral-400">
+              <h3 className="text-xs font-bold tracking-[0.32px] text-subtle-foreground">
                 1. Workshop Identity
               </h3>
 
               <div className="space-y-1.5">
-                <Label htmlFor="shopName" className="text-xs font-semibold text-neutral-700">
+                <Label htmlFor="shopName" className="text-xs font-semibold text-muted-foreground">
                   Shop Name
                 </Label>
                 <Input
@@ -122,9 +123,9 @@ export default function CreateShopPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-1.5">
-                  <Label htmlFor="city" className="text-xs font-semibold text-neutral-700">
+                  <Label htmlFor="city" className="text-xs font-semibold text-muted-foreground">
                     City
                   </Label>
                   <Input
@@ -138,7 +139,7 @@ export default function CreateShopPage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="phone" className="text-xs font-semibold text-neutral-700">
+                  <Label htmlFor="phone" className="text-xs font-semibold text-muted-foreground">
                     Phone Number
                   </Label>
                   <Input
@@ -152,7 +153,7 @@ export default function CreateShopPage() {
                 </div>
 
                 <div className="space-y-1.5 sm:col-span-2">
-                  <Label htmlFor="address" className="text-xs font-semibold text-neutral-700">
+                  <Label htmlFor="address" className="text-xs font-semibold text-muted-foreground">
                     Street Address & Area
                   </Label>
                   <Input
@@ -168,14 +169,14 @@ export default function CreateShopPage() {
             </div>
 
             {/* Bay Capacity & Scheduling */}
-            <div className="space-y-4 pt-4 border-t border-neutral-100">
-              <h3 className="text-xs font-bold tracking-[0.32px] text-neutral-400">
+            <div className="space-y-4 border-t border-border-faint pt-4">
+              <h3 className="text-xs font-bold tracking-[0.32px] text-subtle-foreground">
                 2. Scheduling & Bay Allocation
               </h3>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-1.5">
-                  <Label htmlFor="slotDur" className="text-xs font-semibold text-neutral-700">
+                  <Label htmlFor="slotDur" className="text-xs font-semibold text-muted-foreground">
                     Default Slot Duration (minutes)
                   </Label>
                   <Input
@@ -185,11 +186,13 @@ export default function CreateShopPage() {
                     onChange={(e) => setSlotDuration(e.target.value)}
                     className="text-sm"
                   />
-                  <p className="text-[11px] text-neutral-400">Recommended: 60 minutes for diagnostics & intake.</p>
+                  <p className="text-[11px] text-subtle-foreground">
+                    Recommended: 60 minutes for diagnostics & intake.
+                  </p>
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="slotCap" className="text-xs font-semibold text-neutral-700">
+                  <Label htmlFor="slotCap" className="text-xs font-semibold text-muted-foreground">
                     Simultaneous Bay Capacity
                   </Label>
                   <Input
@@ -199,14 +202,18 @@ export default function CreateShopPage() {
                     onChange={(e) => setSlotCapacity(e.target.value)}
                     className="text-sm"
                   />
-                  <p className="text-[11px] text-neutral-400">Number of cars accepted in each time slot.</p>
+                  <p className="text-[11px] text-subtle-foreground">
+                    Number of cars accepted in each time slot.
+                  </p>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between rounded-xl border border-neutral-200 p-4">
+              <div className="flex items-center justify-between rounded-xl border border-border p-4">
                 <div className="space-y-0.5">
-                  <span className="text-xs font-bold text-neutral-900">Show on Public Directory</span>
-                  <p className="text-[11px] text-neutral-500">
+                  <span className="text-xs font-bold text-foreground">
+                    Show on Public Directory
+                  </span>
+                  <p className="text-[11px] text-helper">
                     Allow online customers to discover your shop and book services.
                   </p>
                 </div>
@@ -217,7 +224,7 @@ export default function CreateShopPage() {
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="w-full bg-[#1047FA] hover:bg-blue-700 text-white font-semibold h-11 text-sm rounded-full"
+              className="h-11 w-full rounded-full bg-brand-blue text-sm font-semibold text-white hover:bg-blue-700"
             >
               {isSubmitting ? 'Configuring Workshop...' : 'Create Workshop & Open Dashboard'}
             </Button>

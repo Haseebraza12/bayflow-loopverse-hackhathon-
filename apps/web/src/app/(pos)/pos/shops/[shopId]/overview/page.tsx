@@ -42,11 +42,28 @@ function ShopOverviewContent() {
 
   // KPI Calculations
   const needsSaAction = bookings.filter((b) =>
-    ['PENDING', 'CONFIRMED', 'ESTIMATE_REVIEW', 'AWAITING_CUSTOMER', 'ESTIMATE_REJECTED', 'READY_FOR_PICKUP'].includes(b.status)
+    [
+      'PENDING',
+      'CONFIRMED',
+      'ESTIMATE_REVIEW',
+      'AWAITING_CUSTOMER',
+      'ESTIMATE_REJECTED',
+      'READY_FOR_PICKUP',
+    ].includes(b.status),
   ).length
 
   const inProgress = bookings.filter((b) =>
-    ['ASSIGNED', 'INSPECTING', 'ESTIMATE_APPROVED', 'PARTS_PENDING', 'PARTS_ORDERED', 'PARTS_READY', 'IN_REPAIR', 'QC_PENDING', 'QC_IN_PROGRESS'].includes(b.status)
+    [
+      'ASSIGNED',
+      'INSPECTING',
+      'ESTIMATE_APPROVED',
+      'PARTS_PENDING',
+      'PARTS_ORDERED',
+      'PARTS_READY',
+      'IN_REPAIR',
+      'QC_PENDING',
+      'QC_IN_PROGRESS',
+    ].includes(b.status),
   ).length
 
   const readyForPickup = bookings.filter((b) => b.status === 'READY_FOR_PICKUP').length
@@ -60,15 +77,15 @@ function ShopOverviewContent() {
   return (
     <div className="space-y-6 pb-12">
       {/* Overview Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <span className="text-xs font-bold tracking-[0.32px] text-[#1047FA]">
+          <span className="text-xs font-bold tracking-[0.32px] text-brand-blue-ink">
             Workshop Operations Hub
           </span>
-          <h1 className="text-2xl sm:text-3xl font-semibold text-neutral-900 mt-1">
+          <h1 className="mt-1 text-2xl font-semibold text-foreground sm:text-3xl">
             {shop?.name || 'Lahore Auto Care'}
           </h1>
-          <p className="text-xs text-neutral-500 mt-0.5">
+          <p className="mt-0.5 text-xs text-helper">
             {shop?.address}, {shop?.city} • Slot duration: {shop?.slot_duration_minutes || 60}m
           </p>
         </div>
@@ -77,18 +94,18 @@ function ShopOverviewContent() {
           <Button
             asChild
             variant="outline"
-            className="text-xs font-semibold border-neutral-300 rounded-full"
+            className="rounded-full border-border-medium text-xs font-semibold"
           >
             <Link href={`${base}/settings`}>Workshop Settings</Link>
           </Button>
 
           <Button
             asChild
-            className="bg-[#1047FA] hover:bg-blue-700 text-white font-semibold text-xs rounded-full px-4"
+            className="rounded-full bg-brand-blue px-4 text-xs font-semibold text-white hover:bg-blue-700"
           >
             <Link href={`${base}/bookings`}>
               Open Bookings Queue
-              <ArrowRight className="size-3.5 ml-1" />
+              <ArrowRight className="ml-1 size-3.5" />
             </Link>
           </Button>
         </div>
@@ -96,46 +113,50 @@ function ShopOverviewContent() {
 
       {/* Onboarding Checklist when welcome=1 or services/team need setup */}
       {isWelcome && (
-        <Card className="border-blue-200 bg-blue-50/50">
+        <Card className="border-blue-200 bg-blue-50/50 dark:border-blue-800/60 dark:bg-blue-950/30">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-bold text-blue-950 flex items-center gap-2">
-              <Sparkles className="size-4 text-[#1047FA]" />
+            <CardTitle className="flex items-center gap-2 text-sm font-bold text-blue-950 dark:text-blue-100">
+              <Sparkles className="size-4 text-brand-blue-ink" />
               Quick Setup Checklist for {shop?.name}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-xs">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <Link
                 href={`${base}/services`}
-                className="rounded-full border border-blue-200 bg-white p-3 hover:border-[#1047FA] transition-colors"
+                className="rounded-full border border-blue-200 bg-card p-3 transition-colors hover:border-brand-blue dark:border-blue-800/60"
               >
-                <div className="flex items-center gap-2 font-bold text-neutral-900">
-                  <Tags className="size-4 text-[#1047FA]" />
+                <div className="flex items-center gap-2 font-bold text-foreground">
+                  <Tags className="size-4 text-brand-blue-ink" />
                   <span>1. Configure Services ({services.length})</span>
                 </div>
-                <p className="text-[11px] text-neutral-500 mt-1">Add pricing and labor durations</p>
+                <p className="mt-1 text-[11px] text-helper">Add pricing and labor durations</p>
               </Link>
 
               <Link
                 href={`${base}/team`}
-                className="rounded-full border border-blue-200 bg-white p-3 hover:border-[#1047FA] transition-colors"
+                className="rounded-full border border-blue-200 bg-card p-3 transition-colors hover:border-brand-blue dark:border-blue-800/60"
               >
-                <div className="flex items-center gap-2 font-bold text-neutral-900">
-                  <Users className="size-4 text-[#1047FA]" />
+                <div className="flex items-center gap-2 font-bold text-foreground">
+                  <Users className="size-4 text-brand-blue-ink" />
                   <span>2. Add Staff Members ({team.length})</span>
                 </div>
-                <p className="text-[11px] text-neutral-500 mt-1">Invite advisors, techs, and inspectors</p>
+                <p className="mt-1 text-[11px] text-helper">
+                  Invite advisors, techs, and inspectors
+                </p>
               </Link>
 
               <Link
                 href={`${base}/inventory`}
-                className="rounded-full border border-blue-200 bg-white p-3 hover:border-[#1047FA] transition-colors"
+                className="rounded-full border border-blue-200 bg-card p-3 transition-colors hover:border-brand-blue dark:border-blue-800/60"
               >
-                <div className="flex items-center gap-2 font-bold text-neutral-900">
-                  <Boxes className="size-4 text-[#1047FA]" />
+                <div className="flex items-center gap-2 font-bold text-foreground">
+                  <Boxes className="size-4 text-brand-blue-ink" />
                   <span>3. Stock Inventory ({inventory.length})</span>
                 </div>
-                <p className="text-[11px] text-neutral-500 mt-1">Enter opening parts & lubricants count</p>
+                <p className="mt-1 text-[11px] text-helper">
+                  Enter opening parts & lubricants count
+                </p>
               </Link>
             </div>
           </CardContent>
@@ -143,72 +164,74 @@ function ShopOverviewContent() {
       )}
 
       {/* 4 Primary KPI Tiles */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Link href={`${base}/bookings?filter=needs_action`}>
-          <Card className="border-neutral-200 hover:border-[#1047FA] transition-all cursor-pointer">
-            <CardContent className="p-5 space-y-2">
-              <div className="flex items-center justify-between text-xs font-bold text-neutral-500">
+          <Card className="cursor-pointer border-border transition-all hover:border-brand-blue">
+            <CardContent className="space-y-2 p-5">
+              <div className="flex items-center justify-between text-xs font-bold text-helper">
                 <span>Needs SA Action</span>
-                <Clock className="size-4 text-amber-500" />
+                <Clock className="size-4 text-amber-500 dark:text-amber-400" />
               </div>
-              <div className="text-3xl font-semibold text-neutral-900">{needsSaAction}</div>
-              <p className="text-[11px] text-neutral-400">Intake, estimates & pickup calls</p>
+              <div className="text-3xl font-semibold text-foreground">{needsSaAction}</div>
+              <p className="text-[11px] text-subtle-foreground">Intake, estimates & pickup calls</p>
             </CardContent>
           </Card>
         </Link>
 
         <Link href={`${base}/jobs`}>
-          <Card className="border-neutral-200 hover:border-[#1047FA] transition-all cursor-pointer">
-            <CardContent className="p-5 space-y-2">
-              <div className="flex items-center justify-between text-xs font-bold text-neutral-500">
+          <Card className="cursor-pointer border-border transition-all hover:border-brand-blue">
+            <CardContent className="space-y-2 p-5">
+              <div className="flex items-center justify-between text-xs font-bold text-helper">
                 <span>In Progress</span>
-                <Wrench className="size-4 text-[#1047FA]" />
+                <Wrench className="size-4 text-brand-blue-ink" />
               </div>
-              <div className="text-3xl font-semibold text-[#1047FA]">{inProgress}</div>
-              <p className="text-[11px] text-neutral-400">Diagnosis, repairs & QC queue</p>
+              <div className="text-3xl font-semibold text-brand-blue-ink">{inProgress}</div>
+              <p className="text-[11px] text-subtle-foreground">Diagnosis, repairs & QC queue</p>
             </CardContent>
           </Card>
         </Link>
 
         <Link href={`${base}/bookings?filter=ready`}>
-          <Card className="border-neutral-200 hover:border-[#1047FA] transition-all cursor-pointer">
-            <CardContent className="p-5 space-y-2">
-              <div className="flex items-center justify-between text-xs font-bold text-neutral-500">
+          <Card className="cursor-pointer border-border transition-all hover:border-brand-blue">
+            <CardContent className="space-y-2 p-5">
+              <div className="flex items-center justify-between text-xs font-bold text-helper">
                 <span>Ready for Pickup</span>
-                <Sparkles className="size-4 text-emerald-500" />
+                <Sparkles className="size-4 text-emerald-500 dark:text-emerald-400" />
               </div>
-              <div className="text-3xl font-semibold text-emerald-600">{readyForPickup}</div>
-              <p className="text-[11px] text-neutral-400">Passed QC, awaiting customer</p>
+              <div className="text-3xl font-semibold text-emerald-600 dark:text-emerald-400">
+                {readyForPickup}
+              </div>
+              <p className="text-[11px] text-subtle-foreground">Passed QC, awaiting customer</p>
             </CardContent>
           </Card>
         </Link>
 
         <Link href={`${base}/bookings?filter=completed`}>
-          <Card className="border-neutral-200 hover:border-[#1047FA] transition-all cursor-pointer">
-            <CardContent className="p-5 space-y-2">
-              <div className="flex items-center justify-between text-xs font-bold text-neutral-500">
+          <Card className="cursor-pointer border-border transition-all hover:border-brand-blue">
+            <CardContent className="space-y-2 p-5">
+              <div className="flex items-center justify-between text-xs font-bold text-helper">
                 <span>Completed Jobs</span>
-                <CheckCircle2 className="size-4 text-neutral-400" />
+                <CheckCircle2 className="size-4 text-subtle-foreground" />
               </div>
-              <div className="text-3xl font-semibold text-neutral-900">{completedToday}</div>
-              <p className="text-[11px] text-neutral-400">Settled and handed over</p>
+              <div className="text-3xl font-semibold text-foreground">{completedToday}</div>
+              <p className="text-[11px] text-subtle-foreground">Settled and handed over</p>
             </CardContent>
           </Card>
         </Link>
       </div>
 
       {/* Main Grid: Live Jobs Table & Sidebar */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Left Column (2 spans): Recent Bookings & Statuses */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="space-y-6 lg:col-span-2">
           {/* Active Bookings Card */}
-          <Card className="border-neutral-200 overflow-hidden">
-            <CardHeader className="p-5 border-b border-neutral-100 flex flex-row items-center justify-between">
+          <Card className="overflow-hidden border-border">
+            <CardHeader className="flex flex-row items-center justify-between border-b border-border-faint p-5">
               <div>
-                <CardTitle className="text-sm font-bold text-neutral-900">
+                <CardTitle className="text-sm font-bold text-foreground">
                   Active Workshop Bookings
                 </CardTitle>
-                <p className="text-xs text-neutral-500 mt-0.5">
+                <p className="mt-0.5 text-xs text-helper">
                   Live jobs on bay floor and upcoming intakes
                 </p>
               </div>
@@ -216,42 +239,43 @@ function ShopOverviewContent() {
                 asChild
                 variant="ghost"
                 size="sm"
-                className="text-xs font-semibold text-[#1047FA] rounded-full"
+                className="rounded-full text-xs font-semibold text-brand-blue-ink"
               >
                 <Link href={`${base}/bookings`}>View All ({bookings.length})</Link>
               </Button>
             </CardHeader>
             <CardContent className="p-0">
-              <div className="divide-y divide-neutral-100 text-xs">
+              <div className="divide-y divide-border-faint text-xs">
                 {bookings.slice(0, 6).map((b) => (
                   <div
                     key={b.id}
-                    className="p-4 hover:bg-neutral-50 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                    className="flex flex-col justify-between gap-3 p-4 transition-colors hover:bg-muted sm:flex-row sm:items-center"
                   >
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-mono font-semibold text-[#1047FA]">
+                        <span className="font-mono font-semibold text-brand-blue-ink">
                           {b.reference}
                         </span>
                         <StatusBadge status={b.status} audience="staff" size="sm" />
                       </div>
-                      <p className="font-bold text-neutral-900">
-                        {b.customerName} • <span className="font-mono text-neutral-600">{b.licensePlate}</span>
+                      <p className="font-bold text-foreground">
+                        {b.customerName} •{' '}
+                        <span className="font-mono text-muted-foreground">{b.licensePlate}</span>
                       </p>
-                      <p className="text-[11px] text-neutral-500">
+                      <p className="text-[11px] text-helper">
                         {b.vehicleYear} {b.vehicleMake} {b.vehicleModel} — {b.services.join(', ')}
                       </p>
                     </div>
 
-                    <div className="flex sm:flex-col items-center sm:items-end justify-between gap-1">
-                      <span className="font-semibold text-neutral-800">
+                    <div className="flex items-center justify-between gap-1 sm:flex-col sm:items-end">
+                      <span className="font-semibold text-foreground">
                         {b.scheduledTime} ({b.scheduledDate})
                       </span>
                       <Button
                         asChild
                         variant="outline"
                         size="sm"
-                        className="h-7 text-[11px] font-semibold border-neutral-200 rounded-full"
+                        className="h-7 rounded-full border-border text-[11px] font-semibold"
                       >
                         <Link href={`${base}/bookings/${b.id}`}>Manage</Link>
                       </Button>
@@ -266,27 +290,32 @@ function ShopOverviewContent() {
         {/* Right Column: Workshop Team & Inventory Snapshot */}
         <div className="space-y-6">
           {/* Workshop Staff Card */}
-          <Card className="border-neutral-200">
-            <CardHeader className="p-4 border-b border-neutral-100 flex flex-row items-center justify-between">
-              <CardTitle className="text-xs font-bold tracking-[0.32px] text-neutral-600 flex items-center gap-1.5">
-                <Users className="size-3.5 text-[#1047FA]" />
+          <Card className="border-border">
+            <CardHeader className="flex flex-row items-center justify-between border-b border-border-faint p-4">
+              <CardTitle className="flex items-center gap-1.5 text-xs font-bold tracking-[0.32px] text-muted-foreground">
+                <Users className="size-3.5 text-brand-blue-ink" />
                 Workshop Team ({team.length})
               </CardTitle>
-              <Button asChild variant="ghost" size="sm" className="h-6 text-[11px] text-[#1047FA] rounded-full">
+              <Button
+                asChild
+                variant="ghost"
+                size="sm"
+                className="h-6 rounded-full text-[11px] text-brand-blue-ink"
+              >
                 <Link href={`${base}/team`}>Manage</Link>
               </Button>
             </CardHeader>
-            <CardContent className="p-3 space-y-2 text-xs">
+            <CardContent className="space-y-2 p-3 text-xs">
               {team.map((member) => (
                 <div
                   key={member.id}
-                  className="flex items-center justify-between p-2 rounded-lg bg-neutral-50"
+                  className="flex items-center justify-between rounded-lg bg-muted p-2"
                 >
                   <div>
-                    <p className="font-bold text-neutral-900">{member.name}</p>
-                    <p className="text-[10px] text-neutral-400 font-mono">{member.email}</p>
+                    <p className="font-bold text-foreground">{member.name}</p>
+                    <p className="font-mono text-[10px] text-subtle-foreground">{member.email}</p>
                   </div>
-                  <span className="rounded bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-[#1047FA]">
+                  <span className="rounded bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-brand-blue-ink dark:bg-blue-950/40">
                     {member.role.replace('_', ' ')}
                   </span>
                 </div>
@@ -295,45 +324,52 @@ function ShopOverviewContent() {
           </Card>
 
           {/* Low Stock Alerts Card */}
-          <Card className="border-neutral-200">
-            <CardHeader className="p-4 border-b border-neutral-100 flex flex-row items-center justify-between">
-              <CardTitle className="text-xs font-bold tracking-[0.32px] text-neutral-600 flex items-center gap-1.5">
-                <Boxes className="size-3.5 text-amber-500" />
+          <Card className="border-border">
+            <CardHeader className="flex flex-row items-center justify-between border-b border-border-faint p-4">
+              <CardTitle className="flex items-center gap-1.5 text-xs font-bold tracking-[0.32px] text-muted-foreground">
+                <Boxes className="size-3.5 text-amber-500 dark:text-amber-400" />
                 Inventory ({inventory.length} SKUs)
               </CardTitle>
-              <Button asChild variant="ghost" size="sm" className="h-6 text-[11px] text-[#1047FA] rounded-full">
+              <Button
+                asChild
+                variant="ghost"
+                size="sm"
+                className="h-6 rounded-full text-[11px] text-brand-blue-ink"
+              >
                 <Link href={`${base}/inventory`}>Inventory</Link>
               </Button>
             </CardHeader>
-            <CardContent className="p-3 space-y-3 text-xs">
+            <CardContent className="space-y-3 p-3 text-xs">
               <div className="flex items-center justify-between font-medium">
-                <span className="text-neutral-500">Total Stock Value</span>
-                <span className="font-bold text-neutral-900">{formatPKR(totalStockValue)}</span>
+                <span className="text-helper">Total Stock Value</span>
+                <span className="font-bold text-foreground">{formatPKR(totalStockValue)}</span>
               </div>
 
               {lowStockParts.length > 0 ? (
-                <div className="space-y-2 pt-2 border-t border-neutral-100">
-                  <span className="text-[11px] font-bold text-amber-700 flex items-center gap-1">
-                    <AlertTriangle className="size-3 text-amber-600" />
+                <div className="space-y-2 border-t border-border-faint pt-2">
+                  <span className="flex items-center gap-1 text-[11px] font-bold text-amber-700 dark:text-amber-300">
+                    <AlertTriangle className="size-3 text-amber-600 dark:text-amber-400" />
                     Low Stock Warnings ({lowStockParts.length})
                   </span>
                   {lowStockParts.slice(0, 3).map((p) => (
                     <div
                       key={p.id}
-                      className="flex items-center justify-between p-2 rounded bg-amber-50/60 text-xs"
+                      className="flex items-center justify-between rounded bg-amber-50/60 p-2 text-xs dark:bg-amber-950/30"
                     >
                       <div>
-                        <p className="font-semibold text-neutral-900">{p.name}</p>
-                        <p className="text-[10px] font-mono text-neutral-500">SKU: {p.sku}</p>
+                        <p className="font-semibold text-foreground">{p.name}</p>
+                        <p className="font-mono text-[10px] text-helper">SKU: {p.sku}</p>
                       </div>
-                      <span className="font-bold text-amber-800">
+                      <span className="font-bold text-amber-800 dark:text-amber-200">
                         {p.on_hand} left (min {p.reorder_level})
                       </span>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-neutral-400 text-[11px]">All parts within healthy reorder levels.</p>
+                <p className="text-[11px] text-subtle-foreground">
+                  All parts within healthy reorder levels.
+                </p>
               )}
             </CardContent>
           </Card>
@@ -345,7 +381,9 @@ function ShopOverviewContent() {
 
 export default function ShopOverviewPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-xs text-neutral-400">Loading shop overview...</div>}>
+    <Suspense
+      fallback={<div className="p-8 text-xs text-subtle-foreground">Loading shop overview...</div>}
+    >
       <ShopOverviewContent />
     </Suspense>
   )

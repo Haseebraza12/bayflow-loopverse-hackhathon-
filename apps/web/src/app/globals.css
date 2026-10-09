@@ -3,8 +3,9 @@
 @import 'shadcn/tailwind.css';
 
 /*
- * Light theme only (spec 09 §3.11). The dark variant is class-based and `.dark` is never added,
- * so an OS-level dark preference can never half-activate shadcn's `dark:` utilities.
+ * Light and dark themes (D93, spec 09 §3.11). next-themes puts `.dark` on <html> (system preference
+ * by default, or the user's choice from ThemeToggle); every token below has a light value in
+ * `:root` and a dark value in `.dark`, so components only ever use the tokens.
  */
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -60,9 +61,28 @@
   --accent-foreground: #14213d;
   --destructive: #c92a2a;
   --destructive-foreground: #ffffff;
+  /* Solid danger fills (buttons). Same as --destructive in light; in dark --destructive turns into
+     a lighter text red while fills keep this one, so white labels stay AA on both. */
+  --destructive-strong: #c92a2a;
   --border: #dee2e6;
   --input: #868e96;
   --ring: #e8590c;
+
+  /* Neutral steps the Carbon screens use beyond shadcn's set (Open Color gray 1, 4 and 5). */
+  --subtle-foreground: #adb5bd;
+  --border-faint: #f1f3f5;
+  --border-medium: #ced4da;
+
+  /* Brand blue and green of the Carbon screens (DESIGN.md "Colour"). Blue is split into a fill
+     (buttons, selected chips) and an ink (links, icons, text) so both stay AA in dark mode. */
+  --brand-blue: #1047fa;
+  --brand-blue-hover: #0935c7;
+  --brand-blue-foreground: #ffffff;
+  --brand-blue-ink: #1047fa;
+  --brand-blue-subtle: #eef2ff;
+  --brand-green: #00c070;
+  --brand-green-hover: #00a860;
+  --brand-green-foreground: #ffffff;
 
   /* BayFlow extensions */
   --cta: #bd490a;
@@ -133,6 +153,126 @@
   --status-closed-border: #ced4da;
 }
 
+/*
+ * Dark theme (D93): a navy-black version of the same palette. Carbon g100 layering (canvas darker
+ * than layers, fields lighter than the layer they sit on); brand fills keep their hue; text inks
+ * are lightened so every text pair stays at WCAG AA (spec 09 §5.1).
+ */
+.dark {
+  color-scheme: dark;
+
+  --canvas: #0a0f1c;
+  --layer: #111a2d;
+  --layer-hover: #18233a;
+  --layer-accent: #1c2740;
+  --layer-selected: #26324d;
+  --field: #18233a;
+  --field-hover: #1f2b45;
+  --border-subtle: #222d45;
+  --border-strong: #6b7894;
+  --text-helper: #95a0b8;
+  --overlay: rgb(2 6 16 / 0.72);
+  --shadow-float: 0 4px 12px rgb(0 0 0 / 0.5);
+
+  --background: #0a0f1c;
+  --foreground: #e6eaf2;
+  --card: #111a2d;
+  --card-foreground: #e6eaf2;
+  --popover: #141f35;
+  --popover-foreground: #e6eaf2;
+  --primary: #dbe3f7;
+  --primary-foreground: #14213d;
+  --primary-hover: #c3cfec;
+  --secondary: #1b2640;
+  --secondary-foreground: #e6eaf2;
+  --muted: #131c30;
+  --muted-foreground: #a6b0c5;
+  --accent: #1d2843;
+  --accent-foreground: #e6eaf2;
+  --destructive: #ff6b6b;
+  --destructive-foreground: #ffffff;
+  --destructive-strong: #c92a2a;
+  --border: #243049;
+  --input: #6b7894;
+  --ring: #fd7e14;
+
+  --subtle-foreground: #6f7c98;
+  --border-faint: #1a2439;
+  --border-medium: #34405c;
+
+  --brand-blue: #2a5cff;
+  --brand-blue-hover: #3b69ff;
+  --brand-blue-foreground: #ffffff;
+  --brand-blue-ink: #8aa8ff;
+  --brand-blue-subtle: #14214a;
+  --brand-green: #00c070;
+  --brand-green-hover: #00a860;
+  --brand-green-foreground: #ffffff;
+
+  --cta: #bd490a;
+  --cta-foreground: #ffffff;
+  --cta-hover: #a53f08;
+  --brand-navy: #14213d;
+  --brand-orange: #e8590c;
+  --brand-orange-on-dark: #fd7e14;
+  --attention: #2a1a0c;
+  --attention-border: #7a3f10;
+  --success-subtle: #0d2a1a;
+  --success-ink: #69db7c;
+  --warning-subtle: #2a220c;
+  --warning-ink: #ffd43b;
+  --danger-subtle: #2c1215;
+  --danger-ink: #ff8787;
+  --info-subtle: #0c2238;
+  --info-ink: #74c0fc;
+
+  --nav: #0d1424;
+  --nav-foreground: #ffffff;
+  --nav-muted: #a9b4c8;
+  --nav-hover: #1a2540;
+  --role-chip: #2a3550;
+
+  --sidebar: #0f1729;
+  --sidebar-foreground: #e6eaf2;
+  --sidebar-primary: #dbe3f7;
+  --sidebar-primary-foreground: #14213d;
+  --sidebar-accent: #1d2843;
+  --sidebar-accent-foreground: #e6eaf2;
+  --sidebar-border: #222d45;
+  --sidebar-ring: #fd7e14;
+
+  --chart-1: #74c0fc;
+  --chart-2: #b197fc;
+  --chart-3: #ffd43b;
+  --chart-4: #66d9e8;
+  --chart-5: #e599f7;
+
+  --status-intake-bg: #0c2238;
+  --status-intake-fg: #74c0fc;
+  --status-intake-border: #1b4a75;
+  --status-inspection-bg: #1c1640;
+  --status-inspection-fg: #b197fc;
+  --status-inspection-border: #3e2f7d;
+  --status-estimate-bg: #2a220c;
+  --status-estimate-fg: #ffd43b;
+  --status-estimate-border: #6b5513;
+  --status-estimate-rejected-bg: #2c1215;
+  --status-estimate-rejected-fg: #ff8787;
+  --status-estimate-rejected-border: #7a2b2e;
+  --status-parts-bg: #0a2a2f;
+  --status-parts-fg: #66d9e8;
+  --status-parts-border: #16606a;
+  --status-repair-qc-bg: #25122f;
+  --status-repair-qc-fg: #e599f7;
+  --status-repair-qc-border: #5f2b70;
+  --status-handover-bg: #0d2a1a;
+  --status-handover-fg: #69db7c;
+  --status-handover-border: #2b6b3c;
+  --status-closed-bg: #1b2335;
+  --status-closed-fg: #adb5bd;
+  --status-closed-border: #3a4458;
+}
+
 /* Expose the tokens as Tailwind utilities (`bg-primary`, `text-cta`, `border-status-parts-border`, …). */
 @theme inline {
   --font-sans: var(--font-archivo);
@@ -157,9 +297,22 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-destructive-strong: var(--destructive-strong);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+
+  --color-subtle-foreground: var(--subtle-foreground);
+  --color-border-faint: var(--border-faint);
+  --color-border-medium: var(--border-medium);
+  --color-brand-blue: var(--brand-blue);
+  --color-brand-blue-hover: var(--brand-blue-hover);
+  --color-brand-blue-foreground: var(--brand-blue-foreground);
+  --color-brand-blue-ink: var(--brand-blue-ink);
+  --color-brand-blue-subtle: var(--brand-blue-subtle);
+  --color-brand-green: var(--brand-green);
+  --color-brand-green-hover: var(--brand-green-hover);
+  --color-brand-green-foreground: var(--brand-green-foreground);
 
   --color-cta: var(--cta);
   --color-cta-foreground: var(--cta-foreground);
@@ -266,6 +419,9 @@
     background: var(--brand-navy);
     color: #fff;
   }
+  .dark ::selection {
+    background: var(--brand-blue);
+  }
   /* Carbon-style scrollbars: thin, square, neutral */
   * {
     scrollbar-width: thin;
@@ -354,10 +510,14 @@
 }
 
 .bg-grid-pattern {
+  --grid-line: rgba(226, 232, 240, 0.65);
   background-size: 32px 32px;
   background-image:
-    linear-gradient(to right, rgba(226, 232, 240, 0.65) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(226, 232, 240, 0.65) 1px, transparent 1px);
+    linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+}
+.dark .bg-grid-pattern {
+  --grid-line: rgba(148, 163, 184, 0.08);
 }
 
 /* Landing testimonials marquee: the track holds the list twice, so sliding -50% (minus half

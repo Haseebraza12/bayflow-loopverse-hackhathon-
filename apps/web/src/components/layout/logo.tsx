@@ -25,15 +25,18 @@ export function Logo({ tone = 'light', className, showText = true, size = 'md' }
     <span
       className={cn(
         'inline-flex items-center gap-2.5 tracking-tight select-none',
-        tone === 'dark' ? 'text-white' : 'text-[#111827]',
+        tone === 'dark' ? 'text-white' : 'text-foreground',
         className,
       )}
     >
-      <BrandMark className={cn('shrink-0 transition-transform duration-200 hover:scale-105', markSizes[size])} />
+      <BrandMark
+        className={cn(
+          'shrink-0 transition-transform duration-200 hover:scale-105',
+          markSizes[size],
+        )}
+      />
       {showText && (
-        <span className={cn('tracking-tight font-sans', textSizes[size])}>
-          GarageBox
-        </span>
+        <span className={cn('font-sans tracking-tight', textSizes[size])}>GarageBox</span>
       )}
     </span>
   )

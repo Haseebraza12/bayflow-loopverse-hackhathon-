@@ -1,5 +1,6 @@
 'use client'
 
+import { useTheme } from 'next-themes'
 import { Toaster as Sonner, type ToasterProps } from 'sonner'
 import {
   CircleCheckIcon,
@@ -9,11 +10,13 @@ import {
   Loader2Icon,
 } from 'lucide-react'
 
-// BayFlow: light theme only (spec 09 §3.11), so no next-themes lookup (spec 09 §2.1 "Not used").
+// Follows the light / dark theme (D93); the colours themselves come from the tokens below.
 const Toaster = ({ ...props }: ToasterProps) => {
+  const { resolvedTheme } = useTheme()
+
   return (
     <Sonner
-      theme="light"
+      theme={resolvedTheme === 'dark' ? 'dark' : 'light'}
       className="toaster group"
       icons={{
         success: <CircleCheckIcon className="size-4" />,

@@ -149,27 +149,27 @@ export function ScreenNavigator() {
       {open && (
         <div
           id={panelId}
-          className="flex max-h-[min(70vh,560px)] w-80 flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-2xl"
+          className="flex max-h-[min(70vh,560px)] w-80 flex-col overflow-hidden rounded-2xl border border-border bg-popover shadow-2xl"
         >
           {/* Current screen, with previous / next */}
-          <div className="flex items-center gap-1 border-b border-neutral-100 p-1.5">
+          <div className="flex items-center gap-1 border-b border-border-faint p-1.5">
             <button
               type="button"
               onClick={() => go(-1)}
               aria-label="Previous screen"
-              className="flex size-8 shrink-0 items-center justify-center rounded-full text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900"
+              className="flex size-8 shrink-0 items-center justify-center rounded-full text-helper hover:bg-secondary hover:text-foreground"
             >
               ←
             </button>
-            <p className="min-w-0 flex-1 truncate text-center text-xs font-medium text-neutral-800">
+            <p className="min-w-0 flex-1 truncate text-center text-xs font-medium text-foreground">
               {current ? (
                 <>
-                  <span className="text-neutral-400">{current.group} /</span> {current.label}
+                  <span className="text-subtle-foreground">{current.group} /</span> {current.label}
                 </>
               ) : (
                 'Not a listed screen'
               )}
-              <span className="ml-1.5 text-neutral-400 tabular-nums">
+              <span className="ml-1.5 text-subtle-foreground tabular-nums">
                 {index >= 0 ? index + 1 : '–'}/{ALL.length}
               </span>
             </p>
@@ -177,24 +177,24 @@ export function ScreenNavigator() {
               type="button"
               onClick={() => go(1)}
               aria-label="Next screen"
-              className="flex size-8 shrink-0 items-center justify-center rounded-full text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900"
+              className="flex size-8 shrink-0 items-center justify-center rounded-full text-helper hover:bg-secondary hover:text-foreground"
             >
               →
             </button>
           </div>
-          <div className="border-b border-neutral-100 p-3">
+          <div className="border-b border-border-faint p-3">
             <input
               autoFocus
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search screens…"
-              className="w-full rounded-lg bg-neutral-100 px-3 py-2 text-sm outline-none placeholder:text-neutral-400 focus:ring-2 focus:ring-neutral-900/10"
+              className="w-full rounded-lg bg-field px-3 py-2 text-sm outline-none placeholder:text-subtle-foreground focus:ring-2 focus:ring-foreground/10"
             />
           </div>
           <nav className="flex-1 overflow-y-auto p-2" aria-label="Design screens">
             {groups.map((g) => (
               <div key={g.name} className="mb-2">
-                <p className="px-2 py-1.5 text-[10px] font-semibold tracking-wider text-neutral-400 uppercase">
+                <p className="px-2 py-1.5 text-[10px] font-semibold tracking-wider text-subtle-foreground uppercase">
                   {g.name}
                 </p>
                 {g.screens.map((s) => {
@@ -207,8 +207,8 @@ export function ScreenNavigator() {
                       className={cn(
                         'flex items-baseline justify-between gap-3 rounded-lg px-2 py-1.5 text-sm transition',
                         active
-                          ? 'bg-neutral-900 text-white'
-                          : 'text-neutral-700 hover:bg-neutral-100',
+                          ? 'bg-foreground text-background'
+                          : 'text-muted-foreground hover:bg-secondary',
                       )}
                     >
                       <span>{s.label}</span>
@@ -216,7 +216,7 @@ export function ScreenNavigator() {
                         <span
                           className={cn(
                             'truncate text-[11px]',
-                            active ? 'text-white/60' : 'text-neutral-400',
+                            active ? 'text-background/60' : 'text-subtle-foreground',
                           )}
                         >
                           {s.note}
@@ -228,10 +228,10 @@ export function ScreenNavigator() {
               </div>
             ))}
             {!groups.length && (
-              <p className="p-4 text-center text-sm text-neutral-400">No screens match.</p>
+              <p className="p-4 text-center text-sm text-subtle-foreground">No screens match.</p>
             )}
           </nav>
-          <p className="border-t border-neutral-100 px-3 py-2 text-[11px] text-neutral-400">
+          <p className="border-t border-border-faint px-3 py-2 text-[11px] text-subtle-foreground">
             <kbd className="font-mono">`</kbd> toggle · <kbd className="font-mono">[</kbd>{' '}
             <kbd className="font-mono">]</kbd> prev / next screen
           </p>
@@ -245,7 +245,7 @@ export function ScreenNavigator() {
         aria-controls={open ? panelId : undefined}
         aria-label={open ? 'Close screen navigator' : 'Open screen navigator'}
         title="Design screens ( ` )"
-        className="flex size-10 items-center justify-center rounded-full bg-neutral-900 text-white shadow-lg transition hover:bg-neutral-700 focus-visible:ring-2 focus-visible:ring-neutral-900/30 focus-visible:ring-offset-2 focus-visible:outline-none"
+        className="flex size-10 items-center justify-center rounded-full bg-foreground text-background shadow-lg transition hover:bg-foreground/85 focus-visible:ring-2 focus-visible:ring-foreground/30 focus-visible:ring-offset-2 focus-visible:outline-none"
       >
         <HugeiconsIcon icon={open ? Cancel01Icon : GridViewIcon} className="size-[18px]" />
       </button>

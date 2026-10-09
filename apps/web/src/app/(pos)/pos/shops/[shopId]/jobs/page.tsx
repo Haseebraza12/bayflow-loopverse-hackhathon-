@@ -1,12 +1,6 @@
 'use client'
 
-import {
-  CheckCircle2,
-  ChevronRight,
-  Play,
-  ScanSearch,
-  Wrench,
-} from 'lucide-react'
+import { CheckCircle2, ChevronRight, Play, ScanSearch, Wrench } from 'lucide-react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 
@@ -29,7 +23,7 @@ export default function TechnicianJobsPage() {
   const inInspection = allBookings.filter((b) => b.status === 'INSPECTING')
   const inRepair = allBookings.filter((b) => b.status === 'IN_REPAIR')
   const completedJobs = allBookings.filter(
-    (b) => b.status === 'READY_FOR_PICKUP' || b.status === 'COMPLETED'
+    (b) => b.status === 'READY_FOR_PICKUP' || b.status === 'COMPLETED',
   )
 
   const handleStartInspection = (booking: MockBooking) => {
@@ -44,14 +38,15 @@ export default function TechnicianJobsPage() {
     <div className="space-y-6 pb-12">
       {/* Header */}
       <div>
-        <span className="text-xs font-bold tracking-[0.32px] text-[#1047FA]">
+        <span className="text-xs font-bold tracking-[0.32px] text-brand-blue-ink">
           Technician Bay Floor
         </span>
-        <h1 className="text-2xl sm:text-3xl font-semibold text-neutral-900 mt-1">
+        <h1 className="mt-1 text-2xl font-semibold text-foreground sm:text-3xl">
           Assigned Workshop Jobs
         </h1>
-        <p className="text-xs text-neutral-500 mt-0.5">
-          Execute physical vehicle inspections, prepare itemized estimates, and perform repair tasks.
+        <p className="mt-0.5 text-xs text-helper">
+          Execute physical vehicle inspections, prepare itemized estimates, and perform repair
+          tasks.
         </p>
       </div>
 
@@ -60,51 +55,65 @@ export default function TechnicianJobsPage() {
         {/* Section 1: To Inspect (ASSIGNED) */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold text-neutral-900 flex items-center gap-2">
-              <ScanSearch className="size-4 text-[#1047FA]" />
+            <h2 className="flex items-center gap-2 text-sm font-bold text-foreground">
+              <ScanSearch className="size-4 text-brand-blue-ink" />
               Awaiting Physical Inspection ({toInspect.length})
             </h2>
-            <span className="text-xs text-neutral-400">Arrived at bay hoist</span>
+            <span className="text-xs text-subtle-foreground">Arrived at bay hoist</span>
           </div>
 
           {toInspect.length === 0 ? (
-            <p className="text-xs text-neutral-400 italic">No vehicles currently waiting for inspection.</p>
+            <p className="text-xs text-subtle-foreground italic">
+              No vehicles currently waiting for inspection.
+            </p>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               {toInspect.map((b) => (
-                <Card key={b.id} className="border-neutral-200 bg-white hover:border-blue-400">
-                  <CardContent className="p-4 space-y-3">
+                <Card
+                  key={b.id}
+                  className="border-border bg-card hover:border-blue-400 dark:hover:border-blue-600"
+                >
+                  <CardContent className="space-y-3 p-4">
                     <div className="flex items-center justify-between">
-                      <span className="font-mono font-bold text-[#1047FA] text-sm">{b.reference}</span>
+                      <span className="font-mono text-sm font-bold text-brand-blue-ink">
+                        {b.reference}
+                      </span>
                       <StatusBadge status={b.status} audience="staff" size="sm" />
                     </div>
                     <div>
-                      <p className="font-bold text-neutral-900 font-mono text-sm">{b.licensePlate}</p>
-                      <p className="text-xs text-neutral-600">
+                      <p className="font-mono text-sm font-bold text-foreground">
+                        {b.licensePlate}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
                         {b.vehicleYear} {b.vehicleMake} {b.vehicleModel}
                       </p>
                     </div>
-                    <div className="text-xs text-neutral-500 flex flex-wrap gap-1">
+                    <div className="flex flex-wrap gap-1 text-xs text-helper">
                       {b.services.map((s, idx) => (
-                        <span key={idx} className="rounded bg-neutral-100 px-1.5 py-0.5 font-medium">
+                        <span key={idx} className="rounded bg-secondary px-1.5 py-0.5 font-medium">
                           {s}
                         </span>
                       ))}
                     </div>
-                    <div className="pt-2 border-t border-neutral-100 flex items-center justify-between">
-                      <span className="text-[11px] text-neutral-400">
+                    <div className="flex items-center justify-between border-t border-border-faint pt-2">
+                      <span className="text-[11px] text-subtle-foreground">
                         Slot: {b.scheduledTime} ({b.scheduledDate})
                       </span>
                       <div className="flex items-center gap-2">
                         <Button
                           size="sm"
                           onClick={() => handleStartInspection(b)}
-                          className="bg-[#1047FA] hover:bg-blue-700 text-white font-bold text-xs h-7"
+                          className="h-7 bg-brand-blue text-xs font-bold text-white hover:bg-blue-700"
                         >
-                          <Play className="size-3 mr-1" />
+                          <Play className="mr-1 size-3" />
                           Start Inspection
                         </Button>
-                        <Button asChild variant="outline" size="sm" className="h-7 text-xs rounded-full">
+                        <Button
+                          asChild
+                          variant="outline"
+                          size="sm"
+                          className="h-7 rounded-full text-xs"
+                        >
                           <Link href={`${base}/jobs/${b.id}`}>Open</Link>
                         </Button>
                       </div>
@@ -117,39 +126,49 @@ export default function TechnicianJobsPage() {
         </div>
 
         {/* Section 2: Inspecting & In Repair */}
-        <div className="space-y-3 pt-4 border-t border-neutral-200">
+        <div className="space-y-3 border-t border-border pt-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold text-neutral-900 flex items-center gap-2">
-              <Wrench className="size-4 text-[#1047FA]" />
+            <h2 className="flex items-center gap-2 text-sm font-bold text-foreground">
+              <Wrench className="size-4 text-brand-blue-ink" />
               Active Bay Diagnostics & Repairs ({inInspection.length + inRepair.length})
             </h2>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {[...inInspection, ...inRepair].map((b) => (
-              <Card key={b.id} className="border-neutral-200 bg-white hover:border-blue-400">
-                <CardContent className="p-4 space-y-3">
+              <Card
+                key={b.id}
+                className="border-border bg-card hover:border-blue-400 dark:hover:border-blue-600"
+              >
+                <CardContent className="space-y-3 p-4">
                   <div className="flex items-center justify-between">
-                    <span className="font-mono font-bold text-[#1047FA] text-sm">{b.reference}</span>
+                    <span className="font-mono text-sm font-bold text-brand-blue-ink">
+                      {b.reference}
+                    </span>
                     <StatusBadge status={b.status} audience="staff" size="sm" />
                   </div>
                   <div>
-                    <p className="font-bold text-neutral-900 font-mono text-sm">{b.licensePlate}</p>
-                    <p className="text-xs text-neutral-600">
+                    <p className="font-mono text-sm font-bold text-foreground">{b.licensePlate}</p>
+                    <p className="text-xs text-muted-foreground">
                       {b.vehicleYear} {b.vehicleMake} {b.vehicleModel}
                     </p>
                   </div>
-                  <div className="text-xs text-neutral-500">
-                    Services: <span className="font-medium text-neutral-800">{b.services.join(', ')}</span>
+                  <div className="text-xs text-helper">
+                    Services:{' '}
+                    <span className="font-medium text-foreground">{b.services.join(', ')}</span>
                   </div>
-                  <div className="pt-2 border-t border-neutral-100 flex items-center justify-between">
-                    <span className="text-xs font-bold text-neutral-900">
+                  <div className="flex items-center justify-between border-t border-border-faint pt-2">
+                    <span className="text-xs font-bold text-foreground">
                       Estimate: {formatPKR(b.estimateTotal)}
                     </span>
-                    <Button asChild size="sm" className="bg-[#1047FA] text-white text-xs h-7 rounded-full">
+                    <Button
+                      asChild
+                      size="sm"
+                      className="h-7 rounded-full bg-brand-blue text-xs text-white"
+                    >
                       <Link href={`${base}/jobs/${b.id}`}>
                         Manage Job
-                        <ChevronRight className="size-3 ml-1" />
+                        <ChevronRight className="ml-1 size-3" />
                       </Link>
                     </Button>
                   </div>
@@ -160,21 +179,24 @@ export default function TechnicianJobsPage() {
         </div>
 
         {/* Section 3: Completed / Handed Over */}
-        <div className="space-y-3 pt-4 border-t border-neutral-200">
+        <div className="space-y-3 border-t border-border pt-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold text-neutral-900 flex items-center gap-2">
-              <CheckCircle2 className="size-4 text-emerald-600" />
+            <h2 className="flex items-center gap-2 text-sm font-bold text-foreground">
+              <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400" />
               Passed QC & Completed Jobs ({completedJobs.length})
             </h2>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             {completedJobs.slice(0, 3).map((b) => (
-              <div key={b.id} className="p-3 rounded-xl border border-neutral-200 bg-white text-xs space-y-1">
+              <div
+                key={b.id}
+                className="space-y-1 rounded-xl border border-border bg-card p-3 text-xs"
+              >
                 <div className="flex items-center justify-between">
-                  <span className="font-mono font-bold text-neutral-900">{b.reference}</span>
+                  <span className="font-mono font-bold text-foreground">{b.reference}</span>
                   <StatusBadge status={b.status} audience="staff" size="sm" />
                 </div>
-                <p className="text-neutral-500 font-mono">{b.licensePlate}</p>
+                <p className="font-mono text-helper">{b.licensePlate}</p>
               </div>
             ))}
           </div>

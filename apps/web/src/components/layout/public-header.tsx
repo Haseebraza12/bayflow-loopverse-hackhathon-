@@ -18,6 +18,7 @@ import {
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 
+import { ThemeToggle } from '@/components/theme/theme-toggle'
 import { Button } from '@/components/ui/button'
 
 import { Logo } from './logo'
@@ -49,62 +50,62 @@ export function PublicHeader() {
       title: 'Workflow',
       desc: 'Assign tasks, schedule jobs, and track progress in real time. Keep your team aligned and your shop running like clockwork.',
       icon: BarChart3,
-      color: 'bg-blue-50 text-blue-600',
+      color: 'bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400',
       href: '#workflow',
     },
     {
       title: 'Estimates',
       desc: 'Send professional estimates in seconds. Get approvals faster and get to work sooner.',
       icon: PlusCircle,
-      color: 'bg-rose-50 text-rose-600',
+      color: 'bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400',
       href: '#estimates',
     },
     {
       title: 'Inventory',
       desc: "Know exactly what's in stock from parts to tires. Reduce delays and keep your jobs moving.",
       icon: Warehouse,
-      color: 'bg-indigo-50 text-indigo-600',
+      color: 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400',
       href: '#inventory',
     },
     {
       title: 'Vehicle Inspections',
       desc: 'Catch issues early and build trust. Create digital inspection reports your customers can see and understand instantly.',
       icon: ClipboardCheck,
-      color: 'bg-emerald-50 text-emerald-600',
+      color: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400',
       href: '#inspections',
     },
     {
       title: 'Packaged Services',
       desc: 'Bundle common repairs and maintenance into convenient packages that deliver more value and more revenue.',
       icon: Box,
-      color: 'bg-cyan-50 text-cyan-600',
+      color: 'bg-cyan-50 dark:bg-cyan-950/40 text-cyan-600 dark:text-cyan-400',
       href: '#packages',
     },
     {
       title: 'Procurement',
       desc: 'Order the right parts, on time. Manage suppliers and restock with confidence without chasing paperwork.',
       icon: ShoppingBag,
-      color: 'bg-amber-50 text-amber-600',
+      color: 'bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400',
       href: '#procurement',
     },
     {
       title: 'Appointment Scheduling',
       desc: 'Notifications to prompt action for upcoming tasks or events.',
       icon: Calendar,
-      color: 'bg-teal-50 text-teal-600',
+      color: 'bg-teal-50 dark:bg-teal-950/40 text-teal-600 dark:text-teal-400',
       href: '#scheduling',
     },
     {
       title: 'Service Reminders',
       desc: 'Diagnose multiple systems with a single tool.',
       icon: Bell,
-      color: 'bg-purple-50 text-purple-600',
+      color: 'bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400',
       href: '#reminders',
     },
   ]
 
   return (
-    <header className="marketing sticky top-0 z-50 w-full border-b border-neutral-200/80 bg-white/95 backdrop-blur-md">
+    <header className="marketing sticky top-0 z-50 w-full border-b border-border/80 bg-card/95 backdrop-blur-md">
       <div
         ref={navRef}
         className="mx-auto flex h-20 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8"
@@ -115,7 +116,7 @@ export function PublicHeader() {
         </Link>
 
         {/* Desktop Nav */}
-        <nav aria-label="Main Navigation" className="hidden lg:flex items-center gap-1 xl:gap-2">
+        <nav aria-label="Main Navigation" className="hidden items-center gap-1 lg:flex xl:gap-2">
           {/* FEATURES DROPDOWN */}
           <div className="relative">
             <button
@@ -126,23 +127,23 @@ export function PublicHeader() {
                 setCompanyOpen(false)
                 setResourcesOpen(false)
               }}
-              className="inline-flex items-center gap-1 px-3 py-2 text-xs xl:text-sm font-normal uppercase tracking-wider text-neutral-700 hover:text-[#1047FA] transition-colors"
+              className="inline-flex items-center gap-1 px-3 py-2 text-xs font-normal tracking-wider text-muted-foreground uppercase transition-colors hover:text-brand-blue-ink xl:text-sm"
             >
               Features
               <ChevronDown
-                className={`size-4 transition-transform duration-200 ${featuresOpen ? 'rotate-180 text-[#1047FA]' : ''}`}
+                className={`size-4 transition-transform duration-200 ${featuresOpen ? 'rotate-180 text-brand-blue-ink' : ''}`}
               />
             </button>
 
             {featuresOpen && (
-              <div className="absolute left-1/2 -translate-x-1/2 top-full mt-3 w-[680px] xl:w-[760px] rounded-3xl border border-neutral-200 bg-white p-6 shadow-2xl transition-all duration-200 z-50">
-                <div className="grid grid-cols-2 gap-4 pb-5 border-b border-neutral-100">
+              <div className="absolute top-full left-1/2 z-50 mt-3 w-[680px] -translate-x-1/2 rounded-3xl border border-border bg-card p-6 shadow-2xl transition-all duration-200 xl:w-[760px]">
+                <div className="grid grid-cols-2 gap-4 border-b border-border-faint pb-5">
                   {featureItems.map((item) => (
                     <Link
                       key={item.title}
                       href={item.href}
                       onClick={() => setFeaturesOpen(false)}
-                      className="group flex items-start gap-3.5 rounded-2xl p-3 hover:bg-neutral-50 transition-colors"
+                      className="group flex items-start gap-3.5 rounded-2xl p-3 transition-colors hover:bg-muted"
                     >
                       <div
                         className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${item.color}`}
@@ -150,10 +151,10 @@ export function PublicHeader() {
                         <item.icon className="size-5" />
                       </div>
                       <div>
-                        <h4 className="text-sm font-bold text-neutral-900 group-hover:text-[#1047FA] transition-colors">
+                        <h4 className="text-sm font-bold text-foreground transition-colors group-hover:text-brand-blue-ink">
                           {item.title}
                         </h4>
-                        <p className="mt-0.5 line-clamp-2 text-xs text-neutral-500 leading-relaxed">
+                        <p className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-helper">
                           {item.desc}
                         </p>
                       </div>
@@ -161,18 +162,18 @@ export function PublicHeader() {
                   ))}
                 </div>
 
-                <div className="flex items-center justify-between pt-4 px-2 text-xs font-semibold">
+                <div className="flex items-center justify-between px-2 pt-4 text-xs font-semibold">
                   <a
                     href="tel:+923125699996"
-                    className="inline-flex items-center gap-2 text-neutral-600 hover:text-[#1047FA] transition-colors"
+                    className="inline-flex items-center gap-2 text-muted-foreground transition-colors hover:text-brand-blue-ink"
                   >
-                    <PhoneCall className="size-3.5 text-[#1047FA]" />
+                    <PhoneCall className="size-3.5 text-brand-blue-ink" />
                     <span>Contact Sales</span>
                   </a>
                   <Link
                     href="#features-all"
                     onClick={() => setFeaturesOpen(false)}
-                    className="inline-flex items-center gap-1.5 text-[#1047FA] hover:underline"
+                    className="inline-flex items-center gap-1.5 text-brand-blue-ink hover:underline"
                   >
                     <span>VIEW ALL FEATURES</span>
                     <ChevronRight className="size-4" />
@@ -192,16 +193,16 @@ export function PublicHeader() {
                 setCompanyOpen(false)
                 setResourcesOpen(false)
               }}
-              className="inline-flex items-center gap-1 px-3 py-2 text-xs xl:text-sm font-normal uppercase tracking-wider text-neutral-700 hover:text-[#1047FA] transition-colors"
+              className="inline-flex items-center gap-1 px-3 py-2 text-xs font-normal tracking-wider text-muted-foreground uppercase transition-colors hover:text-brand-blue-ink xl:text-sm"
             >
               Solutions
               <ChevronDown
-                className={`size-4 transition-transform duration-200 ${solutionsOpen ? 'rotate-180 text-[#1047FA]' : ''}`}
+                className={`size-4 transition-transform duration-200 ${solutionsOpen ? 'rotate-180 text-brand-blue-ink' : ''}`}
               />
             </button>
 
             {solutionsOpen && (
-              <div className="absolute left-0 top-full mt-3 w-72 rounded-2xl border border-neutral-200 bg-white p-3 shadow-xl z-50">
+              <div className="absolute top-full left-0 z-50 mt-3 w-72 rounded-2xl border border-border bg-card p-3 shadow-xl">
                 <div className="space-y-1">
                   {[
                     'Built for Every Type of Shop',
@@ -215,7 +216,7 @@ export function PublicHeader() {
                       key={sol}
                       href="#solutions"
                       onClick={() => setSolutionsOpen(false)}
-                      className="block rounded-lg px-3 py-2 text-xs font-medium text-neutral-700 hover:bg-neutral-50 hover:text-[#1047FA] transition-colors"
+                      className="block rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-brand-blue-ink"
                     >
                       {sol}
                     </Link>
@@ -235,23 +236,23 @@ export function PublicHeader() {
                 setSolutionsOpen(false)
                 setResourcesOpen(false)
               }}
-              className="inline-flex items-center gap-1 px-3 py-2 text-xs xl:text-sm font-normal uppercase tracking-wider text-neutral-700 hover:text-[#1047FA] transition-colors"
+              className="inline-flex items-center gap-1 px-3 py-2 text-xs font-normal tracking-wider text-muted-foreground uppercase transition-colors hover:text-brand-blue-ink xl:text-sm"
             >
               Company
               <ChevronDown
-                className={`size-4 transition-transform duration-200 ${companyOpen ? 'rotate-180 text-[#1047FA]' : ''}`}
+                className={`size-4 transition-transform duration-200 ${companyOpen ? 'rotate-180 text-brand-blue-ink' : ''}`}
               />
             </button>
 
             {companyOpen && (
-              <div className="absolute left-0 top-full mt-3 w-64 rounded-2xl border border-neutral-200 bg-white p-3 shadow-xl z-50">
+              <div className="absolute top-full left-0 z-50 mt-3 w-64 rounded-2xl border border-border bg-card p-3 shadow-xl">
                 <div className="space-y-1">
                   {['Available Countries', 'About Us', 'Careers', 'Contact Us'].map((item) => (
                     <Link
                       key={item}
                       href="#offices"
                       onClick={() => setCompanyOpen(false)}
-                      className="block rounded-lg px-3 py-2 text-xs font-medium text-neutral-700 hover:bg-neutral-50 hover:text-[#1047FA] transition-colors"
+                      className="block rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-brand-blue-ink"
                     >
                       {item}
                     </Link>
@@ -271,16 +272,16 @@ export function PublicHeader() {
                 setSolutionsOpen(false)
                 setCompanyOpen(false)
               }}
-              className="inline-flex items-center gap-1 px-3 py-2 text-xs xl:text-sm font-normal uppercase tracking-wider text-neutral-700 hover:text-[#1047FA] transition-colors"
+              className="inline-flex items-center gap-1 px-3 py-2 text-xs font-normal tracking-wider text-muted-foreground uppercase transition-colors hover:text-brand-blue-ink xl:text-sm"
             >
               Resources
               <ChevronDown
-                className={`size-4 transition-transform duration-200 ${resourcesOpen ? 'rotate-180 text-[#1047FA]' : ''}`}
+                className={`size-4 transition-transform duration-200 ${resourcesOpen ? 'rotate-180 text-brand-blue-ink' : ''}`}
               />
             </button>
 
             {resourcesOpen && (
-              <div className="absolute left-0 top-full mt-3 w-64 rounded-2xl border border-neutral-200 bg-white p-3 shadow-xl z-50">
+              <div className="absolute top-full left-0 z-50 mt-3 w-64 rounded-2xl border border-border bg-card p-3 shadow-xl">
                 <div className="space-y-1">
                   {['Pricing Guide', 'Customer Stories', 'Help Center', 'Blog & Updates'].map(
                     (res) => (
@@ -288,7 +289,7 @@ export function PublicHeader() {
                         key={res}
                         href="#support"
                         onClick={() => setResourcesOpen(false)}
-                        className="block rounded-lg px-3 py-2 text-xs font-medium text-neutral-700 hover:bg-neutral-50 hover:text-[#1047FA] transition-colors"
+                        className="block rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-brand-blue-ink"
                       >
                         {res}
                       </Link>
@@ -302,18 +303,19 @@ export function PublicHeader() {
           {/* PRICING LINK */}
           <Link
             href="#pricing"
-            className="px-3 py-2 text-xs xl:text-sm font-normal uppercase tracking-wider text-neutral-700 hover:text-[#1047FA] transition-colors"
+            className="px-3 py-2 text-xs font-normal tracking-wider text-muted-foreground uppercase transition-colors hover:text-brand-blue-ink xl:text-sm"
           >
             Pricing
           </Link>
         </nav>
 
-        {/* Right Actions: Sign In */}
-        <div className="hidden lg:flex items-center gap-4">
+        {/* Right Actions: theme, Sign In */}
+        <div className="hidden items-center gap-3 lg:flex">
+          <ThemeToggle />
           {/* Emerald Sign In Button */}
           <Button
             asChild
-            className="rounded-full bg-[#00c070] hover:bg-[#00a860] text-white font-semibold px-6 py-2 h-10 shadow-sm transition-all duration-200 hover:shadow-md"
+            className="h-10 rounded-full bg-brand-green px-6 py-2 font-semibold text-white shadow-sm transition-all duration-200 hover:bg-brand-green-hover hover:shadow-md"
           >
             <Link href="/login">Sign In</Link>
           </Button>
@@ -321,17 +323,18 @@ export function PublicHeader() {
 
         {/* Mobile Hamburger Button */}
         <div className="flex items-center gap-2 lg:hidden">
+          <ThemeToggle />
           <Button
             asChild
             size="sm"
-            className="rounded-full bg-[#00c070] hover:bg-[#00a860] text-white font-semibold px-4 py-1.5 text-xs"
+            className="rounded-full bg-brand-green px-4 py-1.5 text-xs font-semibold text-white hover:bg-brand-green-hover"
           >
             <Link href="/login">Sign In</Link>
           </Button>
           <button
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 text-neutral-700 hover:text-neutral-900 rounded-lg hover:bg-neutral-100"
+            className="rounded-lg p-2 text-muted-foreground hover:bg-secondary hover:text-foreground"
             aria-label="Toggle navigation"
           >
             {mobileMenuOpen ? <X className="size-6" /> : <Menu className="size-6" />}
@@ -341,10 +344,10 @@ export function PublicHeader() {
 
       {/* Mobile Menu Drawer */}
       {mobileMenuOpen && (
-        <div className="border-t border-neutral-200 bg-white px-4 py-6 shadow-xl lg:hidden">
+        <div className="border-t border-border bg-card px-4 py-6 shadow-xl lg:hidden">
           <div className="flex flex-col space-y-4">
             <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-neutral-400 mb-2">
+              <p className="mb-2 text-xs font-bold tracking-wider text-subtle-foreground uppercase">
                 Features
               </p>
               <div className="grid grid-cols-1 gap-2 pl-2">
@@ -353,18 +356,18 @@ export function PublicHeader() {
                     key={item.title}
                     href={item.href}
                     onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center gap-2 text-sm font-medium text-neutral-800"
+                    className="flex items-center gap-2 text-sm font-medium text-foreground"
                   >
-                    <item.icon className="size-4 text-[#1047FA]" />
+                    <item.icon className="size-4 text-brand-blue-ink" />
                     <span>{item.title}</span>
                   </Link>
                 ))}
               </div>
             </div>
 
-            <hr className="border-neutral-100" />
+            <hr className="border-border-faint" />
 
-            <div className="flex flex-col space-y-2.5 text-sm font-normal text-neutral-800">
+            <div className="flex flex-col space-y-2.5 text-sm font-normal text-foreground">
               <Link href="#solutions" onClick={() => setMobileMenuOpen(false)}>
                 Solutions
               </Link>
@@ -380,7 +383,10 @@ export function PublicHeader() {
             </div>
 
             <div className="pt-2">
-              <Button asChild className="w-full rounded-full bg-[#1047FA] text-white font-semibold">
+              <Button
+                asChild
+                className="w-full rounded-full bg-brand-blue font-semibold text-white"
+              >
                 <Link href="/register" onClick={() => setMobileMenuOpen(false)}>
                   Book a Demo / Get Started
                 </Link>

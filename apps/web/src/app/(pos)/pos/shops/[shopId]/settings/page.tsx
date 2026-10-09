@@ -31,9 +31,7 @@ export default function ShopSettingsPage() {
   const [city, setCity] = useState(shop?.city || 'Lahore')
   const [address, setAddress] = useState(shop?.address || 'Plot 12, Main Boulevard, Gulberg III')
   const [phone, setPhone] = useState(shop?.phone || '+92 42 35789011')
-  const [slotDuration, setSlotDuration] = useState(
-    shop?.slot_duration_minutes?.toString() || '60'
-  )
+  const [slotDuration, setSlotDuration] = useState(shop?.slot_duration_minutes?.toString() || '60')
   const [slotCapacity, setSlotCapacity] = useState(shop?.slot_capacity?.toString() || '2')
   const [isListed, setIsListed] = useState(shop?.is_listed ?? true)
   const [workingHours, setWorkingHours] = useState(
@@ -45,7 +43,7 @@ export default function ShopSettingsPage() {
       { day: 'Friday', hours: '09:00 - 18:00' },
       { day: 'Saturday', hours: '09:00 - 18:00' },
       { day: 'Sunday', hours: 'Closed', is_closed: true },
-    ]
+    ],
   )
   const [savedSuccess, setSavedSuccess] = useState(false)
 
@@ -79,28 +77,26 @@ export default function ShopSettingsPage() {
           is_closed: !wh.is_closed,
           hours: wh.is_closed ? '09:00 - 18:00' : 'Closed',
         }
-      })
+      }),
     )
   }
 
   const handleHoursChange = (idx: number, hours: string) => {
-    setWorkingHours((prev) =>
-      prev.map((wh, i) => (i === idx ? { ...wh, hours } : wh))
-    )
+    setWorkingHours((prev) => prev.map((wh, i) => (i === idx ? { ...wh, hours } : wh)))
   }
 
   return (
-    <div className="space-y-6 pb-16 max-w-4xl mx-auto">
+    <div className="mx-auto max-w-4xl space-y-6 pb-16">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <span className="text-xs font-bold tracking-[0.32px] text-[#1047FA]">
+          <span className="text-xs font-bold tracking-[0.32px] text-brand-blue-ink">
             Workshop Configuration
           </span>
-          <h1 className="text-2xl sm:text-3xl font-semibold text-neutral-900 mt-1">
+          <h1 className="mt-1 text-2xl font-semibold text-foreground sm:text-3xl">
             Shop Settings & Scheduling
           </h1>
-          <p className="text-xs text-neutral-500 mt-0.5">
+          <p className="mt-0.5 text-xs text-helper">
             Configure workshop profile, bay scheduling, capacity, and weekly opening hours.
           </p>
         </div>
@@ -109,86 +105,86 @@ export default function ShopSettingsPage() {
           <Button
             asChild
             variant="outline"
-            className="text-xs font-semibold border-neutral-300 rounded-full"
+            className="rounded-full border-border-medium text-xs font-semibold"
           >
             <Link href={`/shops/${shop.slug}`} target="_blank">
-              <Globe className="size-3.5 mr-1.5 text-[#1047FA]" />
+              <Globe className="mr-1.5 size-3.5 text-brand-blue-ink" />
               View Public Page
-              <ExternalLink className="size-3 ml-1 text-neutral-400" />
+              <ExternalLink className="ml-1 size-3 text-subtle-foreground" />
             </Link>
           </Button>
         )}
       </div>
 
       {savedSuccess && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-xs font-bold text-emerald-950 flex items-center gap-2">
-          <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
+        <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-xs font-bold text-emerald-950 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-100">
+          <CheckCircle2 className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
           <span>Workshop settings successfully saved!</span>
         </div>
       )}
 
       <form onSubmit={handleSave} className="space-y-6">
         {/* Profile Card */}
-        <Card className="border-neutral-200">
-          <CardHeader className="pb-3 border-b border-neutral-100">
-            <CardTitle className="text-sm font-bold text-neutral-900 flex items-center gap-2">
-              <Building2 className="size-4 text-[#1047FA]" />
+        <Card className="border-border">
+          <CardHeader className="border-b border-border-faint pb-3">
+            <CardTitle className="flex items-center gap-2 text-sm font-bold text-foreground">
+              <Building2 className="size-4 text-brand-blue-ink" />
               Workshop Profile
             </CardTitle>
-            <CardDescription className="text-xs text-neutral-500">
+            <CardDescription className="text-xs text-helper">
               Details displayed to public customers and printed on repair invoices.
             </CardDescription>
           </CardHeader>
-          <CardContent className="pt-4 space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <CardContent className="space-y-4 pt-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-1.5 sm:col-span-2">
-                <Label htmlFor="sName" className="text-xs font-semibold text-neutral-700">
+                <Label htmlFor="sName" className="text-xs font-semibold text-muted-foreground">
                   Workshop Name
                 </Label>
                 <Input
                   id="sName"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="text-xs h-9"
+                  className="h-9 text-xs"
                   required
                 />
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="sCity" className="text-xs font-semibold text-neutral-700">
+                <Label htmlFor="sCity" className="text-xs font-semibold text-muted-foreground">
                   City
                 </Label>
                 <Input
                   id="sCity"
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
-                  className="text-xs h-9"
+                  className="h-9 text-xs"
                   required
                 />
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="sPhone" className="text-xs font-semibold text-neutral-700">
+                <Label htmlFor="sPhone" className="text-xs font-semibold text-muted-foreground">
                   Workshop Phone
                 </Label>
                 <Input
                   id="sPhone"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="text-xs h-9"
+                  className="h-9 text-xs"
                   required
                 />
               </div>
 
               <div className="space-y-1.5 sm:col-span-2">
-                <Label htmlFor="sAddr" className="text-xs font-semibold text-neutral-700">
+                <Label htmlFor="sAddr" className="text-xs font-semibold text-muted-foreground">
                   Physical Address
                 </Label>
                 <Input
                   id="sAddr"
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
-                  className="text-xs h-9"
+                  className="h-9 text-xs"
                   required
                 />
               </div>
@@ -197,17 +193,17 @@ export default function ShopSettingsPage() {
         </Card>
 
         {/* Scheduling & Directory Card */}
-        <Card className="border-neutral-200">
-          <CardHeader className="pb-3 border-b border-neutral-100">
-            <CardTitle className="text-sm font-bold text-neutral-900 flex items-center gap-2">
-              <Clock className="size-4 text-[#1047FA]" />
+        <Card className="border-border">
+          <CardHeader className="border-b border-border-faint pb-3">
+            <CardTitle className="flex items-center gap-2 text-sm font-bold text-foreground">
+              <Clock className="size-4 text-brand-blue-ink" />
               Bay Slots & Capacity
             </CardTitle>
           </CardHeader>
-          <CardContent className="pt-4 space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <CardContent className="space-y-4 pt-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div className="space-y-1.5">
-                <Label htmlFor="sDur" className="text-xs font-semibold text-neutral-700">
+                <Label htmlFor="sDur" className="text-xs font-semibold text-muted-foreground">
                   Slot Duration (min)
                 </Label>
                 <Input
@@ -215,12 +211,12 @@ export default function ShopSettingsPage() {
                   type="number"
                   value={slotDuration}
                   onChange={(e) => setSlotDuration(e.target.value)}
-                  className="text-xs h-9"
+                  className="h-9 text-xs"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="sCap" className="text-xs font-semibold text-neutral-700">
+                <Label htmlFor="sCap" className="text-xs font-semibold text-muted-foreground">
                   Simultaneous Bay Capacity
                 </Label>
                 <Input
@@ -228,24 +224,26 @@ export default function ShopSettingsPage() {
                   type="number"
                   value={slotCapacity}
                   onChange={(e) => setSlotCapacity(e.target.value)}
-                  className="text-xs h-9"
+                  className="h-9 text-xs"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-neutral-700">Workshop Timezone</Label>
+                <Label className="text-xs font-semibold text-muted-foreground">
+                  Workshop Timezone
+                </Label>
                 <Input
                   value="Asia/Karachi (PKT, UTC+5)"
                   disabled
-                  className="text-xs h-9 bg-neutral-100 text-neutral-500 font-mono"
+                  className="h-9 bg-secondary font-mono text-xs text-helper"
                 />
               </div>
             </div>
 
-            <div className="flex items-center justify-between rounded-xl border border-neutral-200 p-4">
+            <div className="flex items-center justify-between rounded-xl border border-border p-4">
               <div className="space-y-0.5">
-                <span className="text-xs font-bold text-neutral-900">List on Public Directory</span>
-                <p className="text-[11px] text-neutral-500">
+                <span className="text-xs font-bold text-foreground">List on Public Directory</span>
+                <p className="text-[11px] text-helper">
                   Visible on the landing page and search directory for customer bookings.
                 </p>
               </div>
@@ -255,21 +253,21 @@ export default function ShopSettingsPage() {
         </Card>
 
         {/* 7-Day Working Hours Card */}
-        <Card className="border-neutral-200">
-          <CardHeader className="pb-3 border-b border-neutral-100">
-            <CardTitle className="text-sm font-bold text-neutral-900 flex items-center gap-2">
-              <CalendarCheck className="size-4 text-[#1047FA]" />
+        <Card className="border-border">
+          <CardHeader className="border-b border-border-faint pb-3">
+            <CardTitle className="flex items-center gap-2 text-sm font-bold text-foreground">
+              <CalendarCheck className="size-4 text-brand-blue-ink" />
               Weekly Operating Schedule
             </CardTitle>
           </CardHeader>
-          <CardContent className="pt-4 space-y-2">
-            <div className="divide-y divide-neutral-100 text-xs">
+          <CardContent className="space-y-2 pt-4">
+            <div className="divide-y divide-border-faint text-xs">
               {workingHours.map((wh, idx) => (
                 <div
                   key={wh.day}
-                  className="flex items-center justify-between py-2.5 px-2 hover:bg-neutral-50 rounded"
+                  className="flex items-center justify-between rounded px-2 py-2.5 hover:bg-muted"
                 >
-                  <div className="flex items-center gap-3 w-32 font-bold text-neutral-800">
+                  <div className="flex w-32 items-center gap-3 font-bold text-foreground">
                     <Switch
                       checked={!wh.is_closed}
                       onCheckedChange={() => handleToggleDay(idx)}
@@ -280,14 +278,14 @@ export default function ShopSettingsPage() {
 
                   <div className="flex items-center gap-2">
                     {wh.is_closed ? (
-                      <span className="text-neutral-400 font-semibold px-2 py-1 rounded bg-neutral-100 text-xs">
+                      <span className="rounded bg-secondary px-2 py-1 text-xs font-semibold text-subtle-foreground">
                         Closed
                       </span>
                     ) : (
                       <Input
                         value={wh.hours}
                         onChange={(e) => handleHoursChange(idx, e.target.value)}
-                        className="h-8 w-44 text-xs font-mono"
+                        className="h-8 w-44 font-mono text-xs"
                       />
                     )}
                   </div>
@@ -299,9 +297,9 @@ export default function ShopSettingsPage() {
 
         <Button
           type="submit"
-          className="bg-[#1047FA] hover:bg-blue-700 text-white font-bold text-xs h-10 px-6 rounded-full"
+          className="h-10 rounded-full bg-brand-blue px-6 text-xs font-bold text-white hover:bg-blue-700"
         >
-          <Save className="size-4 mr-1.5" />
+          <Save className="mr-1.5 size-4" />
           Save All Settings
         </Button>
       </form>
