@@ -5,12 +5,15 @@ routers and the lifespan (engine created at start-up, disposed at shutdown). Not
 import time, so tests and the OpenAPI export can build the app without a database.
 """
 
+import importlib
+import importlib.util
 import logging
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Iterable
 from contextlib import asynccontextmanager
 from enum import Enum
+from types import ModuleType
 
-from fastapi import FastAPI
+from fastapi import APIRouter, FastAPI
 from fastapi.routing import APIRoute
 
 from app.core.config import Settings, get_settings
@@ -44,11 +47,64 @@ def operation_id(route: APIRoute) -> str:
     return f"{tag.value if isinstance(tag, Enum) else tag}_{route.name}"
 
 
-def register_event_handlers(bus: EventBus) -> None:
-    """Explicit wiring of every module's `handlers.register(bus)` (spec 01 "Event bus").
+# Every module in the module-direction order of spec 01, lowest first (D89). The order is the order
+# in which read ports are registered, event handlers subscribed and routers included.
+MODULES: tuple[str, ...] = (
+    "identity",
+    "shops",
+    "scheduling",
+    "inventory",
+    "qc",
+    "estimates",
+    "bookings",
+    "notifications",
+    "reporting",
+    "calls",
+)
 
-    No module publishes or subscribes yet; nothing is ever subscribed at import time.
+
+def _optional_module(name: str) -> ModuleType | None:
+    """Import `name` if the file exists, else `None`.
+
+    A missing parent package also counts as absent: `find_spec` imports the parents first, so
+    without this a deleted bonus package (`app/modules/calls`, spec 01 rule 6) would crash
+    `wire_modules()` with `ModuleNotFoundError`. Import errors inside an existing file, including
+    a missing third-party dependency, are NOT swallowed.
     """
+    try:
+        spec = importlib.util.find_spec(name)
+    except ModuleNotFoundError as exc:
+        if exc.name is not None and name.startswith(f"{exc.name}."):
+            return None
+        raise
+    if spec is None:
+        return None
+    return importlib.import_module(name)
+
+
+def wire_modules(app: FastAPI, bus: EventBus, modules: Iterable[str] = MODULES) -> None:
+    """Wire every module by convention (D89), so no module ever edits this file.
+
+    For each module, in order:
+    1. `service.register_ports()` if defined — registers read-port implementations into lower
+       modules (D86), e.g. bookings → `shops.service.register_activity_reader(...)`;
+    2. `handlers.register(bus)` if `handlers.py` exists — event subscriptions (spec 01);
+    3. every `APIRouter` in `router.routers` if `router.py` exists.
+    Nothing is subscribed or routed at import time; everything happens here, per app instance.
+    """
+    for module in modules:
+        service = _optional_module(f"app.modules.{module}.service")
+        register_ports = getattr(service, "register_ports", None)
+        if callable(register_ports):
+            register_ports()
+        handlers = _optional_module(f"app.modules.{module}.handlers")
+        if handlers is not None:
+            handlers.register(bus)
+        router_module = _optional_module(f"app.modules.{module}.router")
+        if router_module is not None:
+            routers: Iterable[APIRouter] = router_module.routers
+            for router in routers:
+                app.include_router(router)
 
 
 def create_app(settings: Settings | None = None, *, database: Database | None = None) -> FastAPI:
@@ -93,10 +149,10 @@ def create_app(settings: Settings | None = None, *, database: Database | None = 
     app.state.settings = settings
     app.state.event_bus = EventBus()
     app.state.limiter = limiter  # slowapi reads it from here
-    register_event_handlers(app.state.event_bus)
     register_error_handlers(app)
     install_middleware(app, settings)
     app.include_router(health_router)
+    wire_modules(app, app.state.event_bus)
     install_problem_openapi(app)
     return app
 
