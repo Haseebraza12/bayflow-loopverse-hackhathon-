@@ -1,0 +1,9 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "BayFlow API",
+    "version": "0.1.0",
+    "description": "Placeholder until the API exports its schema (python -m app.scripts.export_openapi, D76). Do not edit by hand."
+  },
+  "paths": {}
+}

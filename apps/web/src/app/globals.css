@@ -1,0 +1,219 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+/*
+ * Light theme only (spec 09 §3.11). The dark variant is class-based and `.dark` is never added,
+ * so an OS-level dark preference can never half-activate shadcn's `dark:` utilities.
+ */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Design tokens — exact values from spec 09 §3.2 (colours) and §3.3 (status phases). Hex on purpose. */
+:root {
+  color-scheme: light;
+  --radius: 0.5rem;
+
+  /* shadcn base tokens */
+  --background: #ffffff;
+  --foreground: #212529;
+  --card: #ffffff;
+  --card-foreground: #212529;
+  --popover: #ffffff;
+  --popover-foreground: #212529;
+  --primary: #14213d;
+  --primary-foreground: #ffffff;
+  --primary-hover: #1f3157;
+  --secondary: #f1f3f5;
+  --secondary-foreground: #14213d;
+  --muted: #f8f9fa;
+  --muted-foreground: #495057;
+  --accent: #eef1f7;
+  --accent-foreground: #14213d;
+  --destructive: #c92a2a;
+  --destructive-foreground: #ffffff;
+  --border: #dee2e6;
+  --input: #868e96;
+  --ring: #e8590c;
+
+  /* BayFlow extensions */
+  --cta: #bd490a;
+  --cta-foreground: #ffffff;
+  --cta-hover: #a53f08;
+  --brand-navy: #14213d;
+  --brand-orange: #e8590c;
+  --brand-orange-on-dark: #fd7e14;
+  --attention: #fff4e6;
+  --attention-border: #ffc078;
+  --success-subtle: #ebfbee;
+  --success-ink: #247534;
+  --warning-subtle: #fff9db;
+  --warning-ink: #995400;
+  --danger-subtle: #fff5f5;
+  --danger-ink: #c92a2a;
+  --info-subtle: #e7f5ff;
+  --info-ink: #1864ab;
+
+  /* POS header (navy) and the role chip on it (spec 09 §4.1: white on #303C54, 11.05 : 1) */
+  --nav: #14213d;
+  --nav-foreground: #ffffff;
+  --nav-muted: #a9b4c8;
+  --nav-hover: #1f3157;
+  --role-chip: #303c54;
+
+  /* POS sidebar (light) */
+  --sidebar: #f8f9fa;
+  --sidebar-foreground: #212529;
+  --sidebar-primary: #14213d;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #eef1f7;
+  --sidebar-accent-foreground: #14213d;
+  --sidebar-border: #dee2e6;
+  --sidebar-ring: #e8590c;
+
+  /* Overview charts: phase inks, each ≥ 3 : 1 on white */
+  --chart-1: #1864ab;
+  --chart-2: #5f3dc4;
+  --chart-3: #995400;
+  --chart-4: #0b7285;
+  --chart-5: #862e9c;
+
+  /* Booking status badges: one hue per phase (spec 09 §3.3) */
+  --status-intake-bg: #e7f5ff;
+  --status-intake-fg: #1864ab;
+  --status-intake-border: #a5d8ff;
+  --status-inspection-bg: #f3f0ff;
+  --status-inspection-fg: #5f3dc4;
+  --status-inspection-border: #d0bfff;
+  --status-estimate-bg: #fff9db;
+  --status-estimate-fg: #995400;
+  --status-estimate-border: #ffe066;
+  --status-estimate-rejected-bg: #fff5f5;
+  --status-estimate-rejected-fg: #c92a2a;
+  --status-estimate-rejected-border: #ffc9c9;
+  --status-parts-bg: #e3fafc;
+  --status-parts-fg: #0b7285;
+  --status-parts-border: #99e9f2;
+  --status-repair-qc-bg: #f8f0fc;
+  --status-repair-qc-fg: #862e9c;
+  --status-repair-qc-border: #eebefa;
+  --status-handover-bg: #ebfbee;
+  --status-handover-fg: #247534;
+  --status-handover-border: #b2f2bb;
+  --status-closed-bg: #f1f3f5;
+  --status-closed-fg: #495057;
+  --status-closed-border: #ced4da;
+}
+
+/* Expose the tokens as Tailwind utilities (`bg-primary`, `text-cta`, `border-status-parts-border`, …). */
+@theme inline {
+  --font-sans: var(--font-inter);
+  --font-heading: var(--font-inter);
+  --font-mono: var(--font-jetbrains-mono);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-hover);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-cta: var(--cta);
+  --color-cta-foreground: var(--cta-foreground);
+  --color-cta-hover: var(--cta-hover);
+  --color-brand-navy: var(--brand-navy);
+  --color-brand-orange: var(--brand-orange);
+  --color-brand-orange-on-dark: var(--brand-orange-on-dark);
+  --color-attention: var(--attention);
+  --color-attention-border: var(--attention-border);
+  --color-success-subtle: var(--success-subtle);
+  --color-success-ink: var(--success-ink);
+  --color-warning-subtle: var(--warning-subtle);
+  --color-warning-ink: var(--warning-ink);
+  --color-danger-subtle: var(--danger-subtle);
+  --color-danger-ink: var(--danger-ink);
+  --color-info-subtle: var(--info-subtle);
+  --color-info-ink: var(--info-ink);
+
+  --color-nav: var(--nav);
+  --color-nav-foreground: var(--nav-foreground);
+  --color-nav-muted: var(--nav-muted);
+  --color-nav-hover: var(--nav-hover);
+  --color-role-chip: var(--role-chip);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --color-status-intake-bg: var(--status-intake-bg);
+  --color-status-intake-fg: var(--status-intake-fg);
+  --color-status-intake-border: var(--status-intake-border);
+  --color-status-inspection-bg: var(--status-inspection-bg);
+  --color-status-inspection-fg: var(--status-inspection-fg);
+  --color-status-inspection-border: var(--status-inspection-border);
+  --color-status-estimate-bg: var(--status-estimate-bg);
+  --color-status-estimate-fg: var(--status-estimate-fg);
+  --color-status-estimate-border: var(--status-estimate-border);
+  --color-status-estimate-rejected-bg: var(--status-estimate-rejected-bg);
+  --color-status-estimate-rejected-fg: var(--status-estimate-rejected-fg);
+  --color-status-estimate-rejected-border: var(--status-estimate-rejected-border);
+  --color-status-parts-bg: var(--status-parts-bg);
+  --color-status-parts-fg: var(--status-parts-fg);
+  --color-status-parts-border: var(--status-parts-border);
+  --color-status-repair-qc-bg: var(--status-repair-qc-bg);
+  --color-status-repair-qc-fg: var(--status-repair-qc-fg);
+  --color-status-repair-qc-border: var(--status-repair-qc-border);
+  --color-status-handover-bg: var(--status-handover-bg);
+  --color-status-handover-fg: var(--status-handover-fg);
+  --color-status-handover-border: var(--status-handover-border);
+  --color-status-closed-bg: var(--status-closed-bg);
+  --color-status-closed-fg: var(--status-closed-fg);
+  --color-status-closed-border: var(--status-closed-border);
+
+  /* Radius scale derived from --radius (0.5rem), as shadcn does */
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+@layer base {
+  * {
+    /* Full-opacity focus outline: a 50 % orange ring would fail WCAG 1.4.11 (spec 09 §5.2). */
+    @apply border-border outline-ring;
+  }
+  html {
+    /* Keep focused/anchored content clear of the sticky headers (WCAG 2.4.11, spec 09 §5.2). */
+    scroll-padding-top: 4rem;
+  }
+  body {
+    @apply bg-background font-sans text-foreground antialiased;
+  }
+}
