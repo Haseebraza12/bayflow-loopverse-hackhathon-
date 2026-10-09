@@ -22,7 +22,12 @@ describe('proxy (optimistic bf_session gate, spec 09 §2.8)', () => {
     expect(response.headers.get('x-middleware-next')).toBe('1')
   })
 
-  it('guards the POS and the customer area only', () => {
-    expect(config.matcher).toEqual(['/pos/:path*', '/bookings/:path*', '/book/confirmed/:path*'])
+  it('guards the POS, the customer area and the admin console only', () => {
+    expect(config.matcher).toEqual([
+      '/pos/:path*',
+      '/bookings/:path*',
+      '/book/confirmed/:path*',
+      '/admin/:path*',
+    ])
   })
 })

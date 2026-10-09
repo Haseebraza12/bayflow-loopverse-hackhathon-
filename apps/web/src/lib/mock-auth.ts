@@ -12,6 +12,7 @@ type Role = CurrentUserSession['role']
 const DEMO_SHOP = { shopId: 'shop-lahore-auto-care', shopName: 'Lahore Auto Care' }
 
 const RULES: ReadonlyArray<{ tokens: ReadonlyArray<string>; role: Role; name?: string }> = [
+  { tokens: ['admin', 'zainab'], role: 'PLATFORM_ADMIN', name: 'Zainab Siddiqui' },
   { tokens: ['fatima', 'owner'], role: 'OWNER', name: 'Fatima Raza' },
   { tokens: ['hamza'], role: 'TECHNICIAN', name: 'Hamza' },
   { tokens: ['imran', 'tech', 'technician'], role: 'TECHNICIAN', name: 'Imran' },
@@ -41,7 +42,8 @@ export function resolveMockSession(rawEmail: string): CurrentUserSession {
   }
 }
 
-/** Where each persona lands after login (spec 10 S-04 role homes; customers go to C-01). */
+/** Where each persona lands after login (spec 10 S-04 role homes; customers go to C-01; platform
+ * admins to the console, spec 19 §5). */
 export function homePathFor(session: Pick<CurrentUserSession, 'role' | 'shopId'>): string {
   const shop = `/pos/shops/${session.shopId}`
   switch (session.role) {
@@ -57,5 +59,7 @@ export function homePathFor(session: Pick<CurrentUserSession, 'role' | 'shopId'>
       return `${shop}/qc`
     case 'CUSTOMER':
       return '/bookings'
+    case 'PLATFORM_ADMIN':
+      return '/admin'
   }
 }

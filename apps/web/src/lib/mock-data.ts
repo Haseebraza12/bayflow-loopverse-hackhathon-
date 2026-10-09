@@ -996,7 +996,15 @@ export function saveTeamMember(member: MockTeamMember): void {
 export interface CurrentUserSession {
   name: string
   email: string
-  role: 'OWNER' | 'SERVICE_ADVISOR' | 'TECHNICIAN' | 'PARTS_PERSON' | 'QC_INSPECTOR' | 'CUSTOMER'
+  /** The role in the current shop, `CUSTOMER`, or `PLATFORM_ADMIN` for a BayFlow operator (D94). */
+  role:
+    | 'OWNER'
+    | 'SERVICE_ADVISOR'
+    | 'TECHNICIAN'
+    | 'PARTS_PERSON'
+    | 'QC_INSPECTOR'
+    | 'CUSTOMER'
+    | 'PLATFORM_ADMIN'
   shopId: string
   shopName: string
 }

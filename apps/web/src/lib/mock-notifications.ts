@@ -1,4 +1,5 @@
 import { formatPKR } from '@/lib/format'
+import { bookingHistory } from '@/lib/mock-booking-history'
 import {
   getStoredData,
   setStoredData,
@@ -207,37 +208,6 @@ function receives(
   }
 }
 
-/**
- * The statuses a booking has passed through to reach its current one (the happy path of spec 08;
- * a rejected estimate branches off after the customer saw it). Notifications are a feed, so every
- * earlier hand-off is still in it.
- */
-const HAPPY_PATH: ReadonlyArray<MockBooking['status']> = [
-  'PENDING',
-  'CONFIRMED',
-  'ASSIGNED',
-  'INSPECTING',
-  'ESTIMATE_REVIEW',
-  'AWAITING_CUSTOMER',
-  'ESTIMATE_APPROVED',
-  'PARTS_PENDING',
-  'PARTS_ORDERED',
-  'PARTS_READY',
-  'IN_REPAIR',
-  'QC_PENDING',
-  'QC_IN_PROGRESS',
-  'READY_FOR_PICKUP',
-  'COMPLETED',
-]
-
-function passedStatuses(status: MockBooking['status']): ReadonlyArray<MockBooking['status']> {
-  if (status === 'ESTIMATE_REJECTED') {
-    return [...HAPPY_PATH.slice(0, HAPPY_PATH.indexOf('AWAITING_CUSTOMER') + 1), status]
-  }
-  const index = HAPPY_PATH.indexOf(status)
-  return index < 0 ? [] : HAPPY_PATH.slice(0, index + 1)
-}
-
 /** The user's notifications, newest first (E-17's order). */
 export function deriveNotifications(
   user: CurrentUserSession,
@@ -246,13 +216,14 @@ export function deriveNotifications(
 ): MockNotification[] {
   const items: MockNotification[] = []
   for (const b of bookings) {
-    const fired = passedStatuses(b.status).flatMap((status) => BY_STATUS[status] ?? [])
-    if (b.status === 'IN_REPAIR' && b.qcPassed === false) fired.push(QC_FAILED)
-    // Spread the hand-offs between the booking's creation and its last update.
-    const start = Date.parse(b.createdAt)
-    const span = Math.max(0, Date.parse(b.updatedAt) - start)
-    fired.forEach((rule, index) => {
-      if (!receives(user, rule.to, b, team)) return
+    const fired = bookingHistory(b).flatMap((step) =>
+      (BY_STATUS[step.status] ?? []).map((rule) => ({ rule, at: step.at })),
+    )
+    if (b.status === 'IN_REPAIR' && b.qcPassed === false) {
+      fired.push({ rule: QC_FAILED, at: b.updatedAt })
+    }
+    for (const { rule, at } of fired) {
+      if (!receives(user, rule.to, b, team)) continue
       items.push({
         id: `${rule.type}:${b.id}`,
         type: rule.type,
@@ -261,9 +232,9 @@ export function deriveNotifications(
         reference: b.reference,
         shopName: b.shopName,
         link: LINK[rule.to](b),
-        createdAt: new Date(start + (span * (index + 1)) / fired.length).toISOString(),
+        createdAt: at,
       })
-    })
+    }
   }
   return items.sort((a, b) => b.createdAt.localeCompare(a.createdAt))
 }

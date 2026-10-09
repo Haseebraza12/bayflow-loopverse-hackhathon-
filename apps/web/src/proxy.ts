@@ -23,7 +23,8 @@ export function proxy(request: NextRequest) {
 }
 
 // Matchers must be static literals (analysed at build time). Protected areas per spec 09 §2.3:
-// the POS and the customer area (`/bookings`, `/book/confirmed/:bookingId`).
+// the POS, the customer area (`/bookings`, `/book/confirmed/:bookingId`) and the platform admin
+// console (`/admin`, spec 19 §5).
 export const config = {
-  matcher: ['/pos/:path*', '/bookings/:path*', '/book/confirmed/:path*'],
+  matcher: ['/pos/:path*', '/bookings/:path*', '/book/confirmed/:path*', '/admin/:path*'],
 }

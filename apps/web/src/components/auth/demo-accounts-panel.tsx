@@ -21,6 +21,7 @@ const ROLE_TONE: Record<string, string> = {
   'QC Inspector': 'bg-status-repair-qc-bg text-status-repair-qc-fg',
   'Parts Person': 'bg-status-parts-bg text-status-parts-fg',
   Customer: 'bg-status-handover-bg text-status-handover-fg',
+  'Platform Admin': 'bg-foreground text-background',
 }
 
 function initials(name: string) {

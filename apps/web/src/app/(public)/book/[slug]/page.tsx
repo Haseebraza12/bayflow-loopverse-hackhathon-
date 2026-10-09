@@ -24,6 +24,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { useMockStore } from '@/hooks/use-mock-store'
 import { formatPKR } from '@/lib/format'
+import { getShopSuspensions } from '@/lib/mock-admin'
 import { createBookingRecord, getCurrentUser, getServices, getShopBySlug } from '@/lib/mock-data'
 
 const TIME_SLOTS = [
@@ -45,7 +46,10 @@ function BookingWizardContent() {
   const slug = typeof params?.slug === 'string' ? params.slug : ''
   const preselectedServiceId = searchParams.get('service')
 
-  const shop = useMockStore(() => getShopBySlug(slug))
+  const found = useMockStore(() => getShopBySlug(slug))
+  const suspensions = useMockStore(getShopSuspensions)
+  // A suspended shop takes no bookings and is treated as not found (D96).
+  const shop = found && !suspensions[found.id] ? found : undefined
   const services = useMockStore(() => getServices(shop?.id))
   const currentUser = useMockStore(() => getCurrentUser())
 

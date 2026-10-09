@@ -1,6 +1,6 @@
 'use client'
 
-import { CalendarCheck, LayoutDashboard, LogOut } from 'lucide-react'
+import { CalendarCheck, LayoutDashboard, LogOut, ShieldCheck } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { endMockSession, useHasMockSession } from '@/hooks/use-mock-session'
 import { useMockStore } from '@/hooks/use-mock-store'
+import { getAdminUsers } from '@/lib/mock-admin'
 import { homePathFor } from '@/lib/mock-auth'
 import { getCurrentUser } from '@/lib/mock-data'
 import { cn } from '@/lib/utils'
@@ -28,6 +29,7 @@ const ROLE_NAME = {
   PARTS_PERSON: 'Parts Person',
   QC_INSPECTOR: 'QC Inspector',
   CUSTOMER: 'Customer',
+  PLATFORM_ADMIN: 'Platform admin',
 } as const
 
 function initials(name: string) {
@@ -47,6 +49,9 @@ export function SessionActions({ compact = false }: { compact?: boolean }) {
   const router = useRouter()
   const signedIn = useHasMockSession()
   const user = useMockStore(getCurrentUser)
+  const users = useMockStore(getAdminUsers)
+  const account = users.find((u) => u.email === user.email.toLowerCase())
+  const isPlatformAdmin = Boolean(account?.isPlatformAdmin && account.isActive)
 
   if (!signedIn) {
     return (
@@ -99,7 +104,15 @@ export function SessionActions({ compact = false }: { compact?: boolean }) {
               My bookings
             </Link>
           </DropdownMenuItem>
-          {user.role !== 'CUSTOMER' && (
+          {isPlatformAdmin && (
+            <DropdownMenuItem asChild>
+              <Link href="/admin">
+                <ShieldCheck aria-hidden="true" />
+                Platform admin
+              </Link>
+            </DropdownMenuItem>
+          )}
+          {user.role !== 'CUSTOMER' && user.role !== 'PLATFORM_ADMIN' && (
             <DropdownMenuItem asChild>
               <Link href={homePathFor(user)}>
                 <LayoutDashboard aria-hidden="true" />

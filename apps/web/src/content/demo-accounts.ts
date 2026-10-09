@@ -34,6 +34,12 @@ export const DEMO_ACCOUNTS: ReadonlyArray<DemoAccount> = [
   { role: 'QC Inspector', name: 'Hina', email: 'hina.qc@bayflow.test', note: 'second inspector' },
   { role: 'Parts Person', name: 'Usman', email: 'usman.parts@bayflow.test' },
   {
+    role: 'Platform Admin',
+    name: 'Zainab Siddiqui',
+    email: 'admin@bayflow.test',
+    note: 'BayFlow super admin console',
+  },
+  {
     role: 'Customer',
     name: 'Ayesha Khan',
     email: 'ayesha.customer@bayflow.test',

@@ -19,13 +19,17 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useMockStore } from '@/hooks/use-mock-store'
 import { formatPKR } from '@/lib/format'
+import { getShopSuspensions } from '@/lib/mock-admin'
 import { getServices, getShopBySlug } from '@/lib/mock-data'
 
 export default function ShopDetailPage() {
   const params = useParams()
   const slug = typeof params?.slug === 'string' ? params.slug : ''
 
-  const shop = useMockStore(() => getShopBySlug(slug))
+  const found = useMockStore(() => getShopBySlug(slug))
+  const suspensions = useMockStore(getShopSuspensions)
+  // A suspended shop is treated exactly like an unlisted one: not found (D96).
+  const shop = found && !suspensions[found.id] ? found : undefined
   const services = useMockStore(() => getServices(shop?.id))
 
   if (!shop) {

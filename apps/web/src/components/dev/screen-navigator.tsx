@@ -83,6 +83,19 @@ const GROUPS: { name: string; screens: { label: string; href: string; note?: str
     ],
   },
   {
+    name: 'Platform admin',
+    screens: [
+      { label: 'Overview', href: '/admin' },
+      { label: 'Shops', href: '/admin/shops' },
+      { label: 'Shop detail', href: '/admin/shops/shop-raza-auto-works' },
+      { label: 'Users', href: '/admin/users' },
+      { label: 'User detail', href: '/admin/users/usr-bilal' },
+      { label: 'Bookings', href: '/admin/bookings' },
+      { label: 'Booking detail', href: '/admin/bookings/bk-002' },
+      { label: 'Audit log', href: '/admin/audit' },
+    ],
+  },
+  {
     name: 'POS · QC',
     screens: [
       { label: 'QC queue', href: `${SHOP}/qc` },

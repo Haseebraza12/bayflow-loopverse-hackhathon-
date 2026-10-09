@@ -19,7 +19,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useMemo, useState, useSyncExternalStore } from 'react'
+import { useMemo, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
@@ -34,6 +34,7 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { useNowMinute } from '@/hooks/use-now'
 import { useMockStore, useMockStoreReady } from '@/hooks/use-mock-store'
 import { formatRelative } from '@/lib/format'
 import { getBookings, getCurrentUser, getTeamMembers } from '@/lib/mock-data'
@@ -71,19 +72,6 @@ const TYPE_STYLE: Record<NotificationType, { icon: LucideIcon; tone: string }> =
   },
   QC_PASSED: { icon: ClipboardCheck, tone: 'bg-status-handover-bg text-status-handover-fg' },
   VEHICLE_READY: { icon: CarFront, tone: 'bg-status-handover-bg text-status-handover-fg' },
-}
-
-/**
- * "Now" for relative times, to the minute: read on the client only, never during server rendering
- * (spec 09 §2.4 rule 7). A string, so equal minutes are equal snapshots.
- */
-const subscribeNever = () => () => {}
-function useNowMinute(): string | null {
-  return useSyncExternalStore(
-    subscribeNever,
-    () => new Date(Math.floor(Date.now() / 60_000) * 60_000).toISOString(),
-    () => null,
-  )
 }
 
 export interface NotificationBellProps {

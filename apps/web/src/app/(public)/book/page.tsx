@@ -8,10 +8,12 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { useMockStore } from '@/hooks/use-mock-store'
+import { getShopSuspensions } from '@/lib/mock-admin'
 import { getServices, getShops } from '@/lib/mock-data'
 
 export default function BookChooseShopPage() {
   const shops = useMockStore(() => getShops())
+  const suspensions = useMockStore(getShopSuspensions)
   const services = useMockStore(() => getServices())
 
   const [search, setSearch] = useState('')
@@ -20,7 +22,8 @@ export default function BookChooseShopPage() {
   const cities = ['ALL', 'Lahore', 'Karachi', 'Islamabad', 'Rawalpindi', 'Faisalabad']
 
   const filteredShops = shops.filter((shop) => {
-    if (!shop.is_listed) return false
+    // A suspended shop is treated exactly like an unlisted one (D96).
+    if (!shop.is_listed || suspensions[shop.id]) return false
     const matchCity =
       selectedCity === 'ALL' || shop.city.toLowerCase() === selectedCity.toLowerCase()
     const matchSearch =

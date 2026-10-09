@@ -11,6 +11,7 @@ const ROLE_OF: Record<string, string> = {
   'QC Inspector': 'QC_INSPECTOR',
   'Parts Person': 'PARTS_PERSON',
   Customer: 'CUSTOMER',
+  'Platform Admin': 'PLATFORM_ADMIN',
 }
 
 describe('resolveMockSession', () => {
@@ -44,5 +45,6 @@ describe('homePathFor', () => {
     expect(homePathFor({ role: 'PARTS_PERSON', shopId })).toBe('/pos/shops/shop-x/parts')
     expect(homePathFor({ role: 'QC_INSPECTOR', shopId })).toBe('/pos/shops/shop-x/qc')
     expect(homePathFor({ role: 'CUSTOMER', shopId })).toBe('/bookings')
+    expect(homePathFor({ role: 'PLATFORM_ADMIN', shopId })).toBe('/admin')
   })
 })

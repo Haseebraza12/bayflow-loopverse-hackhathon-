@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   Car,
   CheckCircle2,
+  CircleAlert,
   Clock,
   Copy,
   FileCheck,
@@ -17,7 +18,7 @@ import { useParams } from 'next/navigation'
 import { useState } from 'react'
 
 import { StatusBadge } from '@/components/status-badge'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -32,6 +33,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { useMockStore } from '@/hooks/use-mock-store'
 import { formatPKR } from '@/lib/format'
+import { getShopSuspensions } from '@/lib/mock-admin'
 import { getBookingById, saveBooking, type MockBooking } from '@/lib/mock-data'
 
 export default function CustomerBookingDetailPage() {
@@ -39,6 +41,7 @@ export default function CustomerBookingDetailPage() {
   const bookingId = typeof params?.bookingId === 'string' ? params.bookingId : ''
 
   const booking = useMockStore(() => getBookingById(bookingId))
+  const suspensions = useMockStore(getShopSuspensions)
 
   const [copied, setCopied] = useState(false)
   const [declineDialogOpen, setDeclineDialogOpen] = useState(false)
@@ -115,6 +118,7 @@ export default function CustomerBookingDetailPage() {
   }
 
   const isAwaitingEstimate = booking.status === 'AWAITING_CUSTOMER'
+  const shopSuspended = Boolean(suspensions[booking.shopId])
   const isReadyForPickup = booking.status === 'READY_FOR_PICKUP'
   const isCancellable =
     booking.status === 'PENDING' ||
@@ -235,6 +239,18 @@ export default function CustomerBookingDetailPage() {
           </div>
         </div>
 
+        {/* D96: while the shop is suspended, only cancelling is possible. */}
+        {shopSuspended && (
+          <Alert variant="warning">
+            <CircleAlert aria-hidden="true" />
+            <AlertTitle>{booking.shopName} is temporarily unavailable on BayFlow</AlertTitle>
+            <AlertDescription>
+              Estimates can&apos;t be approved or declined right now. You can still cancel this
+              booking.
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* DECISION CALLOUT: Awaiting Customer Estimate Approval */}
         {isAwaitingEstimate && (
           <div className="space-y-4 rounded-2xl border-2 border-amber-400 bg-amber-50/70 p-6 dark:border-amber-600 dark:bg-amber-950/30">
@@ -256,6 +272,7 @@ export default function CustomerBookingDetailPage() {
               <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
                 <Button
                   onClick={handleApproveEstimate}
+                  disabled={shopSuspended}
                   className="h-10 rounded-full bg-brand-green px-5 text-xs font-bold text-white hover:bg-emerald-600"
                 >
                   <CheckCircle2 className="mr-1.5 size-4" />
@@ -265,6 +282,7 @@ export default function CustomerBookingDetailPage() {
                 <Button
                   variant="outline"
                   onClick={() => setDeclineDialogOpen(true)}
+                  disabled={shopSuspended}
                   className="h-10 border-border-medium bg-card text-xs font-semibold text-muted-foreground hover:text-red-600 dark:hover:text-red-400"
                 >
                   <FileX className="mr-1.5 size-4 text-red-500 dark:text-red-400" />

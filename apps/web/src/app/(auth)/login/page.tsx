@@ -18,6 +18,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { Spinner } from '@/components/ui/spinner'
 import { DEMO_PASSWORD, type DemoAccount } from '@/content/demo-accounts'
+import { isAccountActive, recordSignIn } from '@/lib/mock-admin'
 import { homePathFor, resolveMockSession } from '@/lib/mock-auth'
 import { setCurrentUser } from '@/lib/mock-data'
 import { safeNextPath } from '@/lib/safe-next'
@@ -50,10 +51,17 @@ function LoginForm() {
       setError('Enter your e-mail address and password.')
       return
     }
+    // A deactivated account gets the same answer as a wrong password (D9: no account enumeration).
+    if (!isAccountActive(email)) {
+      recordSignIn(email, false)
+      setError('E-mail or password is incorrect.')
+      return
+    }
     setError(null)
     setLoading(true)
 
     const session = resolveMockSession(email)
+    recordSignIn(email, true)
     setCurrentUser(session)
     // The proxy only checks that a session cookie exists (spec 09 §2.8).
     document.cookie = `bf_session=active_${Date.now()}; path=/; max-age=86400; SameSite=Lax`

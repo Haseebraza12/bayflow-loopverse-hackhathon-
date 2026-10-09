@@ -1,7 +1,7 @@
 import type { CurrentUserSession } from '@/lib/mock-data'
 
 type Role = CurrentUserSession['role']
-export type StaffRole = Exclude<Role, 'CUSTOMER'>
+export type StaffRole = Exclude<Role, 'CUSTOMER' | 'PLATFORM_ADMIN'>
 export type SectionAccess = 'manage' | 'read'
 
 /**
@@ -26,7 +26,8 @@ export const SECTION_ACCESS: Readonly<Record<string, Partial<Record<StaffRole, S
 export function sectionAccess(role: Role, segment: string): SectionAccess | null {
   const rule = SECTION_ACCESS[segment]
   if (!rule) return 'manage' // not a gated section (e.g. the role-home redirect)
-  if (role === 'CUSTOMER') return null
+  // Customers and platform admins have no shop role (a platform admin manages shops from /admin).
+  if (role === 'CUSTOMER' || role === 'PLATFORM_ADMIN') return null
   return rule[role] ?? null
 }
 
