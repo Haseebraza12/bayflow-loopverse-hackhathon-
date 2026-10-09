@@ -95,7 +95,7 @@ Unknown routes, including an action slug that does not exist in that endpoint fa
 
 ### 1.6 Lists
 
-- **Paginated collections** (lists that can grow without bound) return `Page[T]` = `{items, total, limit, offset}`. `?limit=` is 1–100 (default 20) and `?offset=` ≥ 0; anything else → 422 (verified). Every collection has a deterministic order that ends in `id`, except the stock ledger, which ends in `seq` (D63, D79).
+- **Paginated collections** (lists that can grow without bound) return `Page[T]` = `{items, total, limit, offset}`. `?limit=` is 1–100 (default 20) and `?offset=` is 0–2 147 483 647 (as built: a larger offset overflowed asyncpg's int64 encoder and answered 500); anything else → 422 (verified). Every collection has a deterministic order that ends in `id`, except the stock ledger, which ends in `seq` (D63, D79).
 - **Bounded lists** (the children of one booking, PO or configuration: a booking's events, estimate versions, booking parts and QC rounds; the QC checklist; directory cities; a customer's vehicles) return `ItemList[T]` = `{items}` in full, without pagination parameters. A worked-example booking has 21 events, which a default `limit=20` would cut.
 - **Filters** are query parameters named after the field. Multi-value filters repeat the key (`?status=PENDING&status=CONFIRMED`; verified). Enum values are validated, so `?status=PENDING' OR '1'='1` is 422 (spec 04 SEC-29). Free text `q` is at most 100 characters, matched case-insensitively as a substring with `%` and `_` escaped. Date ranges `date_from` and `date_to` are inclusive shop-local dates; `date_from > date_to` → 422.
 - **Sorting:** `?sort=<field>` ascending or `?sort=-<field>` descending, from a per-endpoint allowlist; any other value → 422. Each endpoint states its default.

@@ -310,3 +310,19 @@ def test_identical_field_errors_are_reported_once() -> None:
         ("path.shop_id", "uuid_parsing"),
         ("name", "missing"),
     ]
+
+
+@pytest.mark.parametrize("offset", ["2147483648", "9223372036854775808", "-1"])
+async def test_offsets_outside_the_supported_range_are_422(
+    client: httpx.AsyncClient, offset: str
+) -> None:
+    """A huge offset once overflowed asyncpg's int64 encoder and became a 500 on every list."""
+    response = await client.get(f"/api/v1/_test/items?offset={offset}")
+    assert response.status_code == 422
+    assert [error["field"] for error in response.json()["errors"]] == ["query.offset"]
+
+
+async def test_the_largest_supported_offset_is_accepted(client: httpx.AsyncClient) -> None:
+    response = await client.get("/api/v1/_test/items?offset=2147483647")
+    assert response.status_code == 200
+    assert response.json()["offset"] == 2147483647
