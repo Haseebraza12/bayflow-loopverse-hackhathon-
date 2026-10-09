@@ -33,7 +33,7 @@ Every row is a spec 07 day-1 check (run with a "hello world" deploy, results in 
 | #9 | The production URL is public (no Deployment Protection) | A1 | Use the production domain, not a preview URL |
 | #10 | No secrets in Git, push protection on | A2 | Rotate anything exposed |
 | #11 | Outbound e-mail through the HTTPS API; no SMTP attempts (Railway Hobby blocks SMTP) | A7 | `EMAIL_PROVIDER=none` (in-app is enough for core) |
-| #12 | Vercel installs with pnpm 10 | A1 | `ENABLE_EXPERIMENTAL_COREPACK=1` |
+| #12 | Vercel installs with pnpm 10 | A1 | Delete `ENABLE_EXPERIMENTAL_COREPACK` from the Vercel project and redeploy without cache |
 
 ### A1 — Nothing is deployed yet (P0)
 
