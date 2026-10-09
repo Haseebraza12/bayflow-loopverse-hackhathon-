@@ -38,6 +38,7 @@ class ErrorCode(StrEnum):
     CALL_NOT_ACTIVE = "CALL_NOT_ACTIVE"  # bonus
     CONFLICT = "CONFLICT"
     PAYLOAD_TOO_LARGE = "PAYLOAD_TOO_LARGE"
+    SHOP_SUSPENDED = "SHOP_SUSPENDED"  # D96, spec 19 §2
     RATE_LIMITED = "RATE_LIMITED"
     INTERNAL_ERROR = "INTERNAL_ERROR"
     CALLING_DISABLED = "CALLING_DISABLED"  # bonus
@@ -78,6 +79,7 @@ _HTTP_STATUS: dict[ErrorCode, int] = {
     ErrorCode.CALL_NOT_ACTIVE: HTTPStatus.CONFLICT,
     ErrorCode.CONFLICT: HTTPStatus.CONFLICT,
     ErrorCode.PAYLOAD_TOO_LARGE: HTTPStatus.REQUEST_ENTITY_TOO_LARGE,
+    ErrorCode.SHOP_SUSPENDED: HTTPStatus.FORBIDDEN,
     ErrorCode.RATE_LIMITED: HTTPStatus.TOO_MANY_REQUESTS,
     ErrorCode.INTERNAL_ERROR: HTTPStatus.INTERNAL_SERVER_ERROR,
     ErrorCode.CALLING_DISABLED: HTTPStatus.SERVICE_UNAVAILABLE,
@@ -110,6 +112,7 @@ _DEFAULT_DETAIL: dict[ErrorCode, str] = {
     ErrorCode.CALL_NOT_ACTIVE: "This call is no longer active.",
     ErrorCode.CONFLICT: "The request conflicts with the current state of the resource.",
     ErrorCode.PAYLOAD_TOO_LARGE: "The request body is too large.",
+    ErrorCode.SHOP_SUSPENDED: "This shop is suspended. Contact BayFlow support.",
     ErrorCode.RATE_LIMITED: "Too many attempts. Please wait and try again.",
     ErrorCode.INTERNAL_ERROR: "An unexpected error occurred. Please try again.",
     ErrorCode.CALLING_DISABLED: "Calling is not available right now.",
@@ -248,6 +251,13 @@ class Conflict(AppError):
 
 class PayloadTooLarge(AppError):
     code = ErrorCode.PAYLOAD_TOO_LARGE
+
+
+class ShopSuspended(AppError):
+    """A platform admin suspended the shop (D96): every staff route, and customer booking actions
+    except `cancel` (spec 19 §2)."""
+
+    code = ErrorCode.SHOP_SUSPENDED
 
 
 class RateLimited(AppError):

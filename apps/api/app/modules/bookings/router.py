@@ -20,7 +20,7 @@ calls exactly one service function (the wizard also asks the service for the ano
 
 import inspect
 from collections.abc import Awaitable, Callable
-from typing import Annotated
+from typing import Annotated, Any
 from uuid import UUID
 
 from fastapi import APIRouter, Body, Depends, Path, Query, Request, Response, status
@@ -442,8 +442,16 @@ def _add_action_routes() -> None:
             response_model=CustomerBookingDetail,
             summary=f"My booking action `{slug}`",
             description=_description(action),
-            responses=problem_responses(401, 404, 409, 422),
+            responses=_customer_problems(action),
         )
+
+
+def _customer_problems(action: BookingAction) -> dict[int | str, dict[str, Any]]:
+    """Every customer action but `cancel` is 403 `SHOP_SUSPENDED` while the shop is suspended
+    (D96, spec 19 §2); `cancel` stays open, so it never answers 403."""
+    if action is BookingAction.CANCEL:
+        return problem_responses(401, 404, 409, 422)
+    return problem_responses(401, 403, 404, 409, 422)
 
 
 _add_action_routes()

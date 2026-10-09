@@ -9,7 +9,9 @@ D10 `Password` type, timestamps `Timestamp` (aware input, UTC `Z` output), money
 Responses follow the audiences of spec 04 §C: staff schemas (`BookingSummary`, `BookingDetail`,
 `BookingEventRead`) and customer schemas (`CustomerBookingSummary`, `CustomerBookingDetail`,
 `CustomerBookingEventRead`), which never carry staff names, internal notes, event metadata, stock
-data or unsent estimate versions. Every booking response carries the caller's `allowed_actions`.
+data or unsent estimate versions. Every staff and customer booking response carries the caller's
+`allowed_actions`. The platform admin's cross-tenant projections (`AdminBookingSummary`,
+`AdminBookingDetail`, spec 19 E-72/E-73) are read-only and carry none (D94).
 
 The booking-scoped reads of other modules' data (spec 03 §1.11) are served by this module with
 those modules' wire schemas, re-exported here for the router: `EstimateRead`, `EstimateUpdate`,
@@ -71,6 +73,10 @@ __all__ = [
     "SEARCH_MAX_LENGTH",
     "STAFF_ACTION_REQUESTS",
     "ActionRequest",
+    "AdminBookingDetail",
+    "AdminBookingFilters",
+    "AdminBookingSort",
+    "AdminBookingSummary",
     "AllocatePartsRequest",
     "ApproveEstimateRequest",
     "AssignPartsPersonRequest",
@@ -561,6 +567,27 @@ class StaffBookingFilters:
     parts_person_user_id: UUID | None = None
 
 
+AdminBookingSort = Literal["-slot_start", "slot_start", "-created_at"]
+"""E-72's sorts (spec 19 §4): latest slot first (default), earliest slot, newest booking first."""
+
+
+@dataclass(frozen=True, slots=True)
+class AdminBookingFilters:
+    """The platform admin's booking filters across every tenant (spec 19 §4 E-72; D94).
+
+    `q` matches the reference (with or without `BF-`), the plate (normalised) or the customer's
+    name or e-mail; `date_from` / `date_to` are inclusive slot dates in each shop's own time zone
+    (D38); `customer_user_id` lists one person's bookings (E-67).
+    """
+
+    q: str | None = None
+    shop_id: UUID | None = None
+    statuses: tuple[BookingStatus, ...] = ()
+    date_from: date | None = None
+    date_to: date | None = None
+    customer_user_id: UUID | None = None
+
+
 # --- Responses (spec 03 §3.3) ---------------------------------------------------------------------
 
 
@@ -678,8 +705,9 @@ class BookingSummary(BaseModel):
     updated_at: Timestamp
 
 
-class BookingDetail(BaseModel):
-    """The staff detail and every staff action response (spec 03 §3.3)."""
+class BookingDetailBase(BaseModel):
+    """The staff projection of one booking without `allowed_actions` and timestamps: shared by the
+    staff detail and the platform admin's read-only detail (spec 19 E-73)."""
 
     id: UUID
     shop_id: UUID
@@ -709,7 +737,40 @@ class BookingDetail(BaseModel):
     cancelled_by: UserRef | None
     cancel_reason: str | None
     last_event: BookingEventRead | None
+
+
+class BookingDetail(BookingDetailBase):
+    """The staff detail and every staff action response (spec 03 §3.3)."""
+
     allowed_actions: list[BookingActionSlug]
+    created_at: Timestamp
+    updated_at: Timestamp
+
+
+class AdminBookingDetail(BookingDetailBase):
+    """E-73 (spec 19 §4): the staff projection of any tenant's booking with its full timeline.
+    Read-only: no `allowed_actions` (no admin edits a tenant's booking, D94); the customer's
+    contact details and the parts summary are always shown."""
+
+    created_at: Timestamp
+    updated_at: Timestamp
+    shop: BookingShopRef
+    events: list[BookingEventRead]
+
+
+class AdminBookingSummary(BaseModel):
+    """An E-72 list item (spec 19 §4): any tenant's booking, read-only."""
+
+    id: UUID
+    reference: str
+    shop: BookingShopRef
+    status: BookingStatus
+    version: int
+    slot_start: Timestamp
+    slot_end: Timestamp
+    customer: BookingCustomer
+    vehicle: VehicleBrief
+    service_names: list[str]
     created_at: Timestamp
     updated_at: Timestamp
 

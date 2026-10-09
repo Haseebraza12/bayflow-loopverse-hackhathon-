@@ -163,7 +163,7 @@ class OwnerShopSummary(BaseModel):
 
 
 class OwnerSummaryRead(BaseModel):
-    """`GET /api/v1/me/owner-summary`: one row per shop the caller owns, by shop name; `items: []`
-    for anyone who owns no shop."""
+    """`GET /api/v1/me/owner-summary`: one row per shop the caller owns that is not suspended
+    (D99), by shop name; `items: []` for anyone who owns no such shop."""
 
     items: list[OwnerShopSummary]

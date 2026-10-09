@@ -22,6 +22,8 @@ def test_modules_are_listed_lowest_first_in_the_spec_01_direction() -> None:
         "bookings",
         "notifications",
         "reporting",
+        "audit",  # D97, spec 19 §6
+        "admin",
         "calls",
     )
 

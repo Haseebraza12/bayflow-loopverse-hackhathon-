@@ -4,7 +4,7 @@
   Owner sees it — bookings by status, today's figures, the team with open jobs, the inventory
   summary, the top low-stock parts and the setup checklist (brief §7.4 Owner).
 - `get_owner_summary(session, user)` (P1, `GET /api/v1/me/owner-summary`): one row per shop the
-  caller owns (brief §2 "no visibility across locations").
+  caller owns and that is not suspended (brief §2 "no visibility across locations"; D99).
 
 Both are top-level reads on the request's session. The module owns no table and runs no SQL of
 its own: it composes the read functions of shops, bookings and inventory in-process (D3, D86;
@@ -140,6 +140,8 @@ async def get_owner_summary(session: AsyncSession, user: CurrentUser) -> OwnerSu
 
     Any logged-in user may call it: a customer or a pure staff member gets `items: []`, never a
     403 (RPT-02). Each shop's "today" is computed in that shop's own time zone from one instant.
+    A suspended shop is left out (D99): its staff routes answer 403 `SHOP_SUSPENDED`, and `/me`
+    still lists the membership with `shop_suspended: true`, which is where the web shows it.
     """
     memberships = await shops_service.list_memberships_for_user(
         session, user_id=user.id, roles={MembershipRole.OWNER}
@@ -149,8 +151,16 @@ async def get_owner_summary(session: AsyncSession, user: CurrentUser) -> OwnerSu
         return OwnerSummaryRead(items=[])
     now = utcnow()
     briefs = await shops_service.get_shop_briefs(session, shop_ids=shop_ids)
-    owned = [briefs[shop_id] for shop_id in shop_ids if shop_id in briefs]  # membership order
-    low_stock = await inventory_service.count_low_stock(session, shop_ids=shop_ids)
+    owned = [  # membership order
+        briefs[shop_id]
+        for shop_id in shop_ids
+        if shop_id in briefs and not briefs[shop_id].is_suspended
+    ]
+    if not owned:
+        return OwnerSummaryRead(items=[])
+    low_stock = await inventory_service.count_low_stock(
+        session, shop_ids=[brief.id for brief in owned]
+    )
     items: list[OwnerShopSummary] = []
     for brief in owned:
         today = local_day_window(now, ZoneInfo(brief.timezone))

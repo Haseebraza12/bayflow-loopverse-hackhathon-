@@ -84,5 +84,6 @@ async def test_wire_enums_and_list_envelopes(client: httpx.AsyncClient) -> None:
         "email",
         "full_name",
         "phone",
+        "is_platform_admin",  # D94, spec 19 §4
         "memberships",
     }

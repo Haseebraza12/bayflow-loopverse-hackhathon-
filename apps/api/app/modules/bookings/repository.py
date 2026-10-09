@@ -11,8 +11,12 @@
 - `booking_events` is append-only: this module only ever adds and reads rows (spec 02 §8).
 - `status_changed_at` is derived from the events (spec 03 §3.3): the latest event whose
   `from_status` is distinct from its `to_status` (the `CREATE` event counts).
+- The platform admin's reads (spec 19 §4 E-61, E-72, D94) are separate, explicitly named queries
+  over every tenant (`admin_page`, `created_per_bucket`, `finished_between`, `created_by_shop`).
+  They never touch the D21 predicate that staff and customer reads use, and never lock.
 """
 
+import itertools
 import uuid
 from collections import defaultdict
 from collections.abc import Collection, Sequence
@@ -32,6 +36,7 @@ from sqlalchemy import (
     func,
     or_,
     select,
+    true,
     tuple_,
     union_all,
 )
@@ -131,6 +136,35 @@ class StaffListQuery:
 
 
 @dataclass(frozen=True, slots=True)
+class SlotWindow:
+    """A half-open UTC window `[start, end)` on `slot_start` for the shops of one time zone
+    (`shop_ids` None = every shop); a bound may be open (None)."""
+
+    start: datetime | None
+    end: datetime | None
+    shop_ids: frozenset[uuid.UUID] | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class AdminListQuery:
+    """One page of the platform admin's booking list (E-72): every tenant, no D21 predicate.
+
+    `slot_windows`: the shop-local date filter, one window per time zone (None = no date filter;
+    an empty tuple matches nothing)."""
+
+    shop_id: uuid.UUID | None = None
+    customer_user_id: uuid.UUID | None = None
+    statuses: tuple[BookingStatus, ...] = ()
+    text: str | None = None
+    registration: str | None = None
+    customer_ids: tuple[uuid.UUID, ...] = ()
+    slot_windows: tuple[SlotWindow, ...] | None = None
+    sort: str = "-slot_start"
+    limit: int = 20
+    offset: int = 0
+
+
+@dataclass(frozen=True, slots=True)
 class CustomerListQuery:
     """One page of `GET /api/v1/me/bookings`: own bookings at every shop."""
 
@@ -167,25 +201,31 @@ def _order_by(sort: str, changed: Label[datetime]) -> list[UnaryExpression[Any]]
     return [primary, Booking.id.asc()]
 
 
+def _text_match(
+    text: str, registration: str | None, customer_ids: Sequence[uuid.UUID]
+) -> ColumnElement[bool]:
+    """Free text on a booking: the reference contains it, the vehicle's registration key contains
+    its normalised form, or the customer is one of `customer_ids` (resolved by identity)."""
+    matches: list[ColumnElement[bool]] = [Booking.reference.icontains(text, autoescape=True)]
+    if registration:
+        matches.append(
+            exists().where(
+                Vehicle.id == Booking.vehicle_id,
+                Vehicle.owner_user_id == Booking.customer_user_id,
+                Vehicle.registration_key.contains(registration, autoescape=True),
+            )
+        )
+    if customer_ids:
+        matches.append(Booking.customer_user_id.in_(customer_ids))
+    return or_(*matches)
+
+
 def _staff_conditions(query: StaffListQuery) -> list[ColumnElement[bool]]:
     conditions = [visibility_condition(query.scope)]
     if query.statuses:
         conditions.append(Booking.status.in_(query.statuses))
     if query.text is not None:
-        matches: list[ColumnElement[bool]] = [
-            Booking.reference.icontains(query.text, autoescape=True)
-        ]
-        if query.registration:
-            matches.append(
-                exists().where(
-                    Vehicle.id == Booking.vehicle_id,
-                    Vehicle.owner_user_id == Booking.customer_user_id,
-                    Vehicle.registration_key.contains(query.registration, autoescape=True),
-                )
-            )
-        if query.customer_ids:
-            matches.append(Booking.customer_user_id.in_(query.customer_ids))
-        conditions.append(or_(*matches))
+        conditions.append(_text_match(query.text, query.registration, query.customer_ids))
     if query.slot_from is not None:
         conditions.append(Booking.slot_start >= query.slot_from)
     if query.slot_to is not None:
@@ -195,6 +235,42 @@ def _staff_conditions(query: StaffListQuery) -> list[ColumnElement[bool]]:
     if query.parts_person_user_id is not None:
         conditions.append(Booking.parts_person_user_id == query.parts_person_user_id)
     return conditions
+
+
+def _window_condition(window: SlotWindow) -> ColumnElement[bool]:
+    parts: list[ColumnElement[bool]] = []
+    if window.shop_ids is not None:
+        parts.append(Booking.shop_id.in_(sorted(window.shop_ids)))
+    if window.start is not None:
+        parts.append(Booking.slot_start >= window.start)
+    if window.end is not None:
+        parts.append(Booking.slot_start < window.end)
+    return and_(true(), *parts)
+
+
+def _admin_conditions(query: AdminListQuery) -> list[ColumnElement[bool]]:
+    """E-72's filters over every tenant (spec 19 §4): never the D21 predicate."""
+    conditions: list[ColumnElement[bool]] = []
+    if query.shop_id is not None:
+        conditions.append(Booking.shop_id == query.shop_id)
+    if query.customer_user_id is not None:
+        conditions.append(Booking.customer_user_id == query.customer_user_id)
+    if query.statuses:
+        conditions.append(Booking.status.in_(query.statuses))
+    if query.text is not None:
+        conditions.append(_text_match(query.text, query.registration, query.customer_ids))
+    if query.slot_windows is not None:
+        windows = [_window_condition(window) for window in query.slot_windows]
+        conditions.append(or_(*windows) if windows else false())
+    return conditions
+
+
+def _admin_order(sort: str) -> list[UnaryExpression[Any]]:
+    """`-slot_start` (default), `slot_start` or `-created_at`, then `id`."""
+    name = sort.removeprefix("-")
+    column = _SORT_COLUMNS[name]
+    primary = column.desc() if sort.startswith("-") else column.asc()
+    return [primary, Booking.id.asc()]
 
 
 def _customer_conditions(query: CustomerListQuery) -> list[ColumnElement[bool]]:
@@ -440,6 +516,73 @@ class BookingRepository(Repository):
         ).where(Booking.shop_id == shop_id, or_(slot_in_window, completed_in_window))
         row = (await self.session.execute(statement)).one()
         return int(row[0]), int(row[1])
+
+    # --- Platform admin: every tenant, read-only (spec 19 §4, D94) --------------------------------
+
+    async def admin_page(self, query: AdminListQuery) -> tuple[list[Booking], int]:
+        """One page of E-72 and the total over every page (two statements)."""
+        conditions = _admin_conditions(query)
+        statement = (
+            select(Booking)
+            .where(*conditions)
+            .order_by(*_admin_order(query.sort))
+            .limit(query.limit)
+            .offset(query.offset)
+            .execution_options(populate_existing=True)
+        )
+        bookings = list((await self.session.execute(statement)).scalars())
+        counted = select(func.count()).select_from(Booking).where(*conditions)
+        total = (await self.session.execute(counted)).scalar_one()
+        return bookings, int(total)
+
+    async def all_status_counts(self) -> dict[BookingStatus, int]:
+        """Every tenant's bookings by status (absent statuses → absent)."""
+        return await self.status_counts(condition=true())
+
+    async def created_per_bucket(self, bounds: Sequence[datetime]) -> list[int]:
+        """Bookings created in each `[bounds[i], bounds[i + 1])` (one statement)."""
+        if len(bounds) < 2:  # noqa: PLR2004 - a bucket needs two bounds
+            return []
+        counts = [
+            func.count().filter(Booking.created_at >= start, Booking.created_at < end)
+            for start, end in itertools.pairwise(bounds)
+        ]
+        statement = select(*counts).where(
+            Booking.created_at >= bounds[0], Booking.created_at < bounds[-1]
+        )
+        row = (await self.session.execute(statement)).one()
+        return [int(value) for value in row]
+
+    async def finished_between(self, *, start: datetime, end: datetime) -> tuple[int, int]:
+        """`(completed, cancelled)`: bookings completed / cancelled in `[start, end)`."""
+        completed = and_(Booking.completed_at >= start, Booking.completed_at < end)
+        cancelled = and_(Booking.cancelled_at >= start, Booking.cancelled_at < end)
+        statement = select(func.count().filter(completed), func.count().filter(cancelled)).where(
+            or_(completed, cancelled)
+        )
+        row = (await self.session.execute(statement)).one()
+        return int(row[0]), int(row[1])
+
+    async def created_by_shop(
+        self,
+        *,
+        start: datetime,
+        end: datetime,
+        shop_ids: Collection[uuid.UUID] | None = None,
+        limit: int | None = None,
+    ) -> list[tuple[uuid.UUID, int]]:
+        """Bookings created in `[start, end)` per shop, most first (then by shop id)."""
+        statement = (
+            select(Booking.shop_id, func.count())
+            .where(Booking.created_at >= start, Booking.created_at < end)
+            .group_by(Booking.shop_id)
+            .order_by(func.count().desc(), Booking.shop_id)
+        )
+        if shop_ids is not None:
+            statement = statement.where(Booking.shop_id.in_(sorted(set(shop_ids))))
+        if limit is not None:
+            statement = statement.limit(limit)
+        return [(row[0], int(row[1])) for row in await self.session.execute(statement)]
 
     async def refs(
         self, *, shop_id: uuid.UUID, booking_ids: Collection[uuid.UUID]

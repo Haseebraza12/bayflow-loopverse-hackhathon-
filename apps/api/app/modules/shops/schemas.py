@@ -10,15 +10,17 @@ Responses: `ShopRead`, `WorkingHoursRead`, `ShopPublicSummary`, `ServiceBrief`, 
 envelopes `Page` and `ItemList` are the shared ones of `app.shared.pagination`).
 
 Internal records other modules receive: `MembershipRecord`, `ShopBrief`, `ServiceSnapshot`,
-`TeamMember`, `SetupFlags`.
+`TeamMember`, `SetupFlags`; for the platform admin (spec 19, D94-D96): `ShopSuspension`,
+`UserContact`, `AdminShopQuery`, `AdminShopRecord`, `AdminMembershipRecord`, `ShopStats`.
 """
 
 import re
 import uuid
-from datetime import time
+from dataclasses import dataclass
+from datetime import datetime, time
 from decimal import Decimal
 from enum import StrEnum
-from typing import Annotated, Any, Self
+from typing import Annotated, Any, Literal, Self
 from urllib.parse import urlsplit
 
 from pydantic import (
@@ -480,19 +482,23 @@ class MemberCreatedRead(MemberRead):
 
 
 class MembershipRead(BaseModel):
-    """One active membership of the caller (spec 04 `/me`, D66)."""
+    """One active membership of the caller (spec 04 `/me`, D66). `shop_suspended`: the shop is
+    suspended by BayFlow (D96), so the POS can show it without calling a blocked route."""
 
     membership_id: uuid.UUID
     shop_id: uuid.UUID
     shop_name: str
     shop_slug: str
+    shop_suspended: bool
     role: MembershipRole
     capabilities: list[Capability]
 
 
 class MeRead(UserRead):
-    """`GET /api/v1/me`: the account and its **active** memberships, sorted by shop name (D66)."""
+    """`GET /api/v1/me`: the account and its **active** memberships, sorted by shop name (D66).
+    `is_platform_admin` opens the admin console (D94, spec 19 §4)."""
 
+    is_platform_admin: bool
     memberships: list[MembershipRead]
 
 
@@ -522,7 +528,7 @@ class MembershipRecord(BaseModel):
 
 
 class ShopBrief(BaseModel):
-    """The shop facts other modules show (names, contact, timezone, listing)."""
+    """The shop facts other modules show (names, contact, timezone, listing, suspension)."""
 
     model_config = ConfigDict(from_attributes=True, frozen=True)
 
@@ -534,6 +540,7 @@ class ShopBrief(BaseModel):
     phone: str
     timezone: str
     is_listed: bool
+    is_suspended: bool = False  # D96: closed by BayFlow (the model's property)
 
 
 class ServiceSnapshot(BaseModel):
@@ -566,3 +573,81 @@ class SetupFlags(BaseModel):
     has_services: bool  # at least one active service
     has_team: bool  # at least one active non-owner membership
     is_listed: bool
+
+
+# --- Platform admin records (spec 19 §2, §4; D94-D96) ---------------------------------------------
+
+
+class ShopSuspension(BaseModel):
+    """A shop's suspension (D96): when, why and by which platform admin."""
+
+    model_config = ConfigDict(frozen=True)
+
+    suspended_at: datetime
+    reason: str
+    suspended_by_user_id: uuid.UUID
+
+
+class UserContact(BaseModel):
+    """A person as the admin console lists them: name and e-mail."""
+
+    model_config = ConfigDict(frozen=True)
+
+    user_id: uuid.UUID
+    full_name: str
+    email: str
+
+
+AdminShopSqlSort = Literal["-created_at", "name"]
+"""The E-62 sorts shops orders itself; `-bookings_30d` needs bookings and is the admin's job."""
+
+
+@dataclass(frozen=True, slots=True)
+class AdminShopQuery:
+    """E-62's filters: `q` (name, slug, city or the owner's e-mail), suspended or not, listed or
+    not, `city` (case-insensitive exact match)."""
+
+    q: str | None = None
+    suspended: bool | None = None
+    listed: bool | None = None
+    city: str | None = None
+
+
+class AdminShopRecord(BaseModel):
+    """One shop as the admin console lists it (E-62), without its bookings count."""
+
+    model_config = ConfigDict(frozen=True)
+
+    id: uuid.UUID
+    slug: str
+    name: str
+    city: str
+    created_at: datetime
+    is_listed: bool
+    suspension: ShopSuspension | None
+    owners: list[UserContact]
+    active_members: int
+
+
+class AdminMembershipRecord(BaseModel):
+    """One membership of a user, active or not, with its shop (E-66, E-67)."""
+
+    model_config = ConfigDict(frozen=True)
+
+    membership_id: uuid.UUID
+    shop: ShopBrief
+    role: MembershipRole
+    is_active: bool
+
+
+class ShopStats(BaseModel):
+    """Platform-wide shop counts (E-61): every shop, not suspended, suspended, `is_listed` set,
+    created at or after the given instant."""
+
+    model_config = ConfigDict(frozen=True)
+
+    total: int
+    active: int
+    suspended: int
+    listed: int
+    created_since: int

@@ -50,7 +50,8 @@ async def get_overview(context: OwnerContext, session: DbSession) -> OverviewRea
     description=(
         "One row per shop where the caller is the `OWNER`, ordered by shop name: today's bookings, "
         "bookings needing the Service Advisor, jobs in progress, ready for pick-up and low-stock "
-        "parts. `items` is empty for anyone who owns no shop."
+        "parts. Suspended shops are left out (`/me` flags them with `shop_suspended`). `items` is "
+        "empty for anyone who owns no open shop."
     ),
     responses=problem_responses(401),
 )

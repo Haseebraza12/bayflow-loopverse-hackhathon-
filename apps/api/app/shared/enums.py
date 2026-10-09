@@ -185,6 +185,45 @@ class NotificationType(StrEnum):
     AI_TASK_CREATED = "AI_TASK_CREATED"  # bonus
 
 
+# --- Platform audit log (spec 19 §3, D95) ----------------------------------------
+
+
+class AuditCategory(StrEnum):
+    """`audit_events.category` (spec 19 §3.1; stored as VARCHAR + CHECK like every enum, D29)."""
+
+    AUTH = "AUTH"
+    USER = "USER"
+    SHOP = "SHOP"
+    MEMBERSHIP = "MEMBERSHIP"
+    BOOKING = "BOOKING"
+    ADMIN = "ADMIN"
+
+
+class AuditActorRole(StrEnum):
+    """`audit_events.actor_role`: the hat the actor wore (spec 19 §3.1). `PLATFORM_ADMIN` for admin
+    actions (D94), a `MembershipRole` for shop actions, `CUSTOMER`, `SYSTEM` (scripts, the seed,
+    automatic transitions) or `ANONYMOUS` (failed sign-ins)."""
+
+    PLATFORM_ADMIN = "PLATFORM_ADMIN"
+    OWNER = "OWNER"
+    SERVICE_ADVISOR = "SERVICE_ADVISOR"
+    TECHNICIAN = "TECHNICIAN"
+    PARTS_PERSON = "PARTS_PERSON"
+    QC_INSPECTOR = "QC_INSPECTOR"
+    CUSTOMER = "CUSTOMER"
+    SYSTEM = "SYSTEM"
+    ANONYMOUS = "ANONYMOUS"
+
+
+class AuditTargetType(StrEnum):
+    """`audit_events.target_type`: what an audit event is about (spec 19 §3.1)."""
+
+    USER = "USER"
+    SHOP = "SHOP"
+    MEMBERSHIP = "MEMBERSHIP"
+    BOOKING = "BOOKING"
+
+
 # --- Bonus: calling and AI Front Desk (glossary §5, spec 05) --------------------
 
 

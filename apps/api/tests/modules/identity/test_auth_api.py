@@ -18,6 +18,7 @@ from typing import Any
 import httpx
 import jwt
 import pytest
+from fastapi import FastAPI
 from pwdlib import PasswordHash
 from pwdlib.hashers.argon2 import Argon2Hasher
 from sqlalchemy import func, select, text, update
@@ -25,13 +26,23 @@ from sqlalchemy import func, select, text, update
 import app.shared.auth as auth_module
 from app.core.database import Database
 from app.core.security import SESSION_COOKIE_NAME
+from app.modules.identity import service as identity_service
+from app.modules.identity.events import LoggedOut
 from app.modules.identity.models import User
 from app.shared.clock import SimulatedClock
 from app.shared.enums import MembershipRole
+from app.shared.uow import UnitOfWork
 from tests.assertions import assert_problem
 from tests.conftest import make_settings
 from tests.lockgate import wait_for_lock_waiters
-from tests.modules.identity.builders import TEST_PASSWORD, field_errors, make_user, unique_email
+from tests.modules.admin.support import audit_rows
+from tests.modules.identity.builders import (
+    TEST_PASSWORD,
+    bearer,
+    field_errors,
+    make_user,
+    unique_email,
+)
 from tests.modules.shops.builders import add_member, make_shop, set_member_active
 
 pytestmark = pytest.mark.db
@@ -629,6 +640,59 @@ async def test_idn06_logout_is_idempotent_and_the_bearer_token_stays_valid(
     assert (await db_client.get(ME)).status_code == 401  # the cookie is gone
     still_valid = await db_client.get(ME, headers={"Authorization": f"Bearer {token}"})
     assert still_valid.status_code == 200  # stateless JWT caveat (spec 04)
+
+
+async def test_logout_clears_the_cookie_even_when_its_audit_row_fails(
+    db_app: FastAPI, db_client: httpx.AsyncClient, db: Database, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Spec 19 §3.3: recording `auth.logged_out` is best effort. A failing audit write is logged
+    (never the token), rolled back, and the answer is still 204 with the cookie expired."""
+    user = await make_user(db)
+
+    async def broken_audit_store(event: LoggedOut, uow: UnitOfWork) -> None:
+        raise RuntimeError("audit store unavailable")
+
+    db_app.state.event_bus.subscribe(LoggedOut, broken_audit_store)  # runs after the audit row
+    login = await db_client.post(LOGIN, json={"email": user.email, "password": TEST_PASSWORD})
+    token = login.json()["access_token"]
+    with caplog.at_level(logging.WARNING):
+        response = await db_client.post(LOGOUT)
+    assert response.status_code == 204
+    assert response.headers["set-cookie"].startswith(f'{SESSION_COOKIE_NAME}=""')
+    assert "Max-Age=0" in response.headers["set-cookie"]
+    assert (await db_client.get(ME)).status_code == 401  # the cookie is gone
+    assert await audit_rows(db, action="auth.logged_out") == []  # rolled back with the failure
+    assert "auth.logout_not_recorded" in caplog.text
+    assert token not in caplog.text
+
+
+async def test_logout_clears_the_cookie_when_the_database_fails(
+    db_client: httpx.AsyncClient, db: Database, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def failing_logout(uow: UnitOfWork, *, user_id: uuid.UUID | None) -> None:
+        await uow.session.execute(text("SELECT 1 / 0"))  # a real error: the transaction aborts
+
+    monkeypatch.setattr(identity_service, "logout", failing_logout)
+    user = await make_user(db)
+    response = await db_client.post(LOGOUT, headers=bearer(user.id))
+    assert response.status_code == 204
+    assert "Max-Age=0" in response.headers["set-cookie"]
+    db_client.cookies.set(SESSION_COOKIE_NAME, "a-cookie")
+    again = await db_client.post(LOGOUT)
+    assert again.status_code == 204
+    assert "Max-Age=0" in again.headers["set-cookie"]
+
+
+async def test_logout_per_ip_ceiling(db_client: httpx.AsyncClient) -> None:
+    """Spec 04 "Rate limiting": 30 logouts per minute per IP, then 429 (the cookie stays)."""
+    headers = {"X-Real-IP": "203.0.113.70"}
+    for _ in range(30):
+        assert (await db_client.post(LOGOUT, headers=headers)).status_code == 204
+    blocked = await db_client.post(LOGOUT, headers=headers)
+    assert_problem(blocked, 429, "RATE_LIMITED")
+    assert int(blocked.headers["retry-after"]) >= 1
+    other_ip = await db_client.post(LOGOUT, headers={"X-Real-IP": "203.0.113.71"})
+    assert other_ip.status_code == 204
 
 
 async def test_sec23_cookie_flags_when_cookie_secure(

@@ -11,11 +11,19 @@
   `get_setup_flags`, P2 `get_shop_profile`.
 - The D86 read port `ShopActivityReader` (`register_activity_reader`) for the bookings facts that
   shops responses show (`has_future_bookings`, `open_jobs`); unregistered, it raises.
+- Platform admin (spec 19, D94-D96): the nested levers `suspend_shop` / `reactivate_shop` (the
+  admin use case commits), the read port `get_shop_suspension` (used by `app.shared.auth` and the
+  bookings customer actions), and the cross-tenant reads `list_shops_for_admin`,
+  `list_shop_ids_for_admin`, `get_admin_shop_records`, `count_shops`, `count_staff_users`,
+  `list_staff_user_ids`, `list_memberships_everywhere`, `get_shop_timezones`.
 
-Owner-only writes re-check the actor's role here too (no active membership → 404, another role →
-403), so the seed's direct calls are validated exactly like HTTP calls. Every timestamp of a use
-case is one clock instant, read after its row lock (D63). This service never imports
-`app.shared.auth` (spec 01 rule 8) and never imports bookings (rule 3).
+A suspended shop is treated exactly like an unlisted one by the public reads and booking creation
+(404, D96). Every change publishes its audit event (`events.py`, spec 19 §3.3) inside its
+transaction and only when something really changed. Owner-only writes re-check the actor's role
+here too (no active membership → 404, another role → 403), so the seed's direct calls are
+validated exactly like HTTP calls; the suspension levers re-check the platform admin flag the same
+way. Every timestamp of a use case is one clock instant, read after its row lock (D63). This
+service never imports `app.shared.auth` (spec 01 rule 8) and never imports bookings (rule 3).
 """
 
 import logging
@@ -62,7 +70,18 @@ from app.modules.shops.domain.grid import (
     week_problems,
 )
 from app.modules.shops.domain.slugs import free_slug_candidates, slugify
-from app.modules.shops.events import GRID_FIELDS, ShopGridChanging
+from app.modules.shops.events import (
+    GRID_FIELDS,
+    FieldValue,
+    MembershipActiveChanged,
+    MembershipAdded,
+    MembershipRoleChanged,
+    ShopCreated,
+    ShopGridChanging,
+    ShopSuspensionChanged,
+    ShopUpdated,
+    WorkingHoursReplaced,
+)
 from app.modules.shops.models import Service, Shop, ShopMembership, ShopWorkingHours
 from app.modules.shops.repository import (
     MembershipRepository,
@@ -71,6 +90,10 @@ from app.modules.shops.repository import (
     WorkingHoursRepository,
 )
 from app.modules.shops.schemas import (
+    AdminMembershipRecord,
+    AdminShopQuery,
+    AdminShopRecord,
+    AdminShopSqlSort,
     MemberCreate,
     MemberCreatedRead,
     MemberRead,
@@ -90,8 +113,11 @@ from app.modules.shops.schemas import (
     ShopPublicDetail,
     ShopPublicSummary,
     ShopRead,
+    ShopStats,
+    ShopSuspension,
     ShopUpdate,
     TeamMember,
+    UserContact,
     WorkingHoursRead,
     WorkingHoursUpdate,
     WorkingHoursWrite,
@@ -124,6 +150,10 @@ HOURS_NOT_ON_NEW_GRID = (
     "The working hours do not lie on the new slot grid. Move them first, then change the slot "
     "duration."
 )
+SUSPENSION_REASON_MIN_LENGTH = 5
+SUSPENSION_REASON_MAX_LENGTH = 500
+ALREADY_SUSPENDED = "This shop is already suspended."
+NOT_SUSPENDED = "This shop is not suspended."
 
 
 # --- D86 read port: bookings facts shown on shops responses -------------------------------------
@@ -299,6 +329,21 @@ def _changes(record: object, data: ShopUpdate | ServiceUpdate) -> dict[str, obje
     }
 
 
+def _json_value(value: object) -> FieldValue:
+    """A `ShopUpdate` value as JSON: str, int, bool or None (anything else as its text)."""
+    if value is None or isinstance(value, str | int | bool):
+        return value
+    return str(value)
+
+
+def _field_changes(shop: Shop, changes: Mapping[str, object]) -> dict[str, dict[str, FieldValue]]:
+    """`{field: {"from": stored, "to": new}}` of the changed fields only (spec 19 §3.3)."""
+    return {
+        field: {"from": _json_value(getattr(shop, field)), "to": _json_value(value)}
+        for field, value in changes.items()
+    }
+
+
 async def _load_shop(session: AsyncSession, shop_id: uuid.UUID) -> Shop:
     shop = await ShopRepository(session).get(shop_id=shop_id)
     if shop is None:
@@ -359,6 +404,8 @@ async def create_shop(uow: UnitOfWork, *, actor_user_id: uuid.UUID, data: ShopCr
             updated_at=now,
         )
     )
+    await session.flush()  # the audit row references the shop (FK), so the shop is written first
+    await uow.publish(ShopCreated(shop_id=shop.id, actor_user_id=actor_user_id, occurred_at=now))
     await uow.commit()
     logger.info("shops.shop_created", extra={"shop_id": str(shop.id)})
     return _shop_read(shop, rows, has_future_bookings=False)
@@ -411,10 +458,14 @@ async def update_shop(
                     )
                 ]
             )
+    diff = _field_changes(shop, changes)
     for field, value in changes.items():
         setattr(shop, field, value)
     if changes:
         touch(shop, now)
+        await uow.publish(
+            ShopUpdated(shop_id=shop_id, actor_user_id=actor_user_id, changes=diff, occurred_at=now)
+        )
     # Read before the commit: a missing port must fail the request, never a committed change.
     has_future = await get_activity_reader().has_future_bookings(session, shop_id=shop_id, now=now)
     await uow.commit()
@@ -453,6 +504,9 @@ async def replace_working_hours(
             changed = True
     if changed:
         touch(shop, now)
+        await uow.publish(
+            WorkingHoursReplaced(shop_id=shop_id, actor_user_id=actor_user_id, occurred_at=now)
+        )
     has_future = await get_activity_reader().has_future_bookings(session, shop_id=shop_id, now=now)
     await uow.commit()
     return _shop_read(shop, rows.values(), has_future_bookings=has_future)
@@ -577,6 +631,17 @@ async def add_member(
         )
     )
     # A concurrent add of the same person fails on `uq_shop_memberships_shop_id_user_id` → 409.
+    await session.flush()
+    await uow.publish(
+        MembershipAdded(
+            shop_id=shop_id,
+            membership_id=membership.id,
+            user_id=user.id,
+            role=membership.role,
+            actor_user_id=actor_user_id,
+            occurred_at=now,
+        )
+    )
     await uow.commit()
     logger.info(
         "shops.member_added",
@@ -610,15 +675,37 @@ async def update_member(
     if membership.role == MembershipRole.OWNER:
         raise Forbidden(OWNER_MEMBERSHIP_IS_FIXED)
     now = utcnow()
-    changed = False
+    events: list[MembershipRoleChanged | MembershipActiveChanged] = []
     if data.role is not None and membership.role != data.role.membership_role:
+        events.append(
+            MembershipRoleChanged(
+                shop_id=shop_id,
+                membership_id=membership.id,
+                user_id=membership.user_id,
+                from_role=membership.role,
+                to_role=data.role.membership_role,
+                actor_user_id=actor_user_id,
+                occurred_at=now,
+            )
+        )
         membership.role = data.role.membership_role
-        changed = True
     if data.is_active is not None and membership.is_active != data.is_active:
+        events.append(
+            MembershipActiveChanged(
+                shop_id=shop_id,
+                membership_id=membership.id,
+                user_id=membership.user_id,
+                is_active=data.is_active,
+                actor_user_id=actor_user_id,
+                occurred_at=now,
+            )
+        )
         membership.is_active = data.is_active
-        changed = True
+    changed = bool(events)
     if changed:
         touch(membership, now)
+    for event in events:
+        await uow.publish(event)
     user = await identity_service.get_user(session, membership.user_id)
     if user is None:  # pragma: no cover - the FK guarantees the account exists
         raise NotFound
@@ -753,6 +840,12 @@ async def list_public_cities(session: AsyncSession) -> list[str]:
     return await ShopRepository(session).directory_cities()
 
 
+def _publicly_visible(shop: Shop) -> bool:
+    """Listed and not suspended: a suspended shop is treated exactly like an unlisted one by the
+    directory, the shop page, availability and booking creation (D96, spec 19 §2)."""
+    return shop.is_listed and not shop.is_suspended
+
+
 async def _public_detail(session: AsyncSession, shop: Shop) -> ShopPublicDetail:
     rows = await WorkingHoursRepository(session).list_for_shop(shop_id=shop.id)
     services = [
@@ -780,7 +873,7 @@ async def get_public_shop(session: AsyncSession, *, shop_slug: str) -> ShopPubli
     """`GET /api/v1/public/shops/{shop_slug}`: an unknown or unlisted slug → 404; a listed shop
     without an active service → 200 with `services: []` and `is_bookable: false` (D64)."""
     shop = await ShopRepository(session).get_by_slug(shop_slug)
-    if shop is None or not shop.is_listed:
+    if shop is None or not _publicly_visible(shop):
         raise NotFound
     return await _public_detail(session, shop)
 
@@ -795,7 +888,8 @@ async def get_shop_profile(session: AsyncSession, *, shop_id: uuid.UUID) -> Shop
 
 async def get_me(session: AsyncSession, *, user_id: uuid.UUID) -> MeRead:
     """`GET /api/v1/me`: the account plus its **active** memberships, sorted by shop name, each
-    with server-computed `capabilities` (D66). `tasks.manage` only while calling is enabled."""
+    with server-computed `capabilities` (D66). `tasks.manage` only while calling is enabled.
+    `is_platform_admin` (D94) and each shop's `shop_suspended` (D96) come from spec 19."""
     user = await identity_service.get_active_user(session, user_id)
     if user is None:
         raise Unauthenticated
@@ -806,6 +900,7 @@ async def get_me(session: AsyncSession, *, user_id: uuid.UUID) -> MeRead:
             shop_id=shop.id,
             shop_name=shop.name,
             shop_slug=shop.slug,
+            shop_suspended=shop.is_suspended,
             role=membership.role,
             capabilities=capabilities_for(membership.role, tasks_enabled=tasks_enabled),
         )
@@ -818,6 +913,7 @@ async def get_me(session: AsyncSession, *, user_id: uuid.UUID) -> MeRead:
         email=user.email,
         full_name=user.full_name,
         phone=user.phone,
+        is_platform_admin=user.is_platform_admin,
         memberships=memberships,
     )
 
@@ -845,17 +941,18 @@ async def list_memberships_for_user(
 
 
 async def get_listed_shop(session: AsyncSession, *, shop_slug: str) -> ShopBrief | None:
-    """A shop by slug if it is listed (availability, spec 03 §4.5); else None."""
+    """A shop by slug if it is listed and not suspended (availability, spec 03 §4.5, D96)."""
     shop = await ShopRepository(session).get_by_slug(shop_slug)
-    if shop is None or not shop.is_listed:
+    if shop is None or not _publicly_visible(shop):
         return None
     return ShopBrief.model_validate(shop)
 
 
 async def get_bookable_shop(session: AsyncSession, *, shop_id: uuid.UUID) -> ShopBrief | None:
-    """A shop that accepts bookings: listed **and** at least one active service (D64)."""
+    """A shop that accepts bookings: listed, not suspended **and** at least one active service
+    (D64, D96)."""
     shop = await ShopRepository(session).get(shop_id=shop_id)
-    if shop is None or not shop.is_listed:
+    if shop is None or not _publicly_visible(shop):
         return None
     if not await ServiceRepository(session).has_active(shop_id=shop_id):
         return None
@@ -1027,3 +1124,207 @@ async def get_setup_flags(session: AsyncSession, *, shop_id: uuid.UUID) -> Setup
         has_team=await MembershipRepository(session).has_active_staff(shop_id=shop_id),
         is_listed=shop.is_listed,
     )
+
+
+# --- Platform admin: suspension (D96, spec 19 §2) and cross-tenant reads (spec 19 §4) ----------
+
+
+def _suspension(shop: Shop) -> ShopSuspension | None:
+    if (
+        shop.suspended_at is None
+        or shop.suspended_reason is None
+        or shop.suspended_by_user_id is None
+    ):
+        return None
+    return ShopSuspension(
+        suspended_at=shop.suspended_at,
+        reason=shop.suspended_reason,
+        suspended_by_user_id=shop.suspended_by_user_id,
+    )
+
+
+async def get_shop_suspension(
+    session: AsyncSession, *, shop_id: uuid.UUID
+) -> ShopSuspension | None:
+    """The read port behind 403 `SHOP_SUSPENDED` (spec 19 §6): the shop's suspension, or None
+    when it is not suspended (or unknown). Re-read on every call, like the membership (D9)."""
+    shop = await ShopRepository(session).get(shop_id=shop_id)
+    return None if shop is None else _suspension(shop)
+
+
+async def _require_platform_admin(session: AsyncSession, actor_user_id: uuid.UUID) -> None:
+    """Defence in depth behind the admin routes (D94): only an active platform admin may suspend
+    or reactivate a shop (403), whoever calls the service. The actor's row is locked `FOR SHARE`
+    first (`identity.lock_acting_platform_admin`), so an admin revoked or deactivated by a
+    concurrent request cannot act: the revoke waits for this commit, or committed first and this
+    re-read refuses (spec 19 §1). User row before shop row, always."""
+    await identity_service.lock_acting_platform_admin(session, actor_user_id=actor_user_id)
+
+
+def _suspension_reason(reason: str) -> str:
+    text = reason.strip()
+    if not SUSPENSION_REASON_MIN_LENGTH <= len(text) <= SUSPENSION_REASON_MAX_LENGTH:
+        message = (
+            f"Give a reason of {SUSPENSION_REASON_MIN_LENGTH} to "
+            f"{SUSPENSION_REASON_MAX_LENGTH} characters."
+        )
+        raise ValidationFailed(
+            errors=[FieldError(field="reason", code="value_error", message=message)]
+        )
+    return text
+
+
+async def suspend_shop(
+    uow: UnitOfWork, *, shop_id: uuid.UUID, actor_user_id: uuid.UUID, reason: str
+) -> None:
+    """E-64 (nested; the admin use case commits): suspend a shop with a reason of 5-500 characters.
+
+    The shop row is locked `FOR UPDATE`, so two admins acting at once queue and the second gets 409
+    (spec 19 §7). Unknown → 404; already suspended → 409 `CONFLICT`. Nothing else changes:
+    bookings, stock and memberships stay as they are (D96). Publishes `ShopSuspensionChanged`.
+    """
+    text = _suspension_reason(reason)
+    session = uow.session
+    await _require_platform_admin(session, actor_user_id)
+    shop = await _lock_shop(session, shop_id)
+    now = utcnow()
+    if shop.is_suspended:
+        raise Conflict(ALREADY_SUSPENDED)
+    shop.suspended_at = now
+    shop.suspended_reason = text
+    shop.suspended_by_user_id = actor_user_id
+    touch(shop, now)
+    await uow.publish(
+        ShopSuspensionChanged(
+            shop_id=shop_id,
+            actor_user_id=actor_user_id,
+            suspended=True,
+            reason=text,
+            occurred_at=now,
+        )
+    )
+
+
+async def reactivate_shop(uow: UnitOfWork, *, shop_id: uuid.UUID, actor_user_id: uuid.UUID) -> None:
+    """E-65 (nested; the admin use case commits): lift a suspension; everything resumes (D96).
+    Unknown → 404; not suspended → 409 `CONFLICT`. Publishes `ShopSuspensionChanged`."""
+    session = uow.session
+    await _require_platform_admin(session, actor_user_id)
+    shop = await _lock_shop(session, shop_id)
+    now = utcnow()
+    if not shop.is_suspended:
+        raise Conflict(NOT_SUSPENDED)
+    shop.suspended_at = None
+    shop.suspended_reason = None
+    shop.suspended_by_user_id = None
+    touch(shop, now)
+    await uow.publish(
+        ShopSuspensionChanged(
+            shop_id=shop_id, actor_user_id=actor_user_id, suspended=False, occurred_at=now
+        )
+    )
+
+
+async def _owner_ids_for(session: AsyncSession, query: AdminShopQuery) -> list[uuid.UUID]:
+    """The users whose e-mail contains `q` (E-62 searches the owner's e-mail through identity)."""
+    text = (query.q or "").strip()
+    if not text:
+        return []
+    return await identity_service.find_user_ids_by_email(session, q=text)
+
+
+async def _admin_records(session: AsyncSession, shops: Sequence[Shop]) -> list[AdminShopRecord]:
+    """Owners (name, e-mail) and active member counts of these shops, one query each."""
+    ids = [shop.id for shop in shops]
+    memberships = MembershipRepository(session)
+    owners = await memberships.owners_of(shop_ids=ids)
+    counts = await memberships.active_counts(shop_ids=ids)
+    users = await identity_service.get_users_by_ids(session, set(owners.values()))
+    records = []
+    for shop in shops:
+        owner = users.get(owners[shop.id]) if shop.id in owners else None
+        records.append(
+            AdminShopRecord(
+                id=shop.id,
+                slug=shop.slug,
+                name=shop.name,
+                city=shop.city,
+                created_at=shop.created_at,
+                is_listed=shop.is_listed,
+                suspension=_suspension(shop),
+                owners=(
+                    []
+                    if owner is None
+                    else [
+                        UserContact(user_id=owner.id, full_name=owner.full_name, email=owner.email)
+                    ]
+                ),
+                active_members=counts.get(shop.id, 0),
+            )
+        )
+    return records
+
+
+async def list_shops_for_admin(
+    session: AsyncSession, query: AdminShopQuery, *, sort: AdminShopSqlSort, page: PageParams
+) -> tuple[list[AdminShopRecord], int]:
+    """E-62 sorted by `-created_at` or `name`: every tenant matching the filters, one page."""
+    owner_ids = await _owner_ids_for(session, query)
+    shops, total = await ShopRepository(session).admin_page(
+        query, owner_ids=owner_ids, sort=sort, limit=page.limit, offset=page.offset
+    )
+    return await _admin_records(session, shops), total
+
+
+async def list_shop_ids_for_admin(session: AsyncSession, query: AdminShopQuery) -> list[uuid.UUID]:
+    """Every shop matching E-62's filters, by name: the admin ranks them by bookings itself."""
+    owner_ids = await _owner_ids_for(session, query)
+    return await ShopRepository(session).admin_ids(query, owner_ids=owner_ids)
+
+
+async def get_admin_shop_records(
+    session: AsyncSession, *, shop_ids: Sequence[uuid.UUID]
+) -> list[AdminShopRecord]:
+    """These shops as E-62 lists them, in the order given (unknown ids are skipped)."""
+    by_id = {shop.id: shop for shop in await ShopRepository(session).get_many(shop_ids=shop_ids)}
+    return await _admin_records(
+        session, [by_id[shop_id] for shop_id in shop_ids if shop_id in by_id]
+    )
+
+
+async def count_shops(session: AsyncSession, *, since: datetime) -> ShopStats:
+    """E-61: every shop, not suspended, suspended, `is_listed` set, created since `since`."""
+    return await ShopRepository(session).stats(since=since)
+
+
+async def count_staff_users(session: AsyncSession) -> int:
+    """E-61: users with at least one active membership (the staff of E-66's `kind`)."""
+    return await MembershipRepository(session).count_active_member_users()
+
+
+async def list_staff_user_ids(session: AsyncSession) -> frozenset[uuid.UUID]:
+    """E-66 `kind`: the users with at least one active membership anywhere."""
+    return frozenset(await MembershipRepository(session).active_member_user_ids())
+
+
+async def list_memberships_everywhere(
+    session: AsyncSession, *, user_ids: Collection[uuid.UUID]
+) -> dict[uuid.UUID, list[AdminMembershipRecord]]:
+    """Every membership of these users, active or not, with its shop, by shop name (E-66, E-67)."""
+    grouped: dict[uuid.UUID, list[AdminMembershipRecord]] = {}
+    rows = await MembershipRepository(session).list_for_users_everywhere(user_ids=user_ids)
+    for membership, shop in rows:
+        grouped.setdefault(membership.user_id, []).append(
+            AdminMembershipRecord(
+                membership_id=membership.id,
+                shop=ShopBrief.model_validate(shop),
+                role=membership.role,
+                is_active=membership.is_active,
+            )
+        )
+    return grouped
+
+
+async def get_shop_timezones(session: AsyncSession) -> dict[uuid.UUID, str]:
+    """Every shop's IANA time zone (the admin's shop-local date filters, D38)."""
+    return await ShopRepository(session).timezones()

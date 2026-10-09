@@ -54,7 +54,9 @@ def counting_clock() -> Iterator[CountingClock]:
         yield counting
 
 
-def brief(name: str, timezone: str = "Asia/Karachi", *, listed: bool = True) -> ShopBrief:
+def brief(
+    name: str, timezone: str = "Asia/Karachi", *, listed: bool = True, suspended: bool = False
+) -> ShopBrief:
     return ShopBrief(
         id=uuid.uuid4(),
         slug=name.lower().replace(" ", "-"),
@@ -64,6 +66,7 @@ def brief(name: str, timezone: str = "Asia/Karachi", *, listed: bool = True) -> 
         phone="+924200000000",
         timezone=timezone,
         is_listed=listed,
+        is_suspended=suspended,
     )
 
 
@@ -357,13 +360,15 @@ async def test_the_summary_keeps_the_membership_order_and_each_time_zone(
     lahore = brief("Lahore Auto Care")
     london = brief("A London Branch", "Europe/London")  # sorts first by name, listed second
     vanished = uuid.uuid4()  # a membership whose shop cannot be read: skipped
+    closed = brief("Closed By BayFlow", suspended=True)  # D99: a suspended shop is left out
     reads.memberships = [
         owner_membership(lahore.id),
         owner_membership(vanished),
+        owner_membership(closed.id),
         owner_membership(london.id),
         owner_membership(lahore.id),  # repeated: one row
     ]
-    reads.briefs = {lahore.id: lahore, london.id: london}
+    reads.briefs = {lahore.id: lahore, london.id: london, closed.id: closed}
     reads.counts = {
         lahore.id: {S.PENDING: 1, S.ESTIMATE_APPROVED: 2, S.READY_FOR_PICKUP: 3, S.IN_REPAIR: 4},
         london.id: {S.QC_PENDING: 5, S.COMPLETED: 6, S.CANCELLED: 7},
@@ -405,7 +410,7 @@ async def test_the_summary_keeps_the_membership_order_and_each_time_zone(
             "low_stock_count": 0,
         },
     ]
-    assert reads.arguments("count_low_stock") == [{"shop_ids": [lahore.id, vanished, london.id]}]
+    assert reads.arguments("count_low_stock") == [{"shop_ids": [lahore.id, london.id]}]
     windows = {
         arguments["shop_id"]: (arguments["start"], arguments["end"])
         for arguments in reads.arguments("count_day_activity")

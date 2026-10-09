@@ -1,9 +1,9 @@
 """HTTP middleware (spec 01 "Logging and request IDs", spec 04 "Security headers", D61).
 
-Order, outermost first: request context (request id, security headers, `Cache-Control: no-store`
-on `/api/*`, one access-log line, a problem+json 500 for unhandled errors) -> CORS for
-`CLIENT_URL` -> request-body size limit. All three are pure ASGI middleware (no
-`BaseHTTPMiddleware`), so context variables and streaming behave normally.
+Order, outermost first: request context (request id, client IP and user agent for the audit log,
+security headers, `Cache-Control: no-store` on `/api/*`, one access-log line, a problem+json 500
+for unhandled errors) -> CORS for `CLIENT_URL` -> request-body size limit. All three are pure ASGI
+middleware (no `BaseHTTPMiddleware`), so context variables and streaming behave normally.
 """
 
 import logging
@@ -14,6 +14,7 @@ from fastapi import FastAPI
 from starlette.datastructures import Headers, MutableHeaders
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.cors import CORSMiddleware
+from starlette.requests import Request
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from app.core.config import Settings
@@ -21,6 +22,8 @@ from app.core.error_handlers import internal_error_response, problem_response
 from app.core.errors import ErrorCode
 from app.core.http_headers import REQUEST_ID_HEADER, resolve_request_id, standard_headers
 from app.core.logging import request_log_context
+from app.core.request_context import bind_request_context, normalised_ip, truncated_user_agent
+from app.core.security import client_ip
 
 access_logger = logging.getLogger("app.access")
 error_logger = logging.getLogger("app.errors")
@@ -37,7 +40,12 @@ CORS_EXPOSED_HEADERS = [REQUEST_ID_HEADER, "Retry-After"]
 
 
 class RequestContextMiddleware:
-    """Request id, standard response headers, one access-log line per request, last-resort 500."""
+    """Request id, standard response headers, one access-log line per request, last-resort 500.
+
+    It also binds the request's client IP (`client_ip`, the rate limiter's trusted-proxy rule; kept
+    only when it is a valid address) and user agent (at most 255 characters) next to the request id,
+    so the audit log records where every action came from (D95, spec 19 §3.2).
+    """
 
     def __init__(self, app: ASGIApp) -> None:
         self.app = app
@@ -48,7 +56,10 @@ class RequestContextMiddleware:
             return
 
         path: str = scope["path"]
-        request_id = resolve_request_id(Headers(scope=scope).get(REQUEST_ID_HEADER))
+        request_headers = Headers(scope=scope)
+        request_id = resolve_request_id(request_headers.get(REQUEST_ID_HEADER))
+        ip = normalised_ip(client_ip(Request(scope)))
+        user_agent = truncated_user_agent(request_headers.get("user-agent"))
         extra_headers = standard_headers(path, request_id)
         started_at = time.perf_counter()
         response_status = 500
@@ -64,7 +75,7 @@ class RequestContextMiddleware:
                     headers[name] = value
             await send(message)
 
-        with request_log_context(request_id):
+        with request_log_context(request_id), bind_request_context(ip=ip, user_agent=user_agent):
             try:
                 await self.app(scope, receive, send_with_headers)
             except Exception:

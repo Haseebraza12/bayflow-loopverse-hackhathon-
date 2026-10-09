@@ -39,6 +39,7 @@ __all__ = [
     "FAILED_PASSWORD_LIMIT",
     "JWT_ALGORITHM",
     "LOGIN_IP_LIMIT",
+    "LOGOUT_IP_LIMIT",
     "MAX_PASSWORD_LENGTH",
     "MEMBER_CREATION_LIMIT",
     "MIN_PASSWORD_LENGTH",
@@ -200,6 +201,7 @@ def decode_token(token: str, now: datetime, expected_typ: TokenType) -> UUID:
 
 # Per-IP ceilings, applied with slowapi decorators on the routes (`@limiter.limit(LOGIN_IP_LIMIT)`).
 LOGIN_IP_LIMIT = "30/minute"
+LOGOUT_IP_LIMIT = "30/minute"
 REGISTER_OWNER_IP_LIMIT = "20/hour"
 ANONYMOUS_BOOKING_IP_LIMIT = "20/minute"
 

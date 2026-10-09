@@ -161,7 +161,8 @@ name = "Module dependency direction (acyclic)"
 type = "layers"
 containers = ["app.modules"]
 layers = [
-    "notifications | reporting",
+    "admin",
+    "notifications | reporting | audit",
     "(calls)",
     "bookings",
     "estimates",

@@ -29,6 +29,7 @@ from app.modules.qc.models import QcInspection
 from app.shared.clock import SimulatedClock
 from app.shared.enums import BookingAction, BookingStatus
 from tests.lockgate import hold_row_lock, wait_for_lock_waiters
+from tests.modules.admin.support import audit_rows, make_admin
 from tests.modules.bookings.support import (
     FRIDAY_1000,
     Desk,
@@ -321,3 +322,45 @@ async def test_con05_a_grid_change_racing_a_booking(
         problem(booking, 422, "INVALID_SLOT")  # checked against the new grid, never the old
         assert live == 0
         assert await slot_count(db, world.shop_id, FRIDAY_1000) is None
+
+
+# --- Unlisting or suspension vs booking creation (D96; spec 19 §7) -------------------------------
+
+
+@pytest.mark.parametrize("closing", ["suspend", "unlist"])
+async def test_a_booking_waiting_on_the_shop_row_sees_it_closed(
+    desk: Desk, world: World, db: Database, closing: str
+) -> None:
+    """The wizard passed the unlocked "bookable" check, then waits for the shop row `FOR SHARE`
+    while a suspension (or an unlisting) holds it `FOR UPDATE`. Once that commits, the booking
+    re-reads the shop under its lock and answers 404 like the unlocked check; the case-B account
+    and every audit row of the attempt roll back with it."""
+    admin = await make_admin(db, full_name="Areeba Hashmi")
+    email = unique_email("late")
+    body = desk.booking_body(
+        customer={"full_name": "Late Customer", "email": email, "password": TEST_PASSWORD}
+    )
+
+    def close() -> Awaitable[httpx.Response]:
+        if closing == "suspend":
+            return desk.api.post(
+                f"/api/v1/admin/shops/{world.shop_id}/suspend",
+                headers=bearer(admin.id),
+                json={"reason": "Closed while a customer was booking"},
+            )
+        return desk.api.patch(
+            desk.shop_path(), json={"is_listed": False}, headers=bearer(world.owner.id)
+        )
+
+    def book() -> Awaitable[httpx.Response]:
+        return desk.wizard(body, headers={"X-Real-IP": next_client_ip()})
+
+    closed, booking = await race(db, "shops", {"id": world.shop_id}, close, book)
+    assert closed.status_code == 200, closed.text
+    problem(booking, 404, "NOT_FOUND")
+    async with db.sessionmaker() as session:
+        assert (await session.execute(select(func.count()).select_from(Booking))).scalar_one() == 0
+        account = await session.execute(select(User).where(User.email == email))
+        assert account.scalar_one_or_none() is None
+    assert await audit_rows(db, action="user.customer_created") == []
+    assert await audit_rows(db, action="booking.create") == []

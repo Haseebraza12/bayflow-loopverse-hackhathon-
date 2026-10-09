@@ -14,6 +14,14 @@
   `get_booking_refs`, `list_booking_viewer_ids`, `DayActivity`, `count_by_status`,
   `count_open_jobs`, `count_day_activity`, plus `has_future_bookings`, the D86 port object
   `shop_activity_reader` and `register_ports()` (D89).
+- **Platform admin reads** (spec 19 §4, D94): `list_admin_bookings`, `get_admin_booking`,
+  `platform_booking_stats`, `count_created_by_shop`. They are explicit, read-only and cross-tenant;
+  they never widen the D21 predicate of the staff and customer reads, and carry no
+  `allowed_actions`.
+
+Shop suspension (D96, spec 19 §2): a customer's actions on a suspended shop's booking answer 403
+`SHOP_SUSPENDED`, except `cancel`, and the customer's `allowed_actions` there hold `cancel` only;
+staff never get this far (`require_shop_member`), and the wizard sees the shop as unlisted (404).
 
 Every action locks the booking row first (key only), then reads the clock once (D63) and keeps
 D30's lock order booking → purchase order → parts (ascending id) → slot counter through the
@@ -49,6 +57,7 @@ from app.core.errors import (
     NotAssigned,
     NotFound,
     RateLimited,
+    ShopSuspended,
     ValidationFailed,
 )
 from app.core.security import (
@@ -79,12 +88,14 @@ from app.modules.bookings.domain.visibility import (
 from app.modules.bookings.events import BookingActionApplied, BookingPartsChanged
 from app.modules.bookings.models import Booking, BookingEvent, BookingService, Vehicle
 from app.modules.bookings.repository import (
+    AdminListQuery,
     BookingEventRepository,
     BookingKey,
     BookingRepository,
     BookingRow,
     BookingServiceRepository,
     CustomerListQuery,
+    SlotWindow,
     StaffListQuery,
     StaffScope,
     VehicleRepository,
@@ -95,6 +106,10 @@ from app.modules.bookings.schemas import (
     CUSTOMER_ACTION_REQUESTS,
     STAFF_ACTION_REQUESTS,
     ActionRequest,
+    AdminBookingDetail,
+    AdminBookingFilters,
+    AdminBookingSort,
+    AdminBookingSummary,
     ApproveEstimateRequest,
     AssignPartsPersonRequest,
     AssignTechnicianRequest,
@@ -103,6 +118,7 @@ from app.modules.bookings.schemas import (
     BookingCreatedRead,
     BookingCustomer,
     BookingDetail,
+    BookingDetailBase,
     BookingEventRead,
     BookingServiceRead,
     BookingShopRead,
@@ -383,8 +399,14 @@ def _staff_slugs(ctx: ShopContext, booking: Booking) -> list[BookingActionSlug]:
     return _slugs(booking, _actor_context(_staff_role(ctx), ctx.user.id, booking))
 
 
-def _customer_slugs(customer_id: UUID, booking: Booking) -> list[BookingActionSlug]:
-    return _slugs(booking, _actor_context(ActorRole.CUSTOMER, customer_id, booking))
+def _customer_slugs(
+    customer_id: UUID, booking: Booking, *, shop_suspended: bool = False
+) -> list[BookingActionSlug]:
+    """The customer's `allowed_actions`; at a suspended shop only `cancel` stays open (D96)."""
+    slugs = _slugs(booking, _actor_context(ActorRole.CUSTOMER, customer_id, booking))
+    if shop_suspended:
+        return [slug for slug in slugs if slug == BookingActionSlug.CANCEL]
+    return slugs
 
 
 async def _picker_detail(session: AsyncSession, booking: Booking) -> str:
@@ -1057,6 +1079,12 @@ async def apply_customer_action(
     )
     if booking is None:
         raise NotFound
+    # D96, spec 19 §2: a suspended shop's bookings stay readable, and `cancel` stays open so a
+    # customer is never stuck with a booking at a closed shop; every other action is refused.
+    if action != BookingAction.CANCEL:
+        suspension = await shops_service.get_shop_suspension(uow.session, shop_id=booking.shop_id)
+        if suspension is not None:
+            raise ShopSuspended
     now = utcnow()
     await _execute(
         uow,
@@ -1247,14 +1275,13 @@ async def _new_customer(uow: UnitOfWork, customer: CustomerWrite, now: datetime)
         msg = "the wizard's account fields were checked before"
         raise RuntimeError(msg)
     try:
-        return await identity_service.create_user(
+        return await identity_service.create_customer(
             uow,
             email=customer.email,
             full_name=customer.full_name,
             password=customer.password,
             phone=customer.phone,
             now=now,
-            starts_session=True,
         )
     except EmailAlreadyRegistered:
         raise EmailAlreadyRegistered(ACCOUNT_TAKEN_DETAIL) from None
@@ -1281,7 +1308,7 @@ async def _resolve_account(
         user = await _new_customer(uow, customer, now)
         return _Account(user.id, created=True)
     try:  # C, or D: wrong password or inactive account (a blocked account → 429 passes through)
-        user = await identity_service.authenticate(
+        user = await identity_service.sign_in_for_booking(
             uow, email=customer.email, password=customer.password, now=now
         )
     except InvalidCredentials:
@@ -1381,9 +1408,10 @@ async def create_booking(
 
     Rate limit (session) → account and year fields (422) → bookable shop (404) → services (422)
     → slot (422 `INVALID_SLOT`) → account rule D32 (409, 429; Argon2 before any lock) → shop
-    `FOR SHARE` → vehicle upsert → slot counter (`SLOT_FULL`) → booking, services, `CREATE` event
-    → commit → session token and the customer's detail. Any failure rolls everything back, a
-    case-B account included (SEC-18).
+    `FOR SHARE` → bookable shop again (404: unlisted or suspended while this request waited, D96)
+    → vehicle upsert → slot counter (`SLOT_FULL`) → booking, services, `CREATE` event → commit →
+    session token and the customer's detail. Any failure rolls everything back, a case-B account
+    included (SEC-18).
 
     `reference` is internal (the seed's `BF-SEEDnn`, D51), absent from every HTTP schema; a value
     that is not a reserved seed reference is a programming error (`ValueError`).
@@ -1405,6 +1433,10 @@ async def create_booking(
     scheduling_service.validate_slot(config, slot_start=data.slot_start, now=now)
     account = await _resolve_account(uow, caller, data, now)
     locked = await shops_service.get_schedule_config(session, shop_id=data.shop_id, for_share=True)
+    # Unlisting and suspension write the shop row, so under `FOR SHARE` this re-read is final: a
+    # change committed while the request waited for the lock is seen here (spec 19 §7).
+    if await shops_service.get_bookable_shop(session, shop_id=data.shop_id) is None:
+        raise NotFound
     vehicle_id = await _upsert_vehicle(session, account.user_id, data.vehicle, now)
     slot = await scheduling_service.reserve_slot(
         uow, config=locked, slot_start=data.slot_start, now=now
@@ -1488,6 +1520,28 @@ def _vehicle_keys(bookings: Iterable[Booking]) -> set[tuple[UUID, UUID]]:
 
 
 @dataclass(frozen=True, slots=True)
+class _Viewer:
+    """Who reads a staff projection: the shop, and whether stock data and the customer's e-mail
+    and phone are shown (spec 04 §C). Staff get their role's view; a platform admin sees both."""
+
+    shop_id: UUID
+    include_parts: bool
+    show_contact: bool
+
+
+def _staff_viewer(ctx: ShopContext) -> _Viewer:
+    return _Viewer(
+        shop_id=ctx.shop_id,
+        include_parts=ctx.role != MembershipRole.QC_INSPECTOR,
+        show_contact=ctx.role in SHOP_WIDE_ROLES,
+    )
+
+
+def _admin_viewer(booking: Booking) -> _Viewer:
+    return _Viewer(shop_id=booking.shop_id, include_parts=True, show_contact=True)
+
+
+@dataclass(frozen=True, slots=True)
 class _StaffFacts:
     """Everything a page of staff bookings shows besides its own columns, read in batches."""
 
@@ -1508,13 +1562,14 @@ class _StaffFacts:
 
 async def _staff_facts(
     session: AsyncSession,
-    ctx: ShopContext,
+    viewer: _Viewer,
     bookings: Sequence[Booking],
     *,
     extra_user_ids: Iterable[UUID] = (),
 ) -> _StaffFacts:
     """Vehicles, services, customer names, assignees, estimate summaries, parts summaries (never
-    for QC callers, never before `assign-parts-person`) and QC summaries of these bookings."""
+    for QC callers, never before `assign-parts-person`) and QC summaries of these bookings, all of
+    `viewer.shop_id`."""
     ids = [booking.id for booking in bookings]
     staff_ids = {
         user_id
@@ -1528,9 +1583,9 @@ async def _staff_facts(
     }
     with_parts = [booking.id for booking in bookings if booking.parts_person_user_id is not None]
     parts: Mapping[UUID, PartsSummary] = {}
-    if ctx.role != MembershipRole.QC_INSPECTOR:
+    if viewer.include_parts:
         parts = await inventory_service.get_booking_parts_summary(
-            session, shop_id=ctx.shop_id, booking_ids=with_parts
+            session, shop_id=viewer.shop_id, booking_ids=with_parts
         )
     return _StaffFacts(
         vehicles=await VehicleRepository(session).get_many(keys=_vehicle_keys(bookings)),
@@ -1539,13 +1594,13 @@ async def _staff_facts(
             session, {booking.customer_user_id for booking in bookings} | set(extra_user_ids)
         ),
         members=await shops_service.get_member_refs(
-            session, shop_id=ctx.shop_id, user_ids=staff_ids
+            session, shop_id=viewer.shop_id, user_ids=staff_ids
         ),
         estimates=await estimates_service.get_estimate_summaries(
-            session, shop_id=ctx.shop_id, booking_ids=ids, audience="staff"
+            session, shop_id=viewer.shop_id, booking_ids=ids, audience="staff"
         ),
         parts=parts,
-        qc=await qc_service.get_qc_summaries(session, shop_id=ctx.shop_id, booking_ids=ids),
+        qc=await qc_service.get_qc_summaries(session, shop_id=viewer.shop_id, booking_ids=ids),
     )
 
 
@@ -1579,23 +1634,24 @@ def _staff_summary(
     )
 
 
-async def _staff_detail_of(
-    session: AsyncSession, ctx: ShopContext, booking: Booking
-) -> BookingDetail:
-    """The staff detail (spec 03 §3.3): the customer's e-mail and phone only for the Owner and
-    Service Advisors (spec 04 §C); `last_event` with its actor."""
+async def _detail_base(
+    session: AsyncSession, viewer: _Viewer, booking: Booking
+) -> BookingDetailBase:
+    """The staff projection of one booking (spec 03 §3.3) without `allowed_actions`: the
+    customer's e-mail and phone only when `viewer.show_contact` (the Owner, Service Advisors and
+    platform admins, spec 04 §C); `last_event` with its actor."""
     events = BookingEventRepository(session)
     key = (booking.shop_id, booking.id)
     last = await events.latest(shop_id=booking.shop_id, booking_id=booking.id)
     extra = {booking.cancelled_by_user_id, None if last is None else last.actor_user_id}
     facts = await _staff_facts(
-        session, ctx, [booking], extra_user_ids={uid for uid in extra if uid is not None}
+        session, viewer, [booking], extra_user_ids={uid for uid in extra if uid is not None}
     )
     changed = (await events.status_changed_at(keys=[key])).get(booking.id)
     customer = facts.users[booking.customer_user_id]
-    contact = ctx.role in SHOP_WIDE_ROLES
+    contact = viewer.show_contact
     qc = facts.qc_of(booking.id)
-    return BookingDetail(
+    return BookingDetailBase(
         id=booking.id,
         shop_id=booking.shop_id,
         reference=booking.reference,
@@ -1633,6 +1689,16 @@ async def _staff_detail_of(
         ),
         cancel_reason=booking.cancel_reason,
         last_event=None if last is None else _event_read(last, facts.users),
+    )
+
+
+async def _staff_detail_of(
+    session: AsyncSession, ctx: ShopContext, booking: Booking
+) -> BookingDetail:
+    """The staff detail (spec 03 §3.3) with the caller's `allowed_actions`."""
+    base = await _detail_base(session, _staff_viewer(ctx), booking)
+    return BookingDetail(
+        **dict(base),
         allowed_actions=_staff_slugs(ctx, booking),
         created_at=booking.created_at,
         updated_at=booking.updated_at,
@@ -1673,7 +1739,9 @@ async def _customer_detail_of(session: AsyncSession, booking: Booking) -> Custom
         customer_notes=booking.customer_notes,
         estimate=view.estimate,
         estimate_revision_in_progress=view.revision_in_progress,
-        allowed_actions=_customer_slugs(booking.customer_user_id, booking),
+        allowed_actions=_customer_slugs(
+            booking.customer_user_id, booking, shop_suspended=shop.is_suspended
+        ),
         ready_notified_at=booking.ready_notified_at,
         completed_at=booking.completed_at,
         cancelled_at=booking.cancelled_at,
@@ -1744,7 +1812,11 @@ async def _customer_summaries(
             vehicle=_vehicle_brief(vehicles[booking.vehicle_id]),
             service_names=[row.name_snapshot for row in services.get(booking.id, [])],
             estimate_summary=estimates.get(booking.id),
-            allowed_actions=_customer_slugs(booking.customer_user_id, booking),
+            allowed_actions=_customer_slugs(
+                booking.customer_user_id,
+                booking,
+                shop_suspended=shops[booking.shop_id].is_suspended,
+            ),
             created_at=booking.created_at,
             updated_at=booking.updated_at,
         )
@@ -1947,7 +2019,7 @@ async def list_staff_bookings(
     rows, total = await BookingRepository(session).staff_page(query)
     items: list[BookingSummary] = []
     if rows:
-        facts = await _staff_facts(session, ctx, [booking for booking, _ in rows])
+        facts = await _staff_facts(session, _staff_viewer(ctx), [booking for booking, _ in rows])
         items = [_staff_summary(ctx, booking, changed, facts) for booking, changed in rows]
     return Page.build(items, total=total, params=page)
 
@@ -1971,7 +2043,11 @@ async def list_booking_events(
     session: AsyncSession, ctx: ShopContext, *, booking_id: UUID
 ) -> list[BookingEventRead]:
     """`GET …/bookings/{booking_id}/events`: every event, oldest first by `(created_at, seq)`."""
-    booking = await _visible_booking(session, ctx, booking_id)
+    return await _event_reads(session, await _visible_booking(session, ctx, booking_id))
+
+
+async def _event_reads(session: AsyncSession, booking: Booking) -> list[BookingEventRead]:
+    """Every event of `booking` as staff see it, oldest first by `(created_at, seq)` (D79)."""
     events = await BookingEventRepository(session).list_for_booking(
         shop_id=booking.shop_id, booking_id=booking.id
     )
@@ -2015,3 +2091,196 @@ async def list_booking_qc_inspections(
     return await qc_service.list_booking_qc_history(
         session, shop_id=booking.shop_id, booking_id=booking.id
     )
+
+
+# =================================================================================================
+# Platform admin reads (spec 19 §4 E-61, E-63, E-67, E-72, E-73; D94): every tenant, read-only
+# =================================================================================================
+
+
+def _admin_dates(filters: AdminBookingFilters) -> None:
+    if (
+        filters.date_from is not None
+        and filters.date_to is not None
+        and filters.date_from > filters.date_to
+    ):
+        raise ValidationFailed(
+            errors=[FieldError(field="query.date_to", code="invalid_range", message=DATE_RANGE)]
+        )
+
+
+async def _admin_slot_windows(
+    session: AsyncSession, filters: AdminBookingFilters
+) -> tuple[SlotWindow, ...] | None:
+    """The inclusive slot dates as half-open UTC windows, one per shop time zone (D38): a slot
+    date is always read in its own shop's zone, whatever the shops' zones are."""
+    if filters.date_from is None and filters.date_to is None:
+        return None
+    zones = await shops_service.get_shop_timezones(session)
+    if filters.shop_id is not None:
+        zones = {key: zone for key, zone in zones.items() if key == filters.shop_id}
+    grouped: dict[str, set[UUID]] = {}
+    for shop_id, zone_name in zones.items():
+        grouped.setdefault(zone_name, set()).add(shop_id)
+    windows = []
+    for zone_name, shop_ids in sorted(grouped.items()):
+        zone = ZoneInfo(zone_name)
+        start = None if filters.date_from is None else _local_midnight(filters.date_from, zone)
+        end = None
+        if filters.date_to is not None:
+            after = _day_after(filters.date_to)
+            end = None if after is None else _local_midnight(after, zone)
+        # One zone for every shop (the usual case): no need to list the shops.
+        scope = None if len(grouped) == 1 else frozenset(shop_ids)
+        windows.append(SlotWindow(start=start, end=end, shop_ids=scope))
+    return tuple(windows)
+
+
+async def _admin_query(
+    session: AsyncSession, filters: AdminBookingFilters, sort: AdminBookingSort, page: PageParams
+) -> AdminListQuery:
+    """The filters resolved: free text (reference, plate, customer name or e-mail) and dates."""
+    _admin_dates(filters)
+    text = (filters.q or "").strip() or None
+    registration = None
+    customer_ids: tuple[UUID, ...] = ()
+    if text is not None:
+        registration = registration_key(text) or None
+        by_name = await identity_service.find_user_ids_by_name(session, q=text)
+        by_email = await identity_service.find_user_ids_by_email(session, q=text)
+        customer_ids = tuple(dict.fromkeys([*by_name, *by_email]))
+    return AdminListQuery(
+        shop_id=filters.shop_id,
+        customer_user_id=filters.customer_user_id,
+        statuses=filters.statuses,
+        text=text,
+        registration=registration,
+        customer_ids=customer_ids,
+        slot_windows=await _admin_slot_windows(session, filters),
+        sort=sort,
+        limit=page.limit,
+        offset=page.offset,
+    )
+
+
+async def _admin_summaries(
+    session: AsyncSession, bookings: Sequence[Booking]
+) -> list[AdminBookingSummary]:
+    """A page of any tenants' bookings: shops, customers, vehicles and services, one batch each."""
+    if not bookings:
+        return []
+    shops = await shops_service.get_shop_briefs(
+        session, shop_ids={booking.shop_id for booking in bookings}
+    )
+    users = await identity_service.get_users_by_ids(
+        session, {booking.customer_user_id for booking in bookings}
+    )
+    vehicles = await VehicleRepository(session).get_many(keys=_vehicle_keys(bookings))
+    services = await BookingServiceRepository(session).list_for_bookings(keys=_keys(bookings))
+    items = []
+    for booking in bookings:
+        customer = users[booking.customer_user_id]
+        items.append(
+            AdminBookingSummary(
+                id=booking.id,
+                reference=booking.reference,
+                shop=_shop_ref(shops[booking.shop_id]),
+                status=booking.status,
+                version=booking.version,
+                slot_start=booking.slot_start,
+                slot_end=booking.slot_end,
+                customer=BookingCustomer(
+                    user_id=customer.id,
+                    full_name=customer.full_name,
+                    email=customer.email,
+                    phone=customer.phone,
+                ),
+                vehicle=_vehicle_brief(vehicles[booking.vehicle_id]),
+                service_names=[row.name_snapshot for row in services.get(booking.id, [])],
+                created_at=booking.created_at,
+                updated_at=booking.updated_at,
+            )
+        )
+    return items
+
+
+async def list_admin_bookings(
+    session: AsyncSession,
+    *,
+    filters: AdminBookingFilters,
+    sort: AdminBookingSort,
+    page: PageParams,
+) -> Page[AdminBookingSummary]:
+    """E-72 (and the latest bookings of E-63 / E-67): every tenant's bookings matching the
+    filters, sorted with `id` as the tie-breaker. Read-only: no `allowed_actions`."""
+    query = await _admin_query(session, filters, sort, page)
+    bookings, total = await BookingRepository(session).admin_page(query)
+    return Page.build(await _admin_summaries(session, bookings), total=total, params=page)
+
+
+async def get_admin_booking(session: AsyncSession, *, booking_id: UUID) -> AdminBookingDetail:
+    """E-73: any tenant's booking as its Owner would see it (customer contact and stock data
+    included), with every event, oldest first. Read-only: no `allowed_actions`. Unknown → 404."""
+    booking = await BookingRepository(session).get_unscoped(booking_id)
+    if booking is None:
+        raise NotFound
+    base = await _detail_base(session, _admin_viewer(booking), booking)
+    shop = (await shops_service.get_shop_briefs(session, shop_ids=[booking.shop_id]))[
+        booking.shop_id
+    ]
+    return AdminBookingDetail(
+        **dict(base),
+        created_at=booking.created_at,
+        updated_at=booking.updated_at,
+        shop=_shop_ref(shop),
+        events=await _event_reads(session, booking),
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class PlatformBookingStats:
+    """Every tenant's bookings for the platform overview (spec 19 E-61).
+
+    `created_per_day[i]` counts the bookings created in `[day_bounds[i], day_bounds[i + 1])`;
+    `completed` / `cancelled` the bookings completed / cancelled within the whole span; `by_status`
+    every booking now (all 17 statuses); `top_shops` the shops with the most bookings created
+    within the span, most first."""
+
+    created_per_day: tuple[int, ...]
+    completed: int
+    cancelled: int
+    by_status: Mapping[BookingStatus, int]
+    top_shops: tuple[tuple[UUID, int], ...]
+
+
+async def platform_booking_stats(
+    session: AsyncSession, *, day_bounds: Sequence[datetime], top_shops: int = 5
+) -> PlatformBookingStats:
+    """E-61's booking figures in four statements, over the local days `day_bounds` delimits."""
+    if len(day_bounds) < 2:  # noqa: PLR2004 - a span needs a start and an end
+        msg = "day_bounds needs at least a start and an end"
+        raise ValueError(msg)
+    bookings = BookingRepository(session)
+    per_day = await bookings.created_per_bucket(day_bounds)
+    completed, cancelled = await bookings.finished_between(start=day_bounds[0], end=day_bounds[-1])
+    counts = await bookings.all_status_counts()
+    top = await bookings.created_by_shop(start=day_bounds[0], end=day_bounds[-1], limit=top_shops)
+    return PlatformBookingStats(
+        created_per_day=tuple(per_day),
+        completed=completed,
+        cancelled=cancelled,
+        by_status={status: counts.get(status, 0) for status in BookingStatus},
+        top_shops=tuple(top),
+    )
+
+
+async def count_created_by_shop(
+    session: AsyncSession, *, start: datetime, end: datetime, shop_ids: Collection[UUID]
+) -> dict[UUID, int]:
+    """Bookings created in `[start, end)` per shop; every requested shop is a key (E-62)."""
+    ids = list(dict.fromkeys(shop_ids))
+    if not ids:
+        return {}
+    rows = await BookingRepository(session).created_by_shop(start=start, end=end, shop_ids=ids)
+    counts = dict(rows)
+    return {shop_id: counts.get(shop_id, 0) for shop_id in ids}

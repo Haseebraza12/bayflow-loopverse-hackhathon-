@@ -63,9 +63,12 @@ async def test_sec46_me_for_an_owner_of_two_shops_staff_and_a_customer(
         "shop_id",
         "shop_name",
         "shop_slug",
+        "shop_suspended",  # D96, spec 19 §2
         "role",
         "capabilities",
     }
+    assert owner_view["is_platform_admin"] is False  # D94, spec 19 §4
+    assert not any(m["shop_suspended"] for m in owner_view["memberships"])
 
     bilal_view = await me(db_client, bilal.id)
     assert [(m["role"], m["capabilities"]) for m in bilal_view["memberships"]] == [

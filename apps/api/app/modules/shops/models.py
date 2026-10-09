@@ -1,16 +1,17 @@
-"""ORM models of the shops module (spec 02 §3.2-§3.5).
+"""ORM models of the shops module (spec 02 §3.2-§3.5, §3.22).
 
 Tables: `shops`, `shop_working_hours`, `shop_memberships`, `services`. Cross-module references
 (`users`) are declared by table name only (spec 01 rule 2: no cross-module ORM relationships).
 """
 
 import uuid
-from datetime import time
+from datetime import datetime, time
 from decimal import Decimal
 
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
+    DateTime,
     ForeignKey,
     Index,
     Integer,
@@ -46,6 +47,12 @@ class Shop(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         CheckConstraint("slot_capacity BETWEEN 1 AND 50", name="slot_capacity"),
         CheckConstraint("logo_url IS NULL OR logo_url LIKE 'https://%'", name="logo_url_https"),
         CheckConstraint("rating IS NULL OR rating BETWEEN 0 AND 5", name="rating_range"),
+        # D96: a suspension is complete (when, why, by whom) or absent.
+        CheckConstraint(
+            "((suspended_at IS NULL) = (suspended_reason IS NULL))"
+            " AND ((suspended_at IS NULL) = (suspended_by_user_id IS NULL))",
+            name="suspension_complete",
+        ),
         not_blank("name"),
         not_blank("address"),
         not_blank("city"),
@@ -69,6 +76,17 @@ class Shop(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     logo_url: Mapped[str | None] = mapped_column(String(2048))
     rating: Mapped[Decimal | None] = mapped_column(Numeric(2, 1))
     is_listed: Mapped[bool] = mapped_column(Boolean, default=True, server_default=true())
+    # D96, spec 19 §2: set by a platform admin, cleared on reactivation; nothing else changes.
+    suspended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    suspended_reason: Mapped[str | None] = mapped_column(String(500))
+    suspended_by_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="RESTRICT")
+    )
+
+    @property
+    def is_suspended(self) -> bool:
+        """A suspended shop is unlisted publicly and closed to its staff (D96)."""
+        return self.suspended_at is not None
 
 
 class ShopWorkingHours(UUIDPrimaryKeyMixin, TimestampMixin, Base):

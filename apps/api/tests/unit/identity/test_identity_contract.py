@@ -61,7 +61,14 @@ def test_login_accepts_any_existing_password_length_up_to_128() -> None:
 def test_session_read_has_no_memberships_and_user_record_extends_user_read() -> None:
     assert set(SessionRead.model_fields) == {"access_token", "token_type", "expires_in", "user"}
     assert set(UserRead.model_fields) == {"id", "email", "full_name", "phone"}
-    assert set(UserRecord.model_fields) == {"id", "email", "full_name", "phone", "is_active"}
+    assert set(UserRecord.model_fields) == {
+        "id",
+        "email",
+        "full_name",
+        "phone",
+        "is_active",
+        "is_platform_admin",  # D94, spec 19
+    }
     assert issubclass(UserRecord, UserRead)
 
 
@@ -82,6 +89,7 @@ async def test_identity_operations(client: httpx.AsyncClient) -> None:
     for key, (operation_id, status) in expected.items():
         assert operations[key]["operationId"] == operation_id
         assert status in operations[key]["responses"]
+    assert "429" in operations[("POST", "/api/v1/auth/logout")]["responses"]  # per-IP ceiling
     login_errors = operations[("POST", "/api/v1/auth/login")]["responses"]
     assert login_errors["401"]["content"]["application/problem+json"]["schema"]["$ref"].endswith(
         "/Problem"

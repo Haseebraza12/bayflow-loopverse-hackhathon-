@@ -5,11 +5,15 @@ Wire schemas: `OwnerRegistrationCreate` and `SessionCreate` (requests, `extra="f
 without memberships, D81), `SessionToken` and `SessionRead` (login and owner registration), and
 the reference `UserRef` other modules use for actors and authors.
 
-Internal: `UserRecord` = `UserRead` + `is_active`, the user other modules (and `app.shared.auth`)
-receive from the look-ups. `password_hash` never leaves this module.
+Internal: `UserRecord` = `UserRead` + `is_active` + `is_platform_admin` (D94), the user other
+modules (and `app.shared.auth`) receive from the look-ups; `UserAdminRecord` adds the timestamps
+the platform admin lists show, `UserAdminQuery` / `UserStats` are the admin ports' query and
+counts (spec 19 §4 E-61, E-66). `password_hash` never leaves this module.
 """
 
 import uuid
+from dataclasses import dataclass
+from datetime import datetime
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, Secret, StringConstraints
@@ -98,13 +102,54 @@ class UserRef(BaseModel):
 
 
 class UserRecord(UserRead):
-    """A user as other modules see it: the wire fields plus `is_active` (internal, never sent).
+    """A user as other modules see it: the wire fields plus `is_active` and `is_platform_admin`
+    (internal, never sent as such).
 
     A subclass of `UserRead`, so a record can be passed wherever the wire type is expected; Pydantic
     serialises a field typed `UserRead` with the parent's fields only.
     """
 
     is_active: bool
+    is_platform_admin: bool = False  # the safe default for records built by hand (D94)
+
+
+class UserAdminRecord(UserRecord):
+    """A user as the platform admin console lists it (spec 19 §4 E-66): the record plus its
+    creation and last sign-in instants."""
+
+    created_at: datetime
+    last_login_at: datetime | None
+
+
+UserAdminSort = Literal["-created_at", "name", "-last_login_at"]
+"""E-66's sort allowlist: newest first (default), name (case-insensitive), latest sign-in first."""
+
+
+@dataclass(frozen=True, slots=True)
+class UserAdminQuery:
+    """One page of the admin's user list (E-66). `q` matches the name, the e-mail or the phone;
+    `only_ids` / `excluded_ids` restrict the users to, or exclude, a set of ids (the admin module
+    passes the users with an active membership: identity never reads memberships, D81)."""
+
+    q: str | None = None
+    is_active: bool | None = None
+    is_platform_admin: bool | None = None
+    only_ids: frozenset[uuid.UUID] | None = None
+    excluded_ids: frozenset[uuid.UUID] | None = None
+    sort: UserAdminSort = "-created_at"
+    limit: int = 20
+    offset: int = 0
+
+
+@dataclass(frozen=True, slots=True)
+class UserStats:
+    """Platform-wide account counts (E-61): every account, those with the platform-admin flag,
+    the deactivated ones and those created at or after the given instant."""
+
+    total: int
+    platform_admins: int
+    inactive: int
+    created_since: int
 
 
 def to_user_read(user: UserRead) -> UserRead:

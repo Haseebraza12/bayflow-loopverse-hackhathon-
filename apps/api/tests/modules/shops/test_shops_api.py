@@ -121,6 +121,7 @@ async def test_create_shop_creates_the_shop_its_hours_and_the_owner_membership(
             "shop_id": shop["id"],
             "shop_name": "Lahore Auto Care",
             "shop_slug": "lahore-auto-care",
+            "shop_suspended": False,  # D96, spec 19 §2
             "role": "OWNER",
             "capabilities": ["parts.manage", "services.manage", "shop.manage", "team.manage"],
         }
