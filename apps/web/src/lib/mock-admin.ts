@@ -97,8 +97,8 @@ export class AdminActionError extends Error {
 
 /** The seeded platform admin (spec 19 §8). */
 export const PLATFORM_ADMIN_ACCOUNT = {
-  id: 'usr-zainab',
-  name: 'Zainab Siddiqui',
+  id: 'usr-areeba',
+  name: 'Areeba Hashmi',
   email: 'admin@bayflow.test',
   phone: '+92 300 0001122',
   createdAt: '2026-09-01T06:00:00Z',
@@ -114,12 +114,12 @@ const SHOP_JOINED: Record<string, string> = {
   'shop-lyallpur-motors': '2026-09-28T10:45:00Z',
 }
 
-/** Owners of the shops outside the Lahore cast (`owner.<slug>@bayflow.test`, spec 11). */
+/** Owners of the shops outside the Lahore cast, as seeded (`owner.<slug>@bayflow.test`, spec 11). */
 const OTHER_OWNERS: Record<string, { id: string; name: string }> = {
-  'shop-clifton-car-clinic': { id: 'usr-owner-clifton', name: 'Ahsan Mirza' },
-  'shop-margalla-motor-works': { id: 'usr-owner-margalla', name: 'Saad Qureshi' },
-  'shop-pindi-auto-garage': { id: 'usr-owner-pindi', name: 'Nadia Akram' },
-  'shop-lyallpur-motors': { id: 'usr-owner-lyallpur', name: 'Tahir Mehmood' },
+  'shop-clifton-car-clinic': { id: 'usr-owner-clifton', name: 'Asif Memon' },
+  'shop-margalla-motor-works': { id: 'usr-owner-margalla', name: 'Nida Abbasi' },
+  'shop-pindi-auto-garage': { id: 'usr-owner-pindi', name: 'Tariq Mehmood' },
+  'shop-lyallpur-motors': { id: 'usr-owner-lyallpur', name: 'Khalid Chaudhry' },
 }
 
 /** Recent sign-ins, so the console has a security trail before anyone uses it. */

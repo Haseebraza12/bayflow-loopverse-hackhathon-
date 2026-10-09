@@ -84,7 +84,7 @@ Every account's password is **`BayFlow@2026`** — 12 characters, so it meets th
 - Lahore Auto Care team and the glossary cast, Hamza and Hina included: `<firstname>.<role-tag>@bayflow.test` (glossary §14.1).
 - Every other shop: **`<role-tag>.<shop-slug>@bayflow.test`**, with role tags `owner`, `sa`, `tech`, `qc`, `parts` (glossary §2.3, §14.2). Raza Auto Works has no `owner.` account because its owner is Fatima.
 - Seeded customers: `<firstname>.customer@bayflow.test`.
-- The platform admin **Zainab Siddiqui**, `admin@bayflow.test`, `is_platform_admin = true`, no memberships (D94, spec 19 §8).
+- The platform admin **Areeba Hashmi**, `admin@bayflow.test`, `is_platform_admin = true`, no memberships (D94, spec 19 §8).
 
 ### Staff and owners (31 accounts, 32 memberships)
 

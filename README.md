@@ -53,6 +53,7 @@ All demo accounts use the password **`BayFlow@2026`**. The worked example from t
 | Customer | Ayesha Khan | `ayesha.customer@bayflow.test` | `BayFlow@2026` | — (sample bookings at Lahore Auto Care) |
 | Technician (2nd) | Hamza | `hamza.tech@bayflow.test` | `BayFlow@2026` | Lahore Auto Care |
 | QC Inspector (2nd, "first pick wins") | Hina | `hina.qc@bayflow.test` | `BayFlow@2026` | Lahore Auto Care |
+| Platform admin (super admin) | Areeba Hashmi | `admin@bayflow.test` | `BayFlow@2026` | — (the `/admin` console across every shop: tenants, accounts, bookings, audit log; spec 19) |
 
 **Every other shop has its own full team.** Log in as `<role>.<shop-slug>@bayflow.test`, where `<role>` is `owner`, `sa`, `tech`, `qc` or `parts` (Raza Auto Works is owned by Fatima, so it has no `owner.` account). Same password.
 

@@ -12,7 +12,7 @@ type Role = CurrentUserSession['role']
 const DEMO_SHOP = { shopId: 'shop-lahore-auto-care', shopName: 'Lahore Auto Care' }
 
 const RULES: ReadonlyArray<{ tokens: ReadonlyArray<string>; role: Role; name?: string }> = [
-  { tokens: ['admin', 'zainab'], role: 'PLATFORM_ADMIN', name: 'Zainab Siddiqui' },
+  { tokens: ['admin'], role: 'PLATFORM_ADMIN', name: 'Areeba Hashmi' },
   { tokens: ['fatima', 'owner'], role: 'OWNER', name: 'Fatima Raza' },
   { tokens: ['hamza'], role: 'TECHNICIAN', name: 'Hamza' },
   { tokens: ['imran', 'tech', 'technician'], role: 'TECHNICIAN', name: 'Imran' },

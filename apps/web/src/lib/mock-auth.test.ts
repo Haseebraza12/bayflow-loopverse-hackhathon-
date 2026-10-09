@@ -25,6 +25,10 @@ describe('resolveMockSession', () => {
     },
   )
 
+  it('never makes a customer a platform admin because of a shared first name', () => {
+    expect(resolveMockSession('zainab.customer@bayflow.test').role).toBe('CUSTOMER')
+  })
+
   it('matches whole tokens, so a name containing "sa" is not a Service Advisor', () => {
     expect(resolveMockSession('sara.qc@bayflow.test').role).toBe('QC_INSPECTOR')
     expect(resolveMockSession('Hamza.Tech@BayFlow.test').name).toBe('Hamza')

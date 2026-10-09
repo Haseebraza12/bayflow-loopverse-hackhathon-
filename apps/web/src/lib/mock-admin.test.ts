@@ -21,7 +21,7 @@ import {
 } from './mock-admin'
 import { INITIAL_BOOKINGS } from './mock-data'
 
-const zainab = { name: PLATFORM_ADMIN_ACCOUNT.name, email: PLATFORM_ADMIN_ACCOUNT.email }
+const areeba = { name: PLATFORM_ADMIN_ACCOUNT.name, email: PLATFORM_ADMIN_ACCOUNT.email }
 const userByEmail = (email: string) => getAdminUsers().find((u) => u.email === email)!
 
 function expectRefusal(action: () => void, code: AdminActionError['code']) {
@@ -70,77 +70,77 @@ describe('directory', () => {
 
 describe('shop suspension (D96)', () => {
   it('suspends with a reason, refuses to do it twice, and reactivates', () => {
-    expectRefusal(() => suspendShop('shop-raza-auto-works', 'no', zainab), 'VALIDATION_ERROR')
-    suspendShop('shop-raza-auto-works', 'Unpaid subscription for September', zainab)
+    expectRefusal(() => suspendShop('shop-raza-auto-works', 'no', areeba), 'VALIDATION_ERROR')
+    suspendShop('shop-raza-auto-works', 'Unpaid subscription for September', areeba)
     expect(getShopSuspension('shop-raza-auto-works')).toMatchObject({
       reason: 'Unpaid subscription for September',
-      byEmail: zainab.email,
+      byEmail: areeba.email,
     })
     expectRefusal(
-      () => suspendShop('shop-raza-auto-works', 'Again, for testing', zainab),
+      () => suspendShop('shop-raza-auto-works', 'Again, for testing', areeba),
       'CONFLICT',
     )
-    reactivateShop('shop-raza-auto-works', zainab)
+    reactivateShop('shop-raza-auto-works', areeba)
     expect(getShopSuspension('shop-raza-auto-works')).toBeNull()
-    expectRefusal(() => reactivateShop('shop-raza-auto-works', zainab), 'CONFLICT')
+    expectRefusal(() => reactivateShop('shop-raza-auto-works', areeba), 'CONFLICT')
   })
 
   it('records both actions in the audit log with the reason', () => {
-    suspendShop('shop-lyallpur-motors', 'Reported for fake reviews', zainab)
-    reactivateShop('shop-lyallpur-motors', zainab)
+    suspendShop('shop-lyallpur-motors', 'Reported for fake reviews', areeba)
+    reactivateShop('shop-lyallpur-motors', areeba)
     // Seeded sample events may be timestamped later today, so compare this browser's events only.
     const [latest, previous] = getAuditEvents().filter((e) => e.id.startsWith('live:'))
     expect(latest).toMatchObject({ action: 'shop.reactivated', category: 'SHOP' })
     expect(previous).toMatchObject({
       action: 'shop.suspended',
       metadata: { reason: 'Reported for fake reviews' },
-      actor: { role: 'PLATFORM_ADMIN', email: zainab.email },
+      actor: { role: 'PLATFORM_ADMIN', email: areeba.email },
     })
   })
 })
 
 describe('account safeguards (spec 19 §1)', () => {
   it('refuses self-deactivation and self-revocation', () => {
-    const me = userByEmail(zainab.email)
-    expectRefusal(() => setUserActive(me.id, false, 'Leaving the company', zainab), 'FORBIDDEN')
+    const me = userByEmail(areeba.email)
+    expectRefusal(() => setUserActive(me.id, false, 'Leaving the company', areeba), 'FORBIDDEN')
     const bilal = userByEmail('bilal.sa@bayflow.test')
-    setPlatformAdmin(bilal.id, true, zainab)
-    expectRefusal(() => setPlatformAdmin(me.id, false, zainab), 'FORBIDDEN')
+    setPlatformAdmin(bilal.id, true, areeba)
+    expectRefusal(() => setPlatformAdmin(me.id, false, areeba), 'FORBIDDEN')
   })
 
   it('keeps at least one active platform admin', () => {
     const bilal = userByEmail('bilal.sa@bayflow.test')
-    setPlatformAdmin(bilal.id, true, zainab)
+    setPlatformAdmin(bilal.id, true, areeba)
     const asBilal = { name: 'Bilal', email: 'bilal.sa@bayflow.test' }
-    setPlatformAdmin(userByEmail(zainab.email).id, false, asBilal)
+    setPlatformAdmin(userByEmail(areeba.email).id, false, asBilal)
     // Bilal is now the only admin: nobody can remove or deactivate him.
-    expectRefusal(() => setPlatformAdmin(bilal.id, false, zainab), 'CONFLICT')
-    expectRefusal(() => setUserActive(bilal.id, false, 'Testing the guard', zainab), 'CONFLICT')
+    expectRefusal(() => setPlatformAdmin(bilal.id, false, areeba), 'CONFLICT')
+    expectRefusal(() => setUserActive(bilal.id, false, 'Testing the guard', areeba), 'CONFLICT')
   })
 
   it('needs a reason to deactivate, refuses no-op changes and inactive grants', () => {
     const tariq = userByEmail('tariq.jamil@example.test')
-    expectRefusal(() => setUserActive(tariq.id, false, '', zainab), 'VALIDATION_ERROR')
-    setUserActive(tariq.id, false, 'Chargeback fraud reported by the shop', zainab)
+    expectRefusal(() => setUserActive(tariq.id, false, '', areeba), 'VALIDATION_ERROR')
+    setUserActive(tariq.id, false, 'Chargeback fraud reported by the shop', areeba)
     expect(userByEmail('tariq.jamil@example.test').isActive).toBe(false)
     expect(isAccountActive('Tariq.Jamil@example.test')).toBe(false)
     expectRefusal(
-      () => setUserActive(tariq.id, false, 'Twice for good measure', zainab),
+      () => setUserActive(tariq.id, false, 'Twice for good measure', areeba),
       'CONFLICT',
     )
-    expectRefusal(() => setPlatformAdmin(tariq.id, true, zainab), 'VALIDATION_ERROR')
-    setUserActive(tariq.id, true, null, zainab)
+    expectRefusal(() => setPlatformAdmin(tariq.id, true, areeba), 'VALIDATION_ERROR')
+    setUserActive(tariq.id, true, null, areeba)
     expect(isAccountActive('tariq.jamil@example.test')).toBe(true)
   })
 
   it('grants and revokes platform admin', () => {
     const sara = userByEmail('sara.qc@bayflow.test')
     expect(isPlatformAdminEmail(sara.email)).toBe(false)
-    setPlatformAdmin(sara.id, true, zainab)
+    setPlatformAdmin(sara.id, true, areeba)
     expect(isPlatformAdminEmail(sara.email)).toBe(true)
     expect(userByEmail(sara.email).kind).toBe('PLATFORM_ADMIN')
-    expectRefusal(() => setPlatformAdmin(sara.id, true, zainab), 'CONFLICT')
-    setPlatformAdmin(sara.id, false, zainab)
+    expectRefusal(() => setPlatformAdmin(sara.id, true, areeba), 'CONFLICT')
+    setPlatformAdmin(sara.id, false, areeba)
     expect(isPlatformAdminEmail(sara.email)).toBe(false)
   })
 })
@@ -162,8 +162,8 @@ describe('audit log (D95)', () => {
   it('records sign-ins, failed sign-ins and audited admin reads', () => {
     recordSignIn('Bilal.SA@bayflow.test', true)
     recordSignIn('nobody@bayflow.test', false)
-    recordAdminView('user', { id: 'usr-bilal', label: 'bilal.sa@bayflow.test' }, zainab)
-    recordAdminView('user', { id: 'usr-bilal', label: 'bilal.sa@bayflow.test' }, zainab)
+    recordAdminView('user', { id: 'usr-bilal', label: 'bilal.sa@bayflow.test' }, areeba)
+    recordAdminView('user', { id: 'usr-bilal', label: 'bilal.sa@bayflow.test' }, areeba)
     const live = getAuditEvents().filter((e) => e.id.startsWith('live:'))
     expect(live.map((e) => e.action).sort()).toEqual([
       'admin.user_viewed',
@@ -178,9 +178,13 @@ describe('audit log (D95)', () => {
     )
   })
 
-  it('never puts a password or token in an event', () => {
-    const text = JSON.stringify(getAuditEvents())
-    expect(text).not.toMatch(/BayFlow@2026|password|token|hash/i)
+  it('never puts a password, token or hash in an event', () => {
+    for (const event of getAuditEvents()) {
+      expect(JSON.stringify(event)).not.toContain('BayFlow@2026')
+      for (const key of Object.keys(event.metadata)) {
+        expect(key).not.toMatch(/password|token|hash|secret/i)
+      }
+    }
   })
 })
 

@@ -45,7 +45,7 @@ suspended shop or reactivating an active one is 409 `CONFLICT`.
 | `occurred_at` | `timestamptz` | no | The action's clock instant (D63) |
 | `category` | `audit_category` enum | no | `AUTH`, `USER`, `SHOP`, `MEMBERSHIP`, `BOOKING`, `ADMIN` |
 | `action` | `varchar(64)` | no | Dotted, lower snake case, from the catalogue below (e.g. `shop.suspended`) |
-| `summary` | `varchar(300)` | no | One human sentence, no secrets (e.g. "Zainab Siddiqui suspended Raza Auto Works") |
+| `summary` | `varchar(300)` | no | One human sentence, no secrets (e.g. "Areeba Hashmi suspended Raza Auto Works") |
 | `actor_user_id` | `uuid` | yes | FK `users` `RESTRICT`; null for anonymous and system events |
 | `actor_role` | `varchar(32)` | yes | `PLATFORM_ADMIN`, a `MembershipRole`, `CUSTOMER`, `SYSTEM` or `ANONYMOUS` |
 | `shop_id` | `uuid` | yes | FK `shops` `RESTRICT`; the tenant the event belongs to |
@@ -170,7 +170,7 @@ list has loading skeletons, an empty state and an error state.
 
 ## 8. Seed and demo (D52, spec 11)
 
-The seed adds the platform admin **Zainab Siddiqui**, `admin@bayflow.test`, password
+The seed adds the platform admin **Areeba Hashmi**, `admin@bayflow.test`, password
 `BayFlow@2026`, no memberships, listed with the other demo accounts on the login page and in the
 README.
 
