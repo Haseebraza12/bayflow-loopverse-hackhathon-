@@ -10,13 +10,13 @@ export default async function ShopLayout({ children, params }: LayoutProps<'/pos
   const { shopId } = await params
 
   return (
-    <SidebarProvider className="min-h-[calc(100svh-3.5rem)]">
+    <SidebarProvider className="min-h-[calc(100svh-3rem)]">
       <PosSidebar shopId={shopId} />
-      <SidebarInset id="main" tabIndex={-1} className="bg-muted outline-none">
-        <div className="flex h-12 items-center border-b bg-background px-4 md:hidden">
+      <SidebarInset id="main" tabIndex={-1} className="bg-canvas outline-none">
+        <div className="flex h-12 items-center border-b border-border-subtle bg-layer px-4 md:hidden">
           <SidebarTrigger aria-label="Open shop navigation" />
         </div>
-        <div className="mx-auto w-full max-w-screen-2xl p-4 sm:p-6">{children}</div>
+        <div className="mx-auto w-full max-w-screen-2xl px-4 py-6 sm:px-8 sm:py-8">{children}</div>
       </SidebarInset>
     </SidebarProvider>
   )

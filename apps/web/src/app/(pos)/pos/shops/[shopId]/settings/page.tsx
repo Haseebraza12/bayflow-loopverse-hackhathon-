@@ -97,10 +97,10 @@ export default function ShopSettingsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <span className="text-xs font-bold uppercase tracking-wider text-[#1047FA]">
+          <span className="text-xs font-bold tracking-[0.32px] text-[#1047FA]">
             Workshop Configuration
           </span>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-neutral-900 mt-1">
+          <h1 className="text-2xl sm:text-3xl font-semibold text-neutral-900 mt-1">
             Shop Settings & Scheduling
           </h1>
           <p className="text-xs text-neutral-500 mt-0.5">
@@ -112,7 +112,7 @@ export default function ShopSettingsPage() {
           <Button
             asChild
             variant="outline"
-            className="text-xs font-semibold border-neutral-300"
+            className="text-xs font-semibold border-neutral-300 rounded-full"
           >
             <Link href={`/shops/${shop.slug}`} target="_blank">
               <Globe className="size-3.5 mr-1.5 text-[#1047FA]" />
@@ -132,7 +132,7 @@ export default function ShopSettingsPage() {
 
       <form onSubmit={handleSave} className="space-y-6">
         {/* Profile Card */}
-        <Card className="border-neutral-200 shadow-sm">
+        <Card className="border-neutral-200">
           <CardHeader className="pb-3 border-b border-neutral-100">
             <CardTitle className="text-sm font-bold text-neutral-900 flex items-center gap-2">
               <Building2 className="size-4 text-[#1047FA]" />
@@ -200,7 +200,7 @@ export default function ShopSettingsPage() {
         </Card>
 
         {/* Scheduling & Directory Card */}
-        <Card className="border-neutral-200 shadow-sm">
+        <Card className="border-neutral-200">
           <CardHeader className="pb-3 border-b border-neutral-100">
             <CardTitle className="text-sm font-bold text-neutral-900 flex items-center gap-2">
               <Clock className="size-4 text-[#1047FA]" />
@@ -258,7 +258,7 @@ export default function ShopSettingsPage() {
         </Card>
 
         {/* 7-Day Working Hours Card */}
-        <Card className="border-neutral-200 shadow-sm">
+        <Card className="border-neutral-200">
           <CardHeader className="pb-3 border-b border-neutral-100">
             <CardTitle className="text-sm font-bold text-neutral-900 flex items-center gap-2">
               <CalendarCheck className="size-4 text-[#1047FA]" />
@@ -302,7 +302,7 @@ export default function ShopSettingsPage() {
 
         <Button
           type="submit"
-          className="bg-[#1047FA] hover:bg-blue-700 text-white font-bold text-xs h-10 px-6 shadow-sm"
+          className="bg-[#1047FA] hover:bg-blue-700 text-white font-bold text-xs h-10 px-6 rounded-full"
         >
           <Save className="size-4 mr-1.5" />
           Save All Settings

@@ -83,129 +83,129 @@ export function PosHeader() {
     router.push(`/pos/shops/${user.shopId || 'shop-lahore-auto-care'}/${path}`)
   }
 
+  // Carbon UI shell header (DESIGN.md §Shell): 48px bar, product name, full-height square header
+  // items, and square header panels that drop flush from the bar.
+  const item =
+    'flex h-12 items-center gap-2 px-4 text-sm tracking-[0.16px] text-neutral-300 transition-colors duration-[110ms] ease-productive hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-white aria-expanded:bg-white/10 aria-expanded:text-white'
+  const panel = 'absolute top-full z-50 w-64 border-t border-white/10 bg-[#1e293b] py-2 shadow-float'
+  const panelLabel = 'px-4 pt-2 pb-1 text-xs tracking-[0.32px] text-neutral-400'
+  const panelItem =
+    'flex min-h-10 w-full items-center justify-between gap-3 px-4 py-2 text-left text-sm tracking-[0.16px] text-neutral-200 transition-colors duration-[70ms] ease-productive hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-white'
+
   return (
-    <header className="sticky top-0 z-40 h-14 bg-[#111827] text-white border-b border-neutral-800">
-      <div className="flex h-full items-center justify-between px-4 sm:px-6">
-        {/* Left: Brand & Shop Switcher */}
-        <div className="flex items-center gap-4">
-          <Link href="/pos" aria-label="BayFlow Shop POS home" className="flex items-center gap-2">
-            <Logo tone="dark" className="text-base" />
-            <span className="hidden sm:inline-block rounded bg-[#1047FA] px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-white">
-              POS
-            </span>
+    <header className="sticky top-0 z-40 h-12 border-b border-white/10 bg-[#111827] text-white">
+      <div className="flex h-full items-stretch justify-between">
+        {/* Left: product name & shop switcher */}
+        <div className="flex items-stretch">
+          <Link
+            href="/pos"
+            aria-label="BayFlow Shop POS home"
+            className="flex items-center gap-2 pr-4 pl-4 text-sm tracking-[0.16px] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-white"
+          >
+            <Logo tone="dark" size="sm" />
+            <span className="hidden font-semibold text-neutral-300 sm:inline">POS</span>
           </Link>
 
-          <div className="h-4 w-px bg-neutral-700 hidden sm:block" />
+          <div className="my-3 hidden w-px bg-white/15 sm:block" />
 
-          {/* Shop Switcher */}
-          <div className="relative">
+          {/* Shop switcher */}
+          <div className="relative flex">
             <button
               type="button"
+              aria-expanded={shopMenuOpen}
+              aria-haspopup="menu"
               onClick={() => {
                 setShopMenuOpen(!shopMenuOpen)
                 setRoleMenuOpen(false)
               }}
-              className="flex items-center gap-2 rounded-lg bg-neutral-800/80 px-2.5 py-1.5 text-xs font-medium text-neutral-200 hover:bg-neutral-800 hover:text-white transition-colors"
+              className={item}
             >
-              <Building2 className="size-3.5 text-[#1047FA]" />
+              <Building2 className="size-4 text-neutral-400" aria-hidden="true" />
               <span className="max-w-[130px] truncate sm:max-w-none">{activeShop?.name ?? 'Select Shop'}</span>
-              <ChevronDown className="size-3 text-neutral-400" />
+              <ChevronDown className="size-4 text-neutral-400" aria-hidden="true" />
             </button>
 
             {shopMenuOpen && (
-              <div className="absolute left-0 top-full mt-1.5 w-56 rounded-xl border border-neutral-700 bg-[#1e293b] p-1.5 shadow-xl z-50">
-                <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
-                  Switch Shop
-                </div>
+              <div className={`${panel} left-0`} role="menu">
+                <div className={panelLabel}>Switch shop</div>
                 {shops.map((s) => (
                   <button
                     key={s.id}
                     type="button"
+                    role="menuitem"
                     onClick={() => handleSwitchShop(s.id, s.name)}
-                    className="flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-xs font-medium text-neutral-200 hover:bg-neutral-700/60 hover:text-white transition-colors"
+                    className={panelItem}
                   >
                     <span className="truncate">{s.name}</span>
-                    {s.id === user.shopId && <Check className="size-3.5 text-[#1047FA]" />}
+                    {s.id === user.shopId && <Check className="size-4 text-white" aria-hidden="true" />}
                   </button>
                 ))}
-                <div className="my-1 border-t border-neutral-700" />
+                <div className="my-2 border-t border-white/10" />
                 <Link
                   href="/pos/shops/new"
+                  role="menuitem"
                   onClick={() => setShopMenuOpen(false)}
-                  className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-[#1047FA] hover:bg-neutral-700/60 hover:text-blue-400"
+                  className={panelItem}
                 >
-                  <Plus className="size-3.5" />
                   <span>Create new shop</span>
+                  <Plus className="size-4" aria-hidden="true" />
                 </Link>
               </div>
             )}
           </div>
         </div>
 
-        {/* Right: Role Switcher & Nav Links */}
-        <div className="flex items-center gap-2 sm:gap-3">
-          {/* Role Switcher Pill for rapid testing */}
-          <div className="relative">
+        {/* Right: role switcher & global actions */}
+        <div className="flex items-stretch">
+          {/* Role switcher for rapid testing */}
+          <div className="relative flex">
             <button
               type="button"
+              aria-expanded={roleMenuOpen}
+              aria-haspopup="menu"
               onClick={() => {
                 setRoleMenuOpen(!roleMenuOpen)
                 setShopMenuOpen(false)
               }}
-              className="flex items-center gap-1.5 rounded-full border border-blue-500/30 bg-blue-500/10 px-2.5 py-1 text-xs font-semibold text-blue-400 hover:bg-blue-500/20 transition-all"
+              className={item}
             >
-              <ShieldCheck className="size-3.5" />
-              <span>{user.role.replace('_', ' ')}</span>
-              <ChevronDown className="size-3 text-blue-400/80" />
+              <ShieldCheck className="size-4 text-neutral-400" aria-hidden="true" />
+              <span className="capitalize">{user.role.replace('_', ' ').toLowerCase()}</span>
+              <ChevronDown className="size-4 text-neutral-400" aria-hidden="true" />
             </button>
 
             {roleMenuOpen && (
-              <div className="absolute right-0 top-full mt-1.5 w-60 rounded-xl border border-neutral-700 bg-[#1e293b] p-1.5 shadow-xl z-50">
-                <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
-                  Switch Active Role
-                </div>
+              <div className={`${panel} right-0`} role="menu">
+                <div className={panelLabel}>Switch active role</div>
                 {ROLES.map((r) => (
                   <button
                     key={r.role}
                     type="button"
+                    role="menuitem"
                     onClick={() => handleSwitchRole(r.role, r.path)}
-                    className="flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-xs font-medium text-neutral-200 hover:bg-neutral-700/60 hover:text-white transition-colors"
+                    className={panelItem}
                   >
                     <span>{r.label}</span>
-                    {r.role === user.role && <Check className="size-3.5 text-[#1047FA]" />}
+                    {r.role === user.role && <Check className="size-4 text-white" aria-hidden="true" />}
                   </button>
                 ))}
               </div>
             )}
           </div>
 
-          {/* Quick links to Customer View and Public Website */}
-          <Link
-            href="/bookings"
-            className="hidden md:flex items-center gap-1.5 text-xs text-neutral-300 hover:text-white px-2 py-1 rounded hover:bg-neutral-800 transition-colors"
-            title="Customer View"
-          >
-            <CalendarCheck className="size-3.5 text-emerald-400" />
-            <span>My Bookings</span>
+          <Link href="/bookings" className={`${item} hidden md:flex`} title="Customer view">
+            <CalendarCheck className="size-4" aria-hidden="true" />
+            <span>My bookings</span>
           </Link>
 
-          <Link
-            href="/"
-            className="hidden md:flex items-center gap-1.5 text-xs text-neutral-300 hover:text-white px-2 py-1 rounded hover:bg-neutral-800 transition-colors"
-            title="Visit public website"
-          >
-            <Globe className="size-3.5 text-blue-400" />
+          <Link href="/" className={`${item} hidden md:flex`} title="Visit public website">
+            <Globe className="size-4" aria-hidden="true" />
             <span>Website</span>
           </Link>
 
-          {/* Sign Out */}
-          <Link
-            href="/login"
-            className="flex items-center gap-1 text-xs text-neutral-400 hover:text-white px-2 py-1 rounded hover:bg-neutral-800 transition-colors"
-            title="Sign out"
-          >
-            <LogOut className="size-3.5" />
-            <span className="hidden sm:inline">Sign Out</span>
+          <Link href="/login" className={item} title="Sign out">
+            <LogOut className="size-4" aria-hidden="true" />
+            <span className="hidden sm:inline">Sign out</span>
           </Link>
         </div>
       </div>

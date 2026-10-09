@@ -588,12 +588,21 @@ export const INITIAL_BOOKINGS: MockBooking[] = [
   },
 ]
 
-// State Manager supporting browser persistence
+// State Manager supporting browser persistence.
+// Parsed values are cached per raw string: `useSyncExternalStore` (useMockStore) needs the same
+// reference back while the stored value is unchanged, or it re-renders forever.
+const parsedCache = new Map<string, { raw: string; value: unknown }>()
+
 export function getStoredData<T>(key: string, fallback: T): T {
   if (typeof window === 'undefined') return fallback
   try {
     const raw = localStorage.getItem(`bf:${key}`)
-    return raw ? JSON.parse(raw) : fallback
+    if (!raw) return fallback
+    const cached = parsedCache.get(key)
+    if (cached && cached.raw === raw) return cached.value as T
+    const value = JSON.parse(raw) as T
+    parsedCache.set(key, { raw, value })
+    return value
   } catch {
     return fallback
   }

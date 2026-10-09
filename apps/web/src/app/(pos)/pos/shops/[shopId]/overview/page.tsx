@@ -68,10 +68,10 @@ function ShopOverviewContent() {
       {/* Overview Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <span className="text-xs font-bold uppercase tracking-wider text-[#1047FA]">
+          <span className="text-xs font-bold tracking-[0.32px] text-[#1047FA]">
             Workshop Operations Hub
           </span>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-neutral-900 mt-1">
+          <h1 className="text-2xl sm:text-3xl font-semibold text-neutral-900 mt-1">
             {shop?.name || 'Lahore Auto Care'}
           </h1>
           <p className="text-xs text-neutral-500 mt-0.5">
@@ -83,14 +83,14 @@ function ShopOverviewContent() {
           <Button
             asChild
             variant="outline"
-            className="text-xs font-semibold border-neutral-300"
+            className="text-xs font-semibold border-neutral-300 rounded-full"
           >
             <Link href={`${base}/settings`}>Workshop Settings</Link>
           </Button>
 
           <Button
             asChild
-            className="bg-[#1047FA] hover:bg-blue-700 text-white font-semibold text-xs rounded-lg px-4"
+            className="bg-[#1047FA] hover:bg-blue-700 text-white font-semibold text-xs rounded-full px-4"
           >
             <Link href={`${base}/bookings`}>
               Open Bookings Queue
@@ -102,7 +102,7 @@ function ShopOverviewContent() {
 
       {/* Onboarding Checklist when welcome=1 or services/team need setup */}
       {isWelcome && (
-        <Card className="border-blue-200 bg-blue-50/50 shadow-sm">
+        <Card className="border-blue-200 bg-blue-50/50">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-bold text-blue-950 flex items-center gap-2">
               <Sparkles className="size-4 text-[#1047FA]" />
@@ -113,7 +113,7 @@ function ShopOverviewContent() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <Link
                 href={`${base}/services`}
-                className="rounded-lg border border-blue-200 bg-white p-3 hover:border-[#1047FA] transition-colors"
+                className="rounded-full border border-blue-200 bg-white p-3 hover:border-[#1047FA] transition-colors"
               >
                 <div className="flex items-center gap-2 font-bold text-neutral-900">
                   <Tags className="size-4 text-[#1047FA]" />
@@ -124,7 +124,7 @@ function ShopOverviewContent() {
 
               <Link
                 href={`${base}/team`}
-                className="rounded-lg border border-blue-200 bg-white p-3 hover:border-[#1047FA] transition-colors"
+                className="rounded-full border border-blue-200 bg-white p-3 hover:border-[#1047FA] transition-colors"
               >
                 <div className="flex items-center gap-2 font-bold text-neutral-900">
                   <Users className="size-4 text-[#1047FA]" />
@@ -135,7 +135,7 @@ function ShopOverviewContent() {
 
               <Link
                 href={`${base}/inventory`}
-                className="rounded-lg border border-blue-200 bg-white p-3 hover:border-[#1047FA] transition-colors"
+                className="rounded-full border border-blue-200 bg-white p-3 hover:border-[#1047FA] transition-colors"
               >
                 <div className="flex items-center gap-2 font-bold text-neutral-900">
                   <Boxes className="size-4 text-[#1047FA]" />
@@ -151,52 +151,52 @@ function ShopOverviewContent() {
       {/* 4 Primary KPI Tiles */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Link href={`${base}/bookings?filter=needs_action`}>
-          <Card className="border-neutral-200 hover:border-[#1047FA] transition-all cursor-pointer shadow-sm">
+          <Card className="border-neutral-200 hover:border-[#1047FA] transition-all cursor-pointer">
             <CardContent className="p-5 space-y-2">
               <div className="flex items-center justify-between text-xs font-bold text-neutral-500">
                 <span>Needs SA Action</span>
                 <Clock className="size-4 text-amber-500" />
               </div>
-              <div className="text-3xl font-extrabold text-neutral-900">{needsSaAction}</div>
+              <div className="text-3xl font-semibold text-neutral-900">{needsSaAction}</div>
               <p className="text-[11px] text-neutral-400">Intake, estimates & pickup calls</p>
             </CardContent>
           </Card>
         </Link>
 
         <Link href={`${base}/jobs`}>
-          <Card className="border-neutral-200 hover:border-[#1047FA] transition-all cursor-pointer shadow-sm">
+          <Card className="border-neutral-200 hover:border-[#1047FA] transition-all cursor-pointer">
             <CardContent className="p-5 space-y-2">
               <div className="flex items-center justify-between text-xs font-bold text-neutral-500">
                 <span>In Progress</span>
                 <Wrench className="size-4 text-[#1047FA]" />
               </div>
-              <div className="text-3xl font-extrabold text-[#1047FA]">{inProgress}</div>
+              <div className="text-3xl font-semibold text-[#1047FA]">{inProgress}</div>
               <p className="text-[11px] text-neutral-400">Diagnosis, repairs & QC queue</p>
             </CardContent>
           </Card>
         </Link>
 
         <Link href={`${base}/bookings?filter=ready`}>
-          <Card className="border-neutral-200 hover:border-[#1047FA] transition-all cursor-pointer shadow-sm">
+          <Card className="border-neutral-200 hover:border-[#1047FA] transition-all cursor-pointer">
             <CardContent className="p-5 space-y-2">
               <div className="flex items-center justify-between text-xs font-bold text-neutral-500">
                 <span>Ready for Pickup</span>
                 <Sparkles className="size-4 text-emerald-500" />
               </div>
-              <div className="text-3xl font-extrabold text-emerald-600">{readyForPickup}</div>
+              <div className="text-3xl font-semibold text-emerald-600">{readyForPickup}</div>
               <p className="text-[11px] text-neutral-400">Passed QC, awaiting customer</p>
             </CardContent>
           </Card>
         </Link>
 
         <Link href={`${base}/bookings?filter=completed`}>
-          <Card className="border-neutral-200 hover:border-[#1047FA] transition-all cursor-pointer shadow-sm">
+          <Card className="border-neutral-200 hover:border-[#1047FA] transition-all cursor-pointer">
             <CardContent className="p-5 space-y-2">
               <div className="flex items-center justify-between text-xs font-bold text-neutral-500">
                 <span>Completed Jobs</span>
                 <CheckCircle2 className="size-4 text-neutral-400" />
               </div>
-              <div className="text-3xl font-extrabold text-neutral-900">{completedToday}</div>
+              <div className="text-3xl font-semibold text-neutral-900">{completedToday}</div>
               <p className="text-[11px] text-neutral-400">Settled and handed over</p>
             </CardContent>
           </Card>
@@ -208,7 +208,7 @@ function ShopOverviewContent() {
         {/* Left Column (2 spans): Recent Bookings & Statuses */}
         <div className="lg:col-span-2 space-y-6">
           {/* Active Bookings Card */}
-          <Card className="border-neutral-200 shadow-sm overflow-hidden">
+          <Card className="border-neutral-200 overflow-hidden">
             <CardHeader className="p-5 border-b border-neutral-100 flex flex-row items-center justify-between">
               <div>
                 <CardTitle className="text-sm font-bold text-neutral-900">
@@ -222,7 +222,7 @@ function ShopOverviewContent() {
                 asChild
                 variant="ghost"
                 size="sm"
-                className="text-xs font-semibold text-[#1047FA]"
+                className="text-xs font-semibold text-[#1047FA] rounded-full"
               >
                 <Link href={`${base}/bookings`}>View All ({bookings.length})</Link>
               </Button>
@@ -236,7 +236,7 @@ function ShopOverviewContent() {
                   >
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-mono font-extrabold text-[#1047FA]">
+                        <span className="font-mono font-semibold text-[#1047FA]">
                           {b.reference}
                         </span>
                         <StatusBadge status={b.status} audience="staff" size="sm" />
@@ -257,7 +257,7 @@ function ShopOverviewContent() {
                         asChild
                         variant="outline"
                         size="sm"
-                        className="h-7 text-[11px] font-semibold border-neutral-200"
+                        className="h-7 text-[11px] font-semibold border-neutral-200 rounded-full"
                       >
                         <Link href={`${base}/bookings/${b.id}`}>Manage</Link>
                       </Button>
@@ -272,13 +272,13 @@ function ShopOverviewContent() {
         {/* Right Column: Workshop Team & Inventory Snapshot */}
         <div className="space-y-6">
           {/* Workshop Staff Card */}
-          <Card className="border-neutral-200 shadow-sm">
+          <Card className="border-neutral-200">
             <CardHeader className="p-4 border-b border-neutral-100 flex flex-row items-center justify-between">
-              <CardTitle className="text-xs font-bold uppercase tracking-wider text-neutral-600 flex items-center gap-1.5">
+              <CardTitle className="text-xs font-bold tracking-[0.32px] text-neutral-600 flex items-center gap-1.5">
                 <Users className="size-3.5 text-[#1047FA]" />
                 Workshop Team ({team.length})
               </CardTitle>
-              <Button asChild variant="ghost" size="sm" className="h-6 text-[11px] text-[#1047FA]">
+              <Button asChild variant="ghost" size="sm" className="h-6 text-[11px] text-[#1047FA] rounded-full">
                 <Link href={`${base}/team`}>Manage</Link>
               </Button>
             </CardHeader>
@@ -301,13 +301,13 @@ function ShopOverviewContent() {
           </Card>
 
           {/* Low Stock Alerts Card */}
-          <Card className="border-neutral-200 shadow-sm">
+          <Card className="border-neutral-200">
             <CardHeader className="p-4 border-b border-neutral-100 flex flex-row items-center justify-between">
-              <CardTitle className="text-xs font-bold uppercase tracking-wider text-neutral-600 flex items-center gap-1.5">
+              <CardTitle className="text-xs font-bold tracking-[0.32px] text-neutral-600 flex items-center gap-1.5">
                 <Boxes className="size-3.5 text-amber-500" />
                 Inventory ({inventory.length} SKUs)
               </CardTitle>
-              <Button asChild variant="ghost" size="sm" className="h-6 text-[11px] text-[#1047FA]">
+              <Button asChild variant="ghost" size="sm" className="h-6 text-[11px] text-[#1047FA] rounded-full">
                 <Link href={`${base}/inventory`}>Inventory</Link>
               </Button>
             </CardHeader>

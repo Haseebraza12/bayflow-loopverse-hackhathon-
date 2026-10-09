@@ -55,7 +55,7 @@ export default function TechnicianJobDetailPage() {
     return (
       <div className="py-16 text-center space-y-4">
         <h1 className="text-xl font-bold text-neutral-900">Job not found</h1>
-        <Button asChild className="bg-[#1047FA] text-white text-xs">
+        <Button asChild className="bg-[#1047FA] text-white text-xs rounded-full">
           <Link href={`${base}/jobs`}>Back to My Jobs</Link>
         </Button>
       </div>
@@ -159,11 +159,11 @@ export default function TechnicianJobDetailPage() {
       )}
 
       {/* Vehicle Header & Action Bar */}
-      <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm space-y-4">
+      <div className="rounded-2xl border border-neutral-200 bg-white p-6 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <span className="font-mono text-xl sm:text-2xl font-extrabold text-[#1047FA]">
+              <span className="font-mono text-xl sm:text-2xl font-semibold text-[#1047FA]">
                 {booking.licensePlate}
               </span>
               <StatusBadge status={booking.status} audience="staff" size="md" />
@@ -182,7 +182,7 @@ export default function TechnicianJobDetailPage() {
             {booking.status === 'ASSIGNED' && (
               <Button
                 onClick={handleStartInspection}
-                className="bg-[#1047FA] hover:bg-blue-700 text-white font-bold text-xs h-9 px-4"
+                className="bg-[#1047FA] hover:bg-blue-700 text-white font-bold text-xs h-9 px-4 rounded-full"
               >
                 <Play className="size-3.5 mr-1" />
                 Start Inspection
@@ -192,7 +192,7 @@ export default function TechnicianJobDetailPage() {
             {booking.status === 'INSPECTING' && (
               <Button
                 onClick={handleSubmitEstimate}
-                className="bg-[#00c070] hover:bg-emerald-600 text-white font-bold text-xs h-9 px-4"
+                className="bg-[#00c070] hover:bg-emerald-600 text-white font-bold text-xs h-9 px-4 rounded-full"
               >
                 <Send className="size-3.5 mr-1.5" />
                 Submit Estimate to SA
@@ -202,7 +202,7 @@ export default function TechnicianJobDetailPage() {
             {booking.status === 'PARTS_READY' && (
               <Button
                 onClick={handleStartRepair}
-                className="bg-[#1047FA] hover:bg-blue-700 text-white font-bold text-xs h-9 px-4"
+                className="bg-[#1047FA] hover:bg-blue-700 text-white font-bold text-xs h-9 px-4 rounded-full"
               >
                 <Wrench className="size-3.5 mr-1" />
                 Start Repair
@@ -212,7 +212,7 @@ export default function TechnicianJobDetailPage() {
             {booking.status === 'IN_REPAIR' && (
               <Button
                 onClick={handleSendToQc}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-9 px-4"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-9 px-4 rounded-full"
               >
                 <ClipboardCheck className="size-3.5 mr-1.5" />
                 Finish Repair & Send to QC
@@ -227,9 +227,9 @@ export default function TechnicianJobDetailPage() {
         {/* Left Column (2 spans): Estimate Items Builder */}
         <div className="lg:col-span-2 space-y-6">
           {/* Estimate Builder Card */}
-          <Card className="border-neutral-200 shadow-sm overflow-hidden">
+          <Card className="border-neutral-200 overflow-hidden">
             <CardHeader className="bg-neutral-50/80 border-b border-neutral-100 p-4">
-              <CardTitle className="text-xs font-bold uppercase tracking-wider text-neutral-500 flex items-center gap-1.5">
+              <CardTitle className="text-xs font-bold tracking-[0.32px] text-neutral-500 flex items-center gap-1.5">
                 <FileText className="size-4 text-[#1047FA]" />
                 Estimate Line Items (Parts & Labor)
               </CardTitle>
@@ -237,7 +237,7 @@ export default function TechnicianJobDetailPage() {
             <CardContent className="p-0">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-neutral-50 text-[11px] font-bold uppercase text-neutral-400 border-b border-neutral-200">
+                  <thead className="bg-neutral-50 text-[11px] font-bold text-neutral-400 border-b border-neutral-200">
                     <tr>
                       <th className="px-5 py-2.5">Description</th>
                       <th className="px-4 py-2.5">Type</th>
@@ -285,7 +285,7 @@ export default function TechnicianJobDetailPage() {
                       <td colSpan={4} className="px-5 py-3 text-right text-neutral-600">
                         Total Estimate
                       </td>
-                      <td className="px-5 py-3 text-right font-extrabold text-sm text-[#1047FA]">
+                      <td className="px-5 py-3 text-right font-semibold text-sm text-[#1047FA]">
                         {formatPKR(items.reduce((sum, it) => sum + it.total, 0))}
                       </td>
                       <td></td>
@@ -296,7 +296,7 @@ export default function TechnicianJobDetailPage() {
 
               {/* Add New Line Item Form */}
               <div className="p-4 bg-neutral-50/40 border-t border-neutral-200 space-y-3">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-500">
+                <span className="text-[11px] font-bold tracking-[0.32px] text-neutral-500">
                   Add Item or Labor Operation
                 </span>
                 <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 text-xs">
@@ -332,7 +332,7 @@ export default function TechnicianJobDetailPage() {
                     type="button"
                     onClick={handleAddLineItem}
                     size="sm"
-                    className="sm:col-span-1 h-8 bg-[#1047FA] text-white p-0"
+                    className="sm:col-span-1 h-8 bg-[#1047FA] text-white p-0 rounded-full"
                     title="Add line"
                   >
                     <Plus className="size-4" />
@@ -343,9 +343,9 @@ export default function TechnicianJobDetailPage() {
           </Card>
 
           {/* Inspection Notes */}
-          <Card className="border-neutral-200 shadow-sm">
+          <Card className="border-neutral-200">
             <CardHeader className="pb-3 border-b border-neutral-100">
-              <CardTitle className="text-xs font-bold uppercase tracking-wider text-neutral-500">
+              <CardTitle className="text-xs font-bold tracking-[0.32px] text-neutral-500">
                 Diagnostic & Inspection Notes
               </CardTitle>
             </CardHeader>
@@ -365,15 +365,15 @@ export default function TechnicianJobDetailPage() {
 
         {/* Right Column: Customer Complaint & Job Context */}
         <div className="space-y-6">
-          <Card className="border-neutral-200 shadow-sm">
+          <Card className="border-neutral-200">
             <CardHeader className="pb-3 border-b border-neutral-100">
-              <CardTitle className="text-xs font-bold uppercase tracking-wider text-neutral-500">
+              <CardTitle className="text-xs font-bold tracking-[0.32px] text-neutral-500">
                 Customer Complaint & Services
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-4 text-xs space-y-3">
               <div>
-                <span className="text-[10px] uppercase font-bold text-neutral-400">Requested Work</span>
+                <span className="text-[10px] font-bold text-neutral-400">Requested Work</span>
                 <div className="space-y-1 mt-1">
                   {booking.services.map((s, idx) => (
                     <div key={idx} className="font-semibold text-neutral-900">
@@ -384,7 +384,7 @@ export default function TechnicianJobDetailPage() {
               </div>
 
               <div className="pt-3 border-t border-neutral-100">
-                <span className="text-[10px] uppercase font-bold text-neutral-400">Customer Notes</span>
+                <span className="text-[10px] font-bold text-neutral-400">Customer Notes</span>
                 <p className="mt-1 text-neutral-700 italic bg-neutral-50 p-3 rounded-lg border border-neutral-100">
                   "{booking.customerName} reported: Routine scheduled service."
                 </p>

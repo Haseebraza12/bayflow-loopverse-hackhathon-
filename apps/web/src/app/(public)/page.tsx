@@ -1,22 +1,27 @@
 'use client'
 
 import {
-  BarChart3,
-  Box,
-  Check,
-  FileText,
-  HelpCircle,
-  PlusCircle,
-  ShoppingCart,
-  Star,
-  Warehouse,
-  X,
-} from 'lucide-react'
+  Cancel01Icon,
+  ChartBarLineIcon,
+  ShoppingCart01Icon,
+  StarIcon,
+  Tick02Icon,
+} from '@hugeicons/core-free-icons'
+import { HugeiconsIcon, type HugeiconsIconProps } from '@hugeicons/react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useState } from 'react'
 
+import { CapabilityArt } from '@/components/landing/capability-art'
 import { Button } from '@/components/ui/button'
+
+/** Hugeicons (free stroke-rounded set) under the names this page already uses. */
+type IconProps = Omit<HugeiconsIconProps, 'icon'>
+const BarChart3 = (props: IconProps) => <HugeiconsIcon icon={ChartBarLineIcon} {...props} />
+const Check = (props: IconProps) => <HugeiconsIcon icon={Tick02Icon} {...props} />
+const ShoppingCart = (props: IconProps) => <HugeiconsIcon icon={ShoppingCart01Icon} {...props} />
+const Star = (props: IconProps) => <HugeiconsIcon icon={StarIcon} {...props} />
+const X = (props: IconProps) => <HugeiconsIcon icon={Cancel01Icon} {...props} />
 
 export default function LandingPage() {
   const [demoModalOpen, setDemoModalOpen] = useState(false)
@@ -31,115 +36,114 @@ export default function LandingPage() {
 
   const reviews = [
     {
-      initial: 'G',
-      name: 'Ganesh Gaikwad',
-      role: 'Director @GadiRepair.com',
-      title: 'Double Engine Software for Garages Growth',
-      stars: 5,
+      name: 'Kamran Sheikh',
+      tint: 'blue' as const,
+      role: 'Owner, Sheikh Motors · Lahore',
+      metric: '2 shops, 1 dashboard',
+      photo: '/testimonials/mechanic-1.jpg',
       quote:
-        'Service Packages, Jobs Approvals, Tally Level Accounting, Checklists integrated with Parts & Services enlisting, Detailed Business Analysis...',
-      flag: '🇮🇳',
-      country: 'India',
+        'I run two shops from one login. Every bay, every job, every rupee: I see it live without calling anyone.',
+      rating: 5,
     },
     {
-      initial: 'E',
-      name: 'Emeline Rose',
-      role: 'Operations Head @AutoVolt.me',
-      title: 'GarageBox is a smart investment for modernizing your operations...',
-      stars: 4.5,
+      name: 'Bilal Ahmed',
+      tint: 'green' as const,
+      role: 'Service Advisor, Karachi',
+      metric: 'Approvals in minutes',
+      photo: '/testimonials/mechanic-2.jpg',
       quote:
-        'All-in-one garage management platform is designed to streamline operations, boost team productivity & Seamless workflow.',
-      flag: '🇧🇭',
-      country: 'Bahrain',
+        'Customers approve estimates from their phone now. No more waiting on WhatsApp replies before we can start work.',
+      rating: 4.9,
     },
     {
-      initial: 'S',
-      name: 'Sifaudeen Sirajudeen',
-      role: 'Manager @AutoIndustriesFabrication.me',
-      title: 'GarageBox is the digital toolbox every modern garage needs!',
-      stars: 5,
+      name: 'Imran Ali',
+      tint: 'orange' as const,
+      role: 'Technician, Islamabad',
+      metric: 'No paper job cards',
+      photo: '/testimonials/mechanic-3.jpg',
       quote:
-        'GarageBox has completely transformed how we manage our garage operations. From job card creation to real-time updates for customers, it keeps everything transparent.',
-      flag: '🇦🇪',
-      country: 'UAE',
+        'My screen shows only my jobs. I log the inspection, add photos, and the parts counter already knows what I need.',
+      rating: 4.8,
     },
     {
-      initial: 'R',
-      name: 'Ratan G.',
-      role: 'Director @IndWheelzAuto',
-      title: 'Easy to Use and Helpful',
-      stars: 5,
+      name: 'Sara Malik',
+      tint: 'blue' as const,
+      role: 'QC Inspector, Lahore',
+      metric: 'Zero missed checks',
+      photo: '/testimonials/mechanic-4.jpg',
       quote:
-        'We started using GarageBox and honestly it has made our work smoother. Earlier we used to rely on paper job cards and manual billing, but now everything is digitized.',
-      flag: '🇮🇳',
-      country: 'India',
+        'Nothing leaves the bay until I sign it off. If a check fails it goes straight back to the technician, with notes.',
+      rating: 5,
+    },
+    {
+      name: 'Usman Tariq',
+      tint: 'green' as const,
+      role: 'Parts Manager, Faisalabad',
+      metric: 'Parts ready on time',
+      photo: '/testimonials/mechanic-5.jpg',
+      quote:
+        'Parts requests arrive with the job attached. I issue, track and restock without chasing anyone down the floor.',
+      rating: 4.9,
     },
   ]
 
   const capabilities = [
     {
-      title: 'Workflow',
+      title: 'Workflow' as const,
       desc: 'Assign tasks, schedule jobs, and track progress in real time. Keep your team aligned and your shop running like clockwork.',
-      icon: BarChart3,
-      color: 'bg-[#1047FA]',
     },
     {
-      title: 'Estimates',
+      title: 'Estimates' as const,
       desc: 'Send professional estimates in seconds. Get approvals faster and get to work sooner.',
-      icon: PlusCircle,
-      color: 'bg-rose-500',
     },
     {
-      title: 'Inventory',
+      title: 'Inventory' as const,
       desc: "Know exactly what's in stock from parts to tires. Reduce delays and keep your jobs moving.",
-      icon: Warehouse,
-      color: 'bg-[#1047FA]',
     },
     {
-      title: 'Vehicle Inspections',
+      title: 'Vehicle Inspections' as const,
       desc: 'Catch issues early and build trust. Create digital inspection reports your customers can see and understand instantly.',
-      icon: FileText,
-      color: 'bg-[#1047FA]',
     },
     {
-      title: 'Packaged Services',
+      title: 'Packaged Services' as const,
       desc: 'Bundle common repairs and maintenance into convenient packages that deliver more value and more revenue.',
-      icon: Box,
-      color: 'bg-[#1047FA]',
     },
     {
-      title: 'Procurement',
+      title: 'Procurement' as const,
       desc: 'Order the right parts, on time. Manage suppliers and restock with confidence without chasing paperwork.',
-      icon: ShoppingCart,
-      color: 'bg-[#1047FA]',
     },
   ]
 
   return (
-    <div className="relative w-full overflow-hidden bg-white text-[#171c26]">
+    <div className="marketing relative w-full overflow-hidden bg-white text-[#171c26]">
       {/* ========================================================
           1. HERO SECTION (100% PIXEL PERFECT TO GARAGEBOX.IO)
           ======================================================== */}
-      <section className="relative w-full pt-10 pb-16 md:pt-16 md:pb-24 bg-grid-pattern">
+      <section className="bg-grid-pattern relative w-full pt-10 pb-16 md:pt-16 md:pb-24">
         {/* Soft radial backdrop */}
         <div className="pointer-events-none absolute inset-0 bg-radial-[circle_at_50%_15%] from-blue-50/40 via-transparent to-transparent" />
+        {/* Halo behind the headline: a faint blue glow, then a white wash that fades the grid out under the copy */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute top-[-6%] left-1/2 aspect-square w-[min(1100px,140vw)] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(16,71,250,0.09)_0%,rgba(16,71,250,0.04)_35%,transparent_68%)] blur-2xl"
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute top-[2%] left-1/2 h-[min(560px,90vw)] w-[min(980px,130vw)] -translate-x-1/2 rounded-[50%] bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.95)_0%,rgba(255,255,255,0.7)_40%,transparent_70%)]"
+        />
 
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          {/* Eyebrow, Heading & Copy */}
+          {/* Heading & Copy */}
           <div className="mx-auto max-w-4xl text-center">
-            <p className="text-xs md:text-sm font-bold uppercase tracking-widest text-[#1047FA] mb-3">
-              GARAGE SOFTWARE IN PAKISTAN
-            </p>
-
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-[68px] font-extrabold tracking-tight text-[#111827] leading-[1.12]">
+            <h1 className="text-4xl leading-[1.12] font-extrabold tracking-tight text-[#111827] sm:text-5xl md:text-6xl lg:text-[68px]">
               Auto Repair Garage Management <br className="hidden sm:inline" />
               Software{' '}
-              <span className="font-handwriting font-normal italic text-[#374151] text-5xl sm:text-6xl md:text-7xl lg:text-[76px] align-baseline">
+              <span className="align-baseline font-handwriting text-5xl font-normal text-[#374151] italic sm:text-6xl md:text-7xl lg:text-[76px]">
                 in Pakistan
               </span>
             </h1>
 
-            <p className="mx-auto mt-5 max-w-2xl text-base sm:text-lg text-neutral-600 leading-relaxed font-normal">
+            <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed font-normal text-neutral-600 sm:text-lg">
               Take control of your auto repair business with GarageBox, Pakistan&apos;s leading
               garage management software. Simplify job scheduling, invoicing, and inventory control
               for maximum efficiency.
@@ -150,13 +154,13 @@ export default function LandingPage() {
               <button
                 type="button"
                 onClick={() => setDemoModalOpen(true)}
-                className="rounded-full border border-neutral-900 bg-white px-7 sm:px-8 py-3 text-sm sm:text-base font-semibold text-neutral-900 shadow-sm hover:bg-neutral-50 transition-all duration-200 active:scale-95"
+                className="rounded-full border border-neutral-900 bg-white px-7 py-3 text-sm font-semibold text-neutral-900 shadow-sm transition-all duration-200 hover:bg-neutral-50 active:scale-95 sm:px-8 sm:text-base"
               >
                 Book a Demo
               </button>
               <Link
                 href="/register"
-                className="rounded-full bg-[#1047FA] px-7 sm:px-9 py-3 text-sm sm:text-base font-semibold text-white shadow-md shadow-[#1047FA]/20 hover:bg-[#0935c7] transition-all duration-200 active:scale-95 text-center"
+                className="rounded-full bg-[#1047FA] px-7 py-3 text-center text-sm font-semibold text-white shadow-md shadow-[#1047FA]/20 transition-all duration-200 hover:bg-[#0935c7] active:scale-95 sm:px-9 sm:text-base"
               >
                 Get Started
               </Link>
@@ -166,9 +170,9 @@ export default function LandingPage() {
           {/* ========================================================
               EXACT HERO IMAGE ASSET (From garagebox.io)
               ======================================================== */}
-          <div className="relative mx-auto mt-12 md:mt-16 max-w-[1020px] flex justify-center">
+          <div className="relative mx-auto mt-12 flex max-w-[1020px] justify-center md:mt-16">
             {/* Desktop Hero Image */}
-            <div className="hidden md:block w-full">
+            <div className="hidden w-full md:block">
               <Image
                 src="/garagebox/hero-desktop.webp"
                 alt="Auto Repair Garage Management Software in Pakistan"
@@ -176,12 +180,12 @@ export default function LandingPage() {
                 height={580}
                 priority
                 sizes="(min-width: 1280px) 1020px, (min-width: 768px) 90vw, 100vw"
-                className="w-full h-auto object-contain select-none pointer-events-none drop-shadow-md"
+                className="pointer-events-none h-auto w-full object-contain drop-shadow-md select-none"
               />
             </div>
 
             {/* Mobile Hero Image */}
-            <div className="block md:hidden w-full max-w-[480px]">
+            <div className="block w-full max-w-[480px] md:hidden">
               <Image
                 src="/garagebox/hero-mobile.webp"
                 alt="Auto Repair Garage Management Software"
@@ -189,7 +193,7 @@ export default function LandingPage() {
                 height={480}
                 priority
                 sizes="(max-width: 640px) 100vw, 480px"
-                className="w-full h-auto object-contain select-none pointer-events-none"
+                className="pointer-events-none h-auto w-full object-contain select-none"
               />
             </div>
           </div>
@@ -197,7 +201,7 @@ export default function LandingPage() {
           {/* ========================================================
               RATING & APP STORES & PLATFORM LOGOS
               ======================================================== */}
-          <div className="mt-12 md:mt-16 flex flex-col items-center justify-center gap-6 text-center">
+          <div className="mt-12 flex flex-col items-center justify-center gap-6 text-center md:mt-16">
             {/* 5-Star Rating */}
             <div className="flex items-center gap-1.5">
               {[...Array(5)].map((_, i) => (
@@ -212,7 +216,7 @@ export default function LandingPage() {
             <div className="flex flex-wrap items-center justify-center gap-4">
               <a
                 href="#google-play"
-                className="hover:opacity-90 transition-opacity"
+                className="transition-opacity hover:opacity-90"
                 title="Google Play Store"
               >
                 <Image
@@ -225,7 +229,7 @@ export default function LandingPage() {
               </a>
               <a
                 href="#app-store"
-                className="hover:opacity-90 transition-opacity"
+                className="transition-opacity hover:opacity-90"
                 title="Apple App Store"
               >
                 <Image
@@ -239,7 +243,7 @@ export default function LandingPage() {
             </div>
 
             {/* Platform Review Logos Banner */}
-            <div className="mt-6 flex flex-wrap items-center justify-center gap-6 sm:gap-10 md:gap-12 opacity-85 hover:opacity-100 transition-opacity">
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-6 opacity-85 transition-opacity hover:opacity-100 sm:gap-10 md:gap-12">
               <Image
                 src="/garagebox/review-google.svg"
                 alt="Google Reviews"
@@ -288,83 +292,75 @@ export default function LandingPage() {
       </section>
 
       {/* ========================================================
-          2. TESTIMONIALS SECTION
-          "Trusted by Garages, Proven by Performance"
+          2. TESTIMONIALS SECTION — story cards (text + duotone portrait)
           ======================================================== */}
-      <section className="relative w-full py-20 bg-neutral-50/50 border-t border-neutral-200/70">
+      <section className="relative w-full overflow-hidden border-t border-neutral-200/70 bg-neutral-50/50 py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-3xl text-center">
-            <p className="text-xs md:text-sm font-extrabold uppercase tracking-widest text-[#1047FA]">
-              TOP RATED GARAGE MANAGEMENT SOFTWARE OF 2026
-            </p>
-            <h2 className="mt-3 text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-[#111827]">
+            <h2 className="text-3xl font-extrabold tracking-tight text-[#111827] sm:text-4xl md:text-5xl">
               Trusted by{' '}
-              <span className="font-handwriting font-normal italic text-[#1047FA] text-4xl sm:text-5xl md:text-6xl">
+              <span className="font-handwriting text-4xl font-normal text-[#1047FA] italic sm:text-5xl md:text-6xl">
                 Garages
               </span>
               , Proven by <span className="text-[#00c070]">Performance</span>
             </h2>
-            <p className="mt-4 text-neutral-600 text-sm sm:text-base leading-relaxed">
-              From small to large, auto repair shops rely on GarageBox to power their daily
-              operations, maximise efficiency, and stay in control every day.
+            <p className="mt-4 text-sm leading-relaxed text-neutral-600 sm:text-base">
+              Owners, service advisors, technicians, QC and parts teams run every job on BayFlow,
+              from check-in to pick-up, on one shared workflow.
             </p>
           </div>
+        </div>
 
-          {/* Review Cards Grid */}
-          <div className="mt-14 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {reviews.map((r) => (
-              <div
-                key={r.name}
-                className="flex flex-col justify-between rounded-3xl border border-neutral-200/90 bg-white p-6 shadow-sm hover:shadow-lg transition-all duration-300"
-              >
-                <div>
-                  <div className="flex items-center gap-3">
-                    <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white font-bold text-sm">
-                      {r.initial}
-                    </div>
+        {/* Auto-scrolling marquee: list rendered twice, track slides -50% and loops. Pauses on hover. */}
+        <div className="mt-14 overflow-hidden [mask-image:linear-gradient(90deg,transparent,#000_4%,#000_96%,transparent)]">
+          <div className="reviews-marquee flex w-max gap-6 py-6">
+            {[...reviews, ...reviews].map((r, i) => {
+              const tone = {
+                blue: { card: 'from-[#eef2ff] to-white', duo: 'bg-[#1047FA]' },
+                green: { card: 'from-[#e8f8f0] to-white', duo: 'bg-[#00c070]' },
+                orange: { card: 'from-[#fff1e8] to-white', duo: 'bg-[#e8590c]' },
+              }[r.tint]
+              return (
+                <article
+                  key={`${r.name}-${i}`}
+                  aria-hidden={i >= reviews.length || undefined}
+                  className={`flex w-[88vw] max-w-[780px] shrink-0 flex-col-reverse gap-5 rounded-[28px] border border-white bg-gradient-to-br p-5 shadow-[0_10px_40px_-20px_rgba(17,24,39,0.25)] sm:flex-row sm:p-6 ${tone.card}`}
+                >
+                  <div className="flex flex-1 flex-col justify-between gap-8 p-2 sm:py-4">
                     <div>
-                      <h4 className="text-sm font-bold text-neutral-900">{r.name}</h4>
-                      <p className="text-[11px] text-neutral-500 font-medium">{r.role}</p>
+                      <blockquote className="text-2xl leading-tight font-semibold tracking-tight text-[#111827] md:text-[28px]">
+                        {r.quote}
+                      </blockquote>
+                      <div className="mt-6 text-sm">
+                        <p className="font-semibold text-[#111827]">{r.name}</p>
+                        <p className="text-neutral-500">{r.role}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#111827]">
+                        <Star className="size-4 fill-[#f59e0b] text-[#f59e0b]" />
+                        {r.rating.toFixed(1)} · {r.metric}
+                      </span>
                     </div>
                   </div>
 
-                  <h5 className="mt-4 text-xs font-bold text-neutral-900 leading-snug">
-                    {r.title}
-                  </h5>
-
-                  <div className="mt-2 flex items-center gap-1">
-                    {[...Array(5)].map((_, i) => (
-                      <Star
-                        key={i}
-                        className={`size-3.5 ${
-                          i < Math.floor(r.stars)
-                            ? 'fill-[#f59e0b] text-[#f59e0b]'
-                            : 'fill-neutral-200 text-neutral-200'
-                        }`}
-                      />
-                    ))}
-                    <span className="ml-1 text-[11px] font-bold text-neutral-700">{r.stars}/5</span>
+                  {/* Duotone portrait: grayscale photo screened with brand tint */}
+                  <div className="relative aspect-[4/5] w-full overflow-hidden rounded-[20px] sm:w-[46%]">
+                    <Image
+                      src={r.photo}
+                      alt=""
+                      fill
+                      sizes="(min-width: 640px) 360px, 88vw"
+                      className="object-cover contrast-125 grayscale"
+                    />
+                    <div
+                      aria-hidden="true"
+                      className={`absolute inset-0 opacity-80 mix-blend-screen ${tone.duo}`}
+                    />
                   </div>
-
-                  <p className="mt-3 text-xs text-neutral-600 leading-relaxed font-normal">
-                    &ldquo;{r.quote}&rdquo;
-                  </p>
-                </div>
-
-                <div className="mt-6 pt-4 border-t border-neutral-100 flex items-center justify-between text-xs">
-                  <span className="flex items-center gap-1.5 font-medium text-neutral-700">
-                    <span>{r.flag}</span>
-                    <span>{r.country}</span>
-                  </span>
-                  <a
-                    href="#g2-reviews"
-                    className="font-bold text-[#1047FA] hover:underline flex items-center gap-0.5"
-                  >
-                    <span>Read more on G2</span>
-                  </a>
-                </div>
-              </div>
-            ))}
+                </article>
+              )
+            })}
           </div>
         </div>
       </section>
@@ -374,18 +370,15 @@ export default function LandingPage() {
           ======================================================== */}
       <section
         id="workflow"
-        className="relative w-full py-20 bg-white border-t border-neutral-200/60"
+        className="relative w-full border-t border-neutral-200/60 bg-white py-20"
       >
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
+          <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-12 lg:gap-16">
             {/* Left Content */}
-            <div className="lg:col-span-6 space-y-8">
+            <div className="space-y-8 lg:col-span-6">
               <div>
-                <p className="text-xs md:text-sm font-extrabold uppercase tracking-widest text-[#1047FA]">
-                  GARAGE MANAGEMENT SOFTWARE (GMS)
-                </p>
-                <h2 className="mt-3 text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-[#111827] leading-tight">
-                  <span className="font-handwriting font-normal italic text-4xl sm:text-5xl md:text-6xl text-[#171c26]">
+                <h2 className="text-3xl leading-tight font-extrabold tracking-tight text-[#111827] sm:text-4xl md:text-5xl">
+                  <span className="font-handwriting text-4xl font-normal text-[#171c26] italic sm:text-5xl md:text-6xl">
                     Streamline
                   </span>{' '}
                   Workflow, and Control Inventory
@@ -395,49 +388,39 @@ export default function LandingPage() {
               {/* Bullet Points */}
               <div className="space-y-6">
                 <div className="flex items-start gap-4">
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-[#1047FA] mt-0.5">
-                    <BarChart3 className="size-5" />
-                  </div>
+                  <BarChart3 className="mt-0.5 size-6 shrink-0 text-neutral-400" />
                   <div>
-                    <h3 className="text-base sm:text-lg font-bold text-neutral-900">
+                    <h3 className="text-base font-bold text-neutral-900 sm:text-lg">
                       Take Control of Your Day
                     </h3>
-                    <p className="mt-1 text-sm text-neutral-600 leading-relaxed">
-                      From Estimates to Digital Authorisations, Inspections to Job Cards. GarageBox
-                      keeps your entire workflow flowing smoothly. Assign technician tasks, monitor
-                      labor, and track productivity in real time.
+                    <p className="mt-1 text-sm leading-relaxed text-neutral-600">
+                      Estimates, approvals, inspections and job cards in one flow. Assign tasks and
+                      track labour in real time.
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-4">
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-[#1047FA] mt-0.5">
-                    <ShoppingCart className="size-5" />
-                  </div>
+                  <ShoppingCart className="mt-0.5 size-6 shrink-0 text-neutral-400" />
                   <div>
-                    <h3 className="text-base sm:text-lg font-bold text-neutral-900">
+                    <h3 className="text-base font-bold text-neutral-900 sm:text-lg">
                       Never Run Out, Never Overstock
                     </h3>
-                    <p className="mt-1 text-sm text-neutral-600 leading-relaxed">
-                      Turn parts requisitions into purchase orders in seconds. Reserve, Issue, and
-                      Track Stock precisely so every part is where it needs to be, when it needs to
-                      be.
+                    <p className="mt-1 text-sm leading-relaxed text-neutral-600">
+                      Turn parts requests into purchase orders in seconds. Reserve, issue and track
+                      every part.
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-4">
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-[#1047FA] mt-0.5">
-                    <BarChart3 className="size-5" />
-                  </div>
+                  <BarChart3 className="mt-0.5 size-6 shrink-0 text-neutral-400" />
                   <div>
-                    <h3 className="text-base sm:text-lg font-bold text-neutral-900">
-                      See Where You Earn. For Where You Don&apos;t
+                    <h3 className="text-base font-bold text-neutral-900 sm:text-lg">
+                      See Where You Earn, and Where You Don&apos;t
                     </h3>
-                    <p className="mt-1 text-sm text-neutral-600 leading-relaxed">
-                      Our visual reports highlight what&apos;s working and what&apos;s not, helping
-                      you spot profit leaks, track labor time, and make data-driven decisions that
-                      drive growth.
+                    <p className="mt-1 text-sm leading-relaxed text-neutral-600">
+                      Visual reports show profit leaks and labour time, so you can decide with data.
                     </p>
                   </div>
                 </div>
@@ -446,7 +429,7 @@ export default function LandingPage() {
               <div className="pt-2">
                 <Link
                   href="/register"
-                  className="inline-block rounded-full bg-[#1047FA] px-9 py-3.5 text-sm sm:text-base font-semibold text-white shadow-md hover:bg-[#0838c9] transition-all"
+                  className="inline-block rounded-full bg-[#1047FA] px-9 py-3.5 text-sm font-semibold text-white shadow-md transition-all hover:bg-[#0838c9] sm:text-base"
                 >
                   Get Started
                 </Link>
@@ -454,14 +437,14 @@ export default function LandingPage() {
             </div>
 
             {/* Right Graphic: Exact SVG from GarageBox */}
-            <div className="lg:col-span-6 flex justify-center">
-              <div className="relative w-full max-w-[514px] flex justify-center">
+            <div className="flex justify-center lg:col-span-6">
+              <div className="relative flex w-full max-w-[514px] justify-center">
                 <Image
                   src="/garagebox/feature-workflow.svg"
                   alt="Streamline Workflow, and Control Inventory"
                   width={514}
                   height={512}
-                  className="w-full h-auto object-contain drop-shadow-md"
+                  className="h-auto w-full object-contain drop-shadow-md"
                 />
               </div>
             </div>
@@ -472,30 +455,27 @@ export default function LandingPage() {
       {/* ========================================================
           4. FEATURE 2: DELIVER UNFORGETTABLE EXPERIENCE (Exact SVG)
           ======================================================== */}
-      <section className="relative w-full py-20 bg-neutral-50/50 border-t border-neutral-200/60">
+      <section className="relative w-full border-t border-neutral-200/60 bg-neutral-50/50 py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
+          <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-12 lg:gap-16">
             {/* Left Graphic: Exact SVG from GarageBox */}
-            <div className="lg:col-span-6 flex justify-center order-2 lg:order-1">
-              <div className="relative w-full max-w-[514px] flex justify-center">
+            <div className="order-2 flex justify-center lg:order-1 lg:col-span-6">
+              <div className="relative flex w-full max-w-[514px] justify-center">
                 <Image
                   src="/garagebox/feature-crm.svg"
                   alt="Deliver an Unforgettable Customer Experience"
                   width={514}
                   height={512}
-                  className="w-full h-auto object-contain drop-shadow-md"
+                  className="h-auto w-full object-contain drop-shadow-md"
                 />
               </div>
             </div>
 
             {/* Right Content */}
-            <div className="lg:col-span-6 space-y-8 order-1 lg:order-2">
+            <div className="order-1 space-y-8 lg:order-2 lg:col-span-6">
               <div>
-                <p className="text-xs md:text-sm font-extrabold uppercase tracking-widest text-[#1047FA]">
-                  GARAGE CRM SOFTWARE
-                </p>
-                <h2 className="mt-3 text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-[#111827] leading-tight">
-                  <span className="font-handwriting font-normal italic text-4xl sm:text-5xl md:text-6xl text-[#171c26]">
+                <h2 className="text-3xl leading-tight font-extrabold tracking-tight text-[#111827] sm:text-4xl md:text-5xl">
+                  <span className="font-handwriting text-4xl font-normal text-[#171c26] italic sm:text-5xl md:text-6xl">
                     Deliver an
                   </span>{' '}
                   Unforgettable Customer Experience
@@ -505,34 +485,36 @@ export default function LandingPage() {
               {/* Bullet Points */}
               <div className="space-y-6">
                 <div className="flex items-start gap-4">
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 mt-0.5">
-                    <svg className="size-5 fill-current" viewBox="0 0 24 24">
-                      <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
-                    </svg>
-                  </div>
+                  <svg
+                    className="mt-0.5 size-6 shrink-0 fill-current text-neutral-400"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                  </svg>
                   <div>
-                    <h3 className="text-base sm:text-lg font-bold text-neutral-900">
+                    <h3 className="text-base font-bold text-neutral-900 sm:text-lg">
                       Connect, Capture, Communicate
                     </h3>
-                    <p className="mt-1 text-sm text-neutral-600 leading-relaxed">
+                    <p className="mt-1 text-sm leading-relaxed text-neutral-600">
                       Keep customers engaged from first contact to final service. Send real-time
-                      updates about appointments, vehicle inspections, and estimates via SMS,
-                      Email, or WhatsApp.
+                      updates about appointments, vehicle inspections, and estimates via SMS, Email,
+                      or WhatsApp.
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-4">
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 mt-0.5">
-                    <svg className="size-5 fill-current" viewBox="0 0 24 24">
-                      <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z" />
-                    </svg>
-                  </div>
+                  <svg
+                    className="mt-0.5 size-6 shrink-0 fill-current text-neutral-400"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z" />
+                  </svg>
                   <div>
-                    <h3 className="text-base sm:text-lg font-bold text-neutral-900">
+                    <h3 className="text-base font-bold text-neutral-900 sm:text-lg">
                       Never Miss a Beat with Smart Reminders
                     </h3>
-                    <p className="mt-1 text-sm text-neutral-600 leading-relaxed">
+                    <p className="mt-1 text-sm leading-relaxed text-neutral-600">
                       Automate service alerts and document renewal reminders. Help customers stay on
                       top of their maintenance without lifting a finger.
                     </p>
@@ -540,16 +522,17 @@ export default function LandingPage() {
                 </div>
 
                 <div className="flex items-start gap-4">
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 mt-0.5">
-                    <svg className="size-5 fill-current" viewBox="0 0 24 24">
-                      <path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm6.93 6h-2.95a15.65 15.65 0 0 0-1.38-3.56A8.03 8.03 0 0 1 18.92 8zM12 4.04c.83 1.2 1.48 2.53 1.91 3.96h-3.82c.43-1.43 1.08-2.76 1.91-3.96zM4.26 14C4.1 13.36 4 12.69 4 12s.1-1.36.26-2h3.38c-.08.66-.14 1.32-.14 2 0 .68.06 1.34.14 2H4.26zm.82 2h2.95c.32 1.25.78 2.45 1.38 3.56A7.987 7.987 0 0 1 5.08 16zm2.95-8H5.08a7.987 7.987 0 0 1 4.33-3.56A15.65 15.65 0 0 0 8.03 8zM12 19.96c-.83-1.2-1.48-2.53-1.91-3.96h3.82c-.43 1.43-1.08 2.76-1.91 3.96zM14.34 14H9.66c-.09-.66-.16-1.32-.16-2 0-.68.07-1.35.16-2h4.68c.09.65.16 1.32.16 2 0 .68-.07 1.34-.16 2zm.25 5.56c.6-1.11 1.06-2.31 1.38-3.56h2.95a8.03 8.03 0 0 1-4.33 3.56zM16.36 14c.08-.66.14-1.32.14-2 0-.68-.06-1.34-.14-2h3.38c.16.64.26 1.31.26 2s-.1 1.36-.26 2h-3.38z" />
-                    </svg>
-                  </div>
+                  <svg
+                    className="mt-0.5 size-6 shrink-0 fill-current text-neutral-400"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm6.93 6h-2.95a15.65 15.65 0 0 0-1.38-3.56A8.03 8.03 0 0 1 18.92 8zM12 4.04c.83 1.2 1.48 2.53 1.91 3.96h-3.82c.43-1.43 1.08-2.76 1.91-3.96zM4.26 14C4.1 13.36 4 12.69 4 12s.1-1.36.26-2h3.38c-.08.66-.14 1.32-.14 2 0 .68.06 1.34.14 2H4.26zm.82 2h2.95c.32 1.25.78 2.45 1.38 3.56A7.987 7.987 0 0 1 5.08 16zm2.95-8H5.08a7.987 7.987 0 0 1 4.33-3.56A15.65 15.65 0 0 0 8.03 8zM12 19.96c-.83-1.2-1.48-2.53-1.91-3.96h3.82c-.43 1.43-1.08 2.76-1.91 3.96zM14.34 14H9.66c-.09-.66-.16-1.32-.16-2 0-.68.07-1.35.16-2h4.68c.09.65.16 1.32.16 2 0 .68-.07 1.34-.16 2zm.25 5.56c.6-1.11 1.06-2.31 1.38-3.56h2.95a8.03 8.03 0 0 1-4.33 3.56zM16.36 14c.08-.66.14-1.32.14-2 0-.68-.06-1.34-.14-2h3.38c.16.64.26 1.31.26 2s-.1 1.36-.26 2h-3.38z" />
+                  </svg>
                   <div>
-                    <h3 className="text-base sm:text-lg font-bold text-neutral-900">
+                    <h3 className="text-base font-bold text-neutral-900 sm:text-lg">
                       Book Online in Seconds No Calls Needed
                     </h3>
-                    <p className="mt-1 text-sm text-neutral-600 leading-relaxed">
+                    <p className="mt-1 text-sm leading-relaxed text-neutral-600">
                       Let your website do the work. With online booking and custom web forms, your
                       customers can schedule services anytime, from anywhere.
                     </p>
@@ -560,7 +543,7 @@ export default function LandingPage() {
               <div className="pt-2">
                 <Link
                   href="/register"
-                  className="inline-block rounded-full bg-[#1047FA] px-9 py-3.5 text-sm sm:text-base font-semibold text-white shadow-md hover:bg-[#0838c9] transition-all"
+                  className="inline-block rounded-full bg-[#1047FA] px-9 py-3.5 text-sm font-semibold text-white shadow-md transition-all hover:bg-[#0838c9] sm:text-base"
                 >
                   Get Started
                 </Link>
@@ -573,17 +556,14 @@ export default function LandingPage() {
       {/* ========================================================
           5. FEATURE 3: MAXIMIZE SHOP PRODUCTIVITY (Exact SVG)
           ======================================================== */}
-      <section className="relative w-full py-20 bg-white border-t border-neutral-200/60">
+      <section className="relative w-full border-t border-neutral-200/60 bg-white py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
+          <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-12 lg:gap-16">
             {/* Left Content */}
-            <div className="lg:col-span-6 space-y-8">
+            <div className="space-y-8 lg:col-span-6">
               <div>
-                <p className="text-xs md:text-sm font-extrabold uppercase tracking-widest text-[#1047FA]">
-                  TIME TRACKING SOFTWARE FOR MECHANICS
-                </p>
-                <h2 className="mt-3 text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-[#111827] leading-tight">
-                  <span className="font-handwriting font-normal italic text-4xl sm:text-5xl md:text-6xl text-[#171c26]">
+                <h2 className="text-3xl leading-tight font-extrabold tracking-tight text-[#111827] sm:text-4xl md:text-5xl">
+                  <span className="font-handwriting text-4xl font-normal text-[#171c26] italic sm:text-5xl md:text-6xl">
                     Maximize
                   </span>{' '}
                   Shop Productivity with Technician App
@@ -593,33 +573,35 @@ export default function LandingPage() {
               {/* Bullet Points */}
               <div className="space-y-6">
                 <div className="flex items-start gap-4">
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600 mt-0.5">
-                    <svg className="size-5 fill-current" viewBox="0 0 24 24">
-                      <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z" />
-                    </svg>
-                  </div>
+                  <svg
+                    className="mt-0.5 size-6 shrink-0 fill-current text-neutral-400"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z" />
+                  </svg>
                   <div>
-                    <h3 className="text-base sm:text-lg font-bold text-neutral-900">
+                    <h3 className="text-base font-bold text-neutral-900 sm:text-lg">
                       Track Time. Drive Results.
                     </h3>
-                    <p className="mt-1 text-sm text-neutral-600 leading-relaxed">
-                      Stay on top of work hours with our intuitive Time Clock feature. Keep your team
-                      motivated, accountable, and focused without micromanaging.
+                    <p className="mt-1 text-sm leading-relaxed text-neutral-600">
+                      Stay on top of work hours with our intuitive Time Clock feature. Keep your
+                      team motivated, accountable, and focused without micromanaging.
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-4">
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600 mt-0.5">
-                    <svg className="size-5 fill-current" viewBox="0 0 24 24">
-                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-10 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
-                    </svg>
-                  </div>
+                  <svg
+                    className="mt-0.5 size-6 shrink-0 fill-current text-neutral-400"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-10 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
+                  </svg>
                   <div>
-                    <h3 className="text-base sm:text-lg font-bold text-neutral-900">
+                    <h3 className="text-base font-bold text-neutral-900 sm:text-lg">
                       Bring Order to the Chaos
                     </h3>
-                    <p className="mt-1 text-sm text-neutral-600 leading-relaxed">
+                    <p className="mt-1 text-sm leading-relaxed text-neutral-600">
                       Simplify how your team works. With GarageBox, manage tasks, track deadlines,
                       and stay on top of progress all from a single, easy-to-use dashboard.
                     </p>
@@ -627,16 +609,17 @@ export default function LandingPage() {
                 </div>
 
                 <div className="flex items-start gap-4">
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600 mt-0.5">
-                    <svg className="size-5 fill-current" viewBox="0 0 24 24">
-                      <path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z" />
-                    </svg>
-                  </div>
+                  <svg
+                    className="mt-0.5 size-6 shrink-0 fill-current text-neutral-400"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z" />
+                  </svg>
                   <div>
-                    <h3 className="text-base sm:text-lg font-bold text-neutral-900">
+                    <h3 className="text-base font-bold text-neutral-900 sm:text-lg">
                       Power Your Team on the Go
                     </h3>
-                    <p className="mt-1 text-sm text-neutral-600 leading-relaxed">
+                    <p className="mt-1 text-sm leading-relaxed text-neutral-600">
                       With the GarageBox for Techs mobile app (iOS & Android), your technicians stay
                       connected, informed, and engaged wherever they are.
                     </p>
@@ -647,7 +630,7 @@ export default function LandingPage() {
               <div className="pt-2">
                 <Link
                   href="/register"
-                  className="inline-block rounded-full bg-[#1047FA] px-9 py-3.5 text-sm sm:text-base font-semibold text-white shadow-md hover:bg-[#0838c9] transition-all"
+                  className="inline-block rounded-full bg-[#1047FA] px-9 py-3.5 text-sm font-semibold text-white shadow-md transition-all hover:bg-[#0838c9] sm:text-base"
                 >
                   Get Started
                 </Link>
@@ -655,14 +638,14 @@ export default function LandingPage() {
             </div>
 
             {/* Right Graphic: Exact SVG from GarageBox */}
-            <div className="lg:col-span-6 flex justify-center">
-              <div className="relative w-full max-w-[514px] flex justify-center">
+            <div className="flex justify-center lg:col-span-6">
+              <div className="relative flex w-full max-w-[514px] justify-center">
                 <Image
                   src="/garagebox/feature-technician.svg"
                   alt="Maximize Shop Productivity with Technician App"
                   width={514}
                   height={512}
-                  className="w-full h-auto object-contain drop-shadow-md"
+                  className="h-auto w-full object-contain drop-shadow-md"
                 />
               </div>
             </div>
@@ -675,40 +658,34 @@ export default function LandingPage() {
           ======================================================== */}
       <section
         id="features-all"
-        className="relative w-full py-20 bg-neutral-50/50 border-t border-neutral-200/60"
+        className="relative w-full border-t border-neutral-200/60 bg-neutral-50/50 py-20"
       >
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-3xl text-center">
-            <p className="text-xs md:text-sm font-extrabold uppercase tracking-widest text-[#1047FA]">
-              ALL-IN-ONE GARAGE MANAGEMENT SOFTWARE
-            </p>
-            <h2 className="mt-3 text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-[#111827]">
+            <h2 className="text-3xl font-extrabold tracking-tight text-[#111827] sm:text-4xl md:text-5xl">
               Garage Management Software
             </h2>
-            <p className="mt-4 text-neutral-600 text-sm sm:text-base leading-relaxed">
+            <p className="mt-4 text-sm leading-relaxed text-neutral-600 sm:text-base">
               GarageBox helps you manage service bookings, estimates, job cards, payments,
               inspections, inventory, customer communication, and labor tracking in an all-in-one
               garage management software.
             </p>
           </div>
 
-          <div className="mt-14 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+          {/* Two columns x three rows: copy left, product mock-up right */}
+          <div className="mt-14 grid grid-cols-1 gap-6 md:grid-cols-2">
             {capabilities.map((c) => (
               <div
                 key={c.title}
-                className="group rounded-3xl border border-neutral-200/90 bg-white p-8 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+                className="group flex flex-col-reverse overflow-hidden rounded-3xl border border-neutral-200 bg-white shadow-sm transition-shadow duration-300 hover:shadow-lg sm:min-h-[220px] sm:flex-row"
               >
-                <div
-                  className={`flex size-12 items-center justify-center rounded-2xl ${c.color} text-white shadow-md`}
-                >
-                  <c.icon className="size-6 stroke-[2.2]" />
+                <div className="flex flex-1 flex-col justify-center p-7">
+                  <h3 className="text-lg font-semibold text-neutral-900">{c.title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-neutral-500">{c.desc}</p>
                 </div>
-                <h3 className="mt-6 text-xl font-bold text-neutral-900 group-hover:text-[#1047FA] transition-colors">
-                  {c.title}
-                </h3>
-                <p className="mt-3 text-sm text-neutral-600 leading-relaxed font-normal">
-                  {c.desc}
-                </p>
+                <div className="h-48 bg-neutral-100 sm:h-auto sm:w-[48%]">
+                  <CapabilityArt title={c.title} />
+                </div>
               </div>
             ))}
           </div>
@@ -721,91 +698,144 @@ export default function LandingPage() {
           ======================================================== */}
       <section
         id="support"
-        className="relative w-full py-20 bg-white border-t border-neutral-200/60 bg-grid-pattern"
+        className="bg-grid-pattern relative w-full border-t border-neutral-200/60 bg-white py-20"
       >
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-3xl text-center">
-            <p className="text-xs md:text-sm font-extrabold uppercase tracking-widest text-[#1047FA]">
-              FREE ONBOARDING & TRAINING
-            </p>
-            <h2 className="mt-3 text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-[#111827]">
+            <h2 className="text-3xl font-extrabold tracking-tight text-[#111827] sm:text-4xl md:text-5xl">
               Built for{' '}
-              <span className="font-handwriting font-normal italic text-4xl sm:text-5xl md:text-6xl text-[#171c26]">
+              <span className="font-handwriting text-4xl font-normal text-[#171c26] italic sm:text-5xl md:text-6xl">
                 Garages.
               </span>{' '}
               Backed by Humans.
             </h2>
-            <p className="mt-4 text-neutral-600 text-sm sm:text-base leading-relaxed">
+            <p className="mt-4 text-sm leading-relaxed text-neutral-600 sm:text-base">
               From setup to daily operations, we are here to keep your garage running smoothly every
               mile of the way.
             </p>
           </div>
 
-          <div className="mt-14 grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
+          {/* Feature cards: mini product illustration on a grey panel, copy underneath */}
+          <div className="mt-14 grid grid-cols-1 gap-10 md:grid-cols-3 md:gap-8">
             {/* Card 1: Data Migration */}
-            <div className="flex flex-col justify-between rounded-3xl border border-neutral-200 bg-white p-8 shadow-md hover:shadow-xl transition-all">
-              <div>
-                <div className="flex size-12 items-center justify-center rounded-2xl bg-blue-50 text-[#1047FA]">
-                  <Box className="size-6" />
-                </div>
-                <h3 className="mt-6 text-xl font-bold text-neutral-900">Data Migration</h3>
-                <p className="mt-3 text-sm text-neutral-600 leading-relaxed">
-                  Leave no data behind - we&apos;ll seamlessly transition your customer info,
-                  invoices, and more to GarageBox.
-                </p>
-              </div>
-              <div className="mt-8 text-right">
-                <button
-                  type="button"
-                  onClick={() => setDemoModalOpen(true)}
-                  className="text-sm font-bold text-[#1047FA] hover:underline"
+            <div className="flex flex-col overflow-hidden rounded-3xl border border-neutral-200 bg-white pb-7 shadow-sm">
+              <div className="relative flex aspect-[16/11] flex-col items-center justify-center overflow-hidden bg-neutral-100 p-6">
+                <p className="text-2xl font-semibold tracking-tight text-neutral-900">GarageBox</p>
+                {/* Connector tree */}
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 300 48"
+                  className="mt-2 h-10 w-[78%] text-neutral-300"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
                 >
-                  Contact Us
-                </button>
+                  <path d="M150 0 V20 M30 48 V30 Q30 20 40 20 H260 Q270 20 270 30 V48 M150 20 V48" />
+                </svg>
+                <div className="flex w-[86%] justify-between">
+                  {['Excel', 'Paper', 'Old POS'].map((src) => (
+                    <span
+                      key={src}
+                      className="flex size-14 items-center justify-center rounded-full bg-white text-[11px] font-semibold text-neutral-600 shadow-sm ring-1 ring-neutral-200"
+                    >
+                      {src}
+                    </span>
+                  ))}
+                </div>
+                <span className="mt-5 rounded-full border border-neutral-200 bg-white/70 px-4 py-1 text-xs text-neutral-500">
+                  Customers · Vehicles · Invoices
+                </span>
               </div>
+              <h3 className="mt-6 px-7 text-lg font-semibold text-neutral-900">Data Migration</h3>
+              <p className="mt-2 px-7 text-sm leading-relaxed text-neutral-500">
+                We move your customers, vehicles and invoices into GarageBox for you. Nothing left
+                behind.
+              </p>
+              <button
+                type="button"
+                onClick={() => setDemoModalOpen(true)}
+                className="mt-auto self-start px-7 pt-4 text-sm font-semibold text-[#1047FA] hover:underline"
+              >
+                Contact us →
+              </button>
             </div>
 
             {/* Card 2: Live Support */}
-            <div className="flex flex-col justify-between rounded-3xl border border-neutral-200 bg-white p-8 shadow-md hover:shadow-xl transition-all">
-              <div>
-                <div className="flex size-12 items-center justify-center rounded-2xl bg-blue-50 text-[#1047FA]">
-                  <HelpCircle className="size-6" />
+            <div className="flex flex-col overflow-hidden rounded-3xl border border-neutral-200 bg-white pb-7 shadow-sm">
+              <div className="relative flex aspect-[16/11] flex-col justify-center gap-3 overflow-hidden bg-neutral-100 p-6">
+                <div className="max-w-[78%] self-end rounded-2xl rounded-br-md bg-neutral-900 px-4 py-2.5 text-xs text-white shadow-sm">
+                  How do I add a second technician?
                 </div>
-                <h3 className="mt-6 text-xl font-bold text-neutral-900">Live Support</h3>
-                <p className="mt-3 text-sm text-neutral-600 leading-relaxed">
-                  Get live support from our Customer Support team, available Monday to Friday, 10 am
-                  to 7 pm IST
-                </p>
-              </div>
-              <div className="mt-8 text-right">
-                <a
-                  href="https://wa.me/923125699996"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm font-bold text-[#1047FA] hover:underline"
+                <div className="flex max-w-[86%] items-end gap-2">
+                  <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[#1047FA] text-[10px] font-bold text-white">
+                    GB
+                  </span>
+                  <div className="rounded-2xl rounded-bl-md bg-white px-4 py-2.5 text-xs text-neutral-700 shadow-sm ring-1 ring-neutral-200">
+                    Go to Team → Add member, pick &ldquo;Technician&rdquo;. Done in 30 seconds.
+                  </div>
+                </div>
+                <div
+                  className="ml-9 flex w-14 gap-1 rounded-full bg-white px-3 py-2 shadow-sm ring-1 ring-neutral-200"
+                  aria-hidden="true"
                 >
-                  Chat With Us
-                </a>
+                  {[0, 1, 2].map((d) => (
+                    <span key={d} className="size-1.5 rounded-full bg-neutral-300" />
+                  ))}
+                </div>
+                <span className="absolute bottom-5 left-1/2 -translate-x-1/2 rounded-full border border-neutral-200 bg-white/70 px-4 py-1 text-xs whitespace-nowrap text-neutral-500">
+                  Mon–Fri · 10 am – 7 pm
+                </span>
               </div>
+              <h3 className="mt-6 px-7 text-lg font-semibold text-neutral-900">Live Support</h3>
+              <p className="mt-2 px-7 text-sm leading-relaxed text-neutral-500">
+                Real people on chat, Monday to Friday, 10 am to 7 pm PKT.
+              </p>
+              <a
+                href="https://wa.me/923125699996"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-auto self-start px-7 pt-4 text-sm font-semibold text-[#1047FA] hover:underline"
+              >
+                Chat with us →
+              </a>
             </div>
 
             {/* Card 3: Help Center */}
-            <div className="flex flex-col justify-between rounded-3xl border border-neutral-200 bg-white p-8 shadow-md hover:shadow-xl transition-all">
-              <div>
-                <div className="flex size-12 items-center justify-center rounded-2xl bg-blue-50 text-[#1047FA]">
-                  <FileText className="size-6" />
+            <div className="flex flex-col overflow-hidden rounded-3xl border border-neutral-200 bg-white pb-7 shadow-sm">
+              <div className="relative aspect-[16/11] overflow-hidden bg-neutral-100">
+                <div className="absolute inset-y-6 -right-6 left-6 rounded-xl bg-white shadow-sm ring-1 ring-neutral-200">
+                  <div className="flex items-center gap-2 border-b border-neutral-100 px-4 py-3 text-xs text-neutral-400">
+                    <span aria-hidden="true">⌕</span> Search guides…
+                  </div>
+                  {[
+                    'Create your first job card',
+                    'Send an estimate for approval',
+                    'Set up parts inventory',
+                  ].map((g) => (
+                    <div
+                      key={g}
+                      className="flex items-center gap-3 border-b border-neutral-100 px-4 py-2.5 text-xs text-neutral-700"
+                    >
+                      <span className="size-5 shrink-0 rounded-md bg-neutral-100" />
+                      {g}
+                    </div>
+                  ))}
+                  <div className="flex items-center gap-3 px-4 py-2.5">
+                    <span className="size-5 shrink-0 rounded-md bg-neutral-100" />
+                    <span className="h-2 w-32 rounded-full bg-neutral-100" />
+                  </div>
                 </div>
-                <h3 className="mt-6 text-xl font-bold text-neutral-900">Help Center</h3>
-                <p className="mt-3 text-sm text-neutral-600 leading-relaxed">
-                  Guide to help you get started smoothly and improve your understanding of all
-                  features
-                </p>
               </div>
-              <div className="mt-8 text-right">
-                <a href="#help-center" className="text-sm font-bold text-[#1047FA] hover:underline">
-                  How to Use
-                </a>
-              </div>
+              <h3 className="mt-6 px-7 text-lg font-semibold text-neutral-900">Help Center</h3>
+              <p className="mt-2 px-7 text-sm leading-relaxed text-neutral-500">
+                Step-by-step guides for every feature, from first job card to monthly reports.
+              </p>
+              <a
+                href="#help-center"
+                className="mt-auto self-start px-7 pt-4 text-sm font-semibold text-[#1047FA] hover:underline"
+              >
+                Browse guides →
+              </a>
             </div>
           </div>
 
@@ -813,13 +843,13 @@ export default function LandingPage() {
             <button
               type="button"
               onClick={() => setDemoModalOpen(true)}
-              className="rounded-full border border-neutral-900 bg-white px-7 sm:px-8 py-3 text-sm sm:text-base font-semibold text-neutral-900 shadow-sm hover:bg-neutral-50 transition-all active:scale-95"
+              className="rounded-full border border-neutral-900 bg-white px-7 py-3 text-sm font-semibold text-neutral-900 shadow-sm transition-all hover:bg-neutral-50 active:scale-95 sm:px-8 sm:text-base"
             >
               Book a Demo
             </button>
             <Link
               href="/register"
-              className="rounded-full bg-[#1047FA] px-7 sm:px-9 py-3 text-sm sm:text-base font-semibold text-white shadow-md shadow-[#1047FA]/20 hover:bg-[#0935c7] transition-all active:scale-95 text-center"
+              className="rounded-full bg-[#1047FA] px-7 py-3 text-center text-sm font-semibold text-white shadow-md shadow-[#1047FA]/20 transition-all hover:bg-[#0935c7] active:scale-95 sm:px-9 sm:text-base"
             >
               Get Started
             </Link>
@@ -830,89 +860,41 @@ export default function LandingPage() {
       {/* ========================================================
           8. EXPERIENCE MOBILE APP BANNER
           ======================================================== */}
-      <section className="relative w-full py-16 bg-neutral-50">
+      <section className="relative w-full bg-white py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="relative rounded-[40px] border border-neutral-200/90 bg-white p-8 sm:p-12 lg:p-16 shadow-lg overflow-hidden bg-grid-pattern">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
-              {/* Left Column Content */}
-              <div className="lg:col-span-7 space-y-6">
-                <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-[#111827] leading-tight">
-                  <span className="font-handwriting font-normal italic text-4xl sm:text-5xl md:text-6xl text-[#171c26]">
-                    Experience the
-                  </span>{' '}
-                  #1 All-in-One Garage Management Software
+          <div className="relative grid overflow-hidden rounded-[32px] bg-neutral-100 lg:grid-cols-12">
+            {/* Left: headline, CTA pinned to the bottom */}
+            <div className="flex flex-col justify-between gap-12 p-8 sm:p-12 lg:col-span-7 lg:min-h-[460px] lg:p-14">
+              <div>
+                <h2 className="max-w-xl text-4xl leading-[1.08] font-semibold tracking-tight text-neutral-950 sm:text-5xl">
+                  Run your whole garage from your pocket.
                 </h2>
-
-                <p className="text-sm sm:text-base text-neutral-600 leading-relaxed font-normal">
-                  Start managing Customers, Vehicles, Jobs, Digital Vehicle Inspections (DVI), and
-                  Invoicing all in one platform. Automate daily tasks, track labor, digital estimate
-                  authorisation to eliminate manual works, and increase your shop profits today.
+                <p className="mt-5 max-w-md text-base leading-relaxed text-neutral-600">
+                  Jobs, inspections, estimates and invoices on one app, so your team can work from
+                  the bay floor.
                 </p>
-
-                <div className="flex flex-wrap items-center gap-4 pt-2">
-                  <Link
-                    href="/register"
-                    className="rounded-full bg-[#1047FA] px-8 py-3 text-sm sm:text-base font-semibold text-white shadow-md hover:bg-[#0838c9] transition-all"
-                  >
-                    Get Started
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={() => setDemoModalOpen(true)}
-                    className="rounded-full border border-neutral-900 bg-white px-8 py-3 text-sm sm:text-base font-semibold text-neutral-900 shadow-sm hover:bg-neutral-50 transition-all"
-                  >
-                    Book a Demo
-                  </button>
-                </div>
-
-                <div className="pt-6 border-t border-neutral-100">
-                  <p className="text-xs font-bold text-neutral-700 mb-3">
-                    Download GarageBox app from
-                  </p>
-                  <div className="flex flex-wrap items-center gap-3">
-                    <a
-                      href="#google-play"
-                      className="hover:opacity-90 transition-opacity"
-                      title="Google Play Store"
-                    >
-                      <Image
-                        src="/garagebox/play-store.svg"
-                        alt="Google Play Store"
-                        width={165}
-                        height={50}
-                        className="h-10 w-auto"
-                      />
-                    </a>
-                    <a
-                      href="#app-store"
-                      className="hover:opacity-90 transition-opacity"
-                      title="Apple App Store"
-                    >
-                      <Image
-                        src="/garagebox/app-store.svg"
-                        alt="Apple App Store"
-                        width={155}
-                        height={50}
-                        className="h-10 w-auto"
-                      />
-                    </a>
-                  </div>
-                </div>
               </div>
 
-              {/* Right Column: Exact Mobile Mockup from GarageBox */}
-              <div className="lg:col-span-5 flex justify-center">
-                <div className="relative w-full max-w-[350px] flex justify-center">
-                  <Image
-                    src="/garagebox/mobile-mockup.png"
-                    alt="GarageBox mobile application"
-                    width={350}
-                    height={596}
-                    sizes="(max-width: 1024px) 300px, 350px"
-                    className="w-full h-auto object-contain drop-shadow-xl"
-                  />
-                </div>
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
+                <Link
+                  href="/register"
+                  className="rounded-full bg-[#1047FA] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-[#1047FA]/20 transition hover:bg-[#0935c7]"
+                >
+                  Get Started
+                </Link>
               </div>
+            </div>
+
+            {/* Right: phone rises from the bottom edge and is cropped by the card */}
+            <div className="relative flex h-[340px] justify-center lg:col-span-5 lg:h-auto">
+              <Image
+                src="/garagebox/mobile-mockup.png"
+                alt="GarageBox mobile app"
+                width={350}
+                height={596}
+                sizes="(max-width: 1024px) 260px, 320px"
+                className="absolute top-8 w-[260px] drop-shadow-2xl lg:top-20 lg:w-[320px]"
+              />
             </div>
           </div>
         </div>
@@ -922,23 +904,23 @@ export default function LandingPage() {
           BOOK A DEMO MODAL
           ======================================================== */}
       {demoModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="relative w-full max-w-lg rounded-3xl bg-white p-6 sm:p-8 shadow-2xl border border-neutral-200">
+        <div className="fixed inset-0 z-50 flex animate-in items-center justify-center bg-black/60 p-4 backdrop-blur-sm duration-200 fade-in">
+          <div className="relative w-full max-w-lg rounded-3xl border border-neutral-200 bg-white p-6 shadow-2xl sm:p-8">
             <button
               type="button"
               onClick={() => {
                 setDemoModalOpen(false)
                 setDemoSubmitted(false)
               }}
-              className="absolute top-5 right-5 p-2 rounded-full text-neutral-400 hover:text-neutral-800 hover:bg-neutral-100 transition-colors"
+              className="absolute top-5 right-5 rounded-full p-2 text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-800"
               aria-label="Close"
             >
               <X className="size-5" />
             </button>
 
             {demoSubmitted ? (
-              <div className="text-center py-6">
-                <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 mb-4">
+              <div className="py-6 text-center">
+                <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
                   <Check className="size-8 stroke-[3]" />
                 </div>
                 <h3 className="text-2xl font-bold text-neutral-900">Demo Request Received!</h3>
@@ -960,13 +942,13 @@ export default function LandingPage() {
               </div>
             ) : (
               <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-[#1047FA]">
+                <p className="text-xs font-bold tracking-wider text-[#1047FA] uppercase">
                   Free Live Walkthrough
                 </p>
-                <h3 className="text-2xl font-bold text-neutral-900 mt-1">
+                <h3 className="mt-1 text-2xl font-bold text-neutral-900">
                   Book a Personalized Demo
                 </h3>
-                <p className="text-xs text-neutral-500 mt-1">
+                <p className="mt-1 text-xs text-neutral-500">
                   See how GarageBox helps auto garages schedule jobs, track parts, and increase
                   profit by 40%.
                 </p>
@@ -979,7 +961,7 @@ export default function LandingPage() {
                   className="mt-6 space-y-4"
                 >
                   <div>
-                    <label className="block text-xs font-bold text-neutral-700 mb-1">
+                    <label className="mb-1 block text-xs font-bold text-neutral-700">
                       Full Name *
                     </label>
                     <input
@@ -988,13 +970,13 @@ export default function LandingPage() {
                       placeholder="e.g. Tariq Mehmood"
                       value={demoForm.name}
                       onChange={(e) => setDemoForm({ ...demoForm, name: e.target.value })}
-                      className="w-full rounded-xl border border-neutral-300 px-3.5 py-2.5 text-sm focus:border-[#1047FA] focus:ring-1 focus:ring-[#1047FA] outline-none"
+                      className="w-full rounded-xl border border-neutral-300 px-3.5 py-2.5 text-sm outline-none focus:border-[#1047FA] focus:ring-1 focus:ring-[#1047FA]"
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
-                      <label className="block text-xs font-bold text-neutral-700 mb-1">
+                      <label className="mb-1 block text-xs font-bold text-neutral-700">
                         Phone / WhatsApp *
                       </label>
                       <input
@@ -1003,11 +985,11 @@ export default function LandingPage() {
                         placeholder="+92 300 1234567"
                         value={demoForm.phone}
                         onChange={(e) => setDemoForm({ ...demoForm, phone: e.target.value })}
-                        className="w-full rounded-xl border border-neutral-300 px-3.5 py-2.5 text-sm focus:border-[#1047FA] focus:ring-1 focus:ring-[#1047FA] outline-none"
+                        className="w-full rounded-xl border border-neutral-300 px-3.5 py-2.5 text-sm outline-none focus:border-[#1047FA] focus:ring-1 focus:ring-[#1047FA]"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-neutral-700 mb-1">
+                      <label className="mb-1 block text-xs font-bold text-neutral-700">
                         Work Email
                       </label>
                       <input
@@ -1015,13 +997,13 @@ export default function LandingPage() {
                         placeholder="tariq@garage.com"
                         value={demoForm.email}
                         onChange={(e) => setDemoForm({ ...demoForm, email: e.target.value })}
-                        className="w-full rounded-xl border border-neutral-300 px-3.5 py-2.5 text-sm focus:border-[#1047FA] focus:ring-1 focus:ring-[#1047FA] outline-none"
+                        className="w-full rounded-xl border border-neutral-300 px-3.5 py-2.5 text-sm outline-none focus:border-[#1047FA] focus:ring-1 focus:ring-[#1047FA]"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-neutral-700 mb-1">
+                    <label className="mb-1 block text-xs font-bold text-neutral-700">
                       Garage / Workshop Name *
                     </label>
                     <input
@@ -1030,14 +1012,14 @@ export default function LandingPage() {
                       placeholder="e.g. Apex Auto Care Lahore"
                       value={demoForm.garageName}
                       onChange={(e) => setDemoForm({ ...demoForm, garageName: e.target.value })}
-                      className="w-full rounded-xl border border-neutral-300 px-3.5 py-2.5 text-sm focus:border-[#1047FA] focus:ring-1 focus:ring-[#1047FA] outline-none"
+                      className="w-full rounded-xl border border-neutral-300 px-3.5 py-2.5 text-sm outline-none focus:border-[#1047FA] focus:ring-1 focus:ring-[#1047FA]"
                     />
                   </div>
 
                   <div className="pt-2">
                     <button
                       type="submit"
-                      className="w-full rounded-full bg-[#1047FA] py-3 text-sm font-bold text-white shadow-md hover:bg-[#0838c9] transition-all"
+                      className="w-full rounded-full bg-[#1047FA] py-3 text-sm font-bold text-white shadow-md transition-all hover:bg-[#0838c9]"
                     >
                       Confirm Demo Request
                     </button>

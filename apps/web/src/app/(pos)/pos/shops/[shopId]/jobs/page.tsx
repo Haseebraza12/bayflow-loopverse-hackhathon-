@@ -62,10 +62,10 @@ export default function TechnicianJobsPage() {
     <div className="space-y-6 pb-12">
       {/* Header */}
       <div>
-        <span className="text-xs font-bold uppercase tracking-wider text-[#1047FA]">
+        <span className="text-xs font-bold tracking-[0.32px] text-[#1047FA]">
           Technician Bay Floor
         </span>
-        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-neutral-900 mt-1">
+        <h1 className="text-2xl sm:text-3xl font-semibold text-neutral-900 mt-1">
           Assigned Workshop Jobs
         </h1>
         <p className="text-xs text-neutral-500 mt-0.5">
@@ -90,7 +90,7 @@ export default function TechnicianJobsPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {toInspect.map((b) => (
-                <Card key={b.id} className="border-neutral-200 bg-white shadow-sm hover:border-blue-400">
+                <Card key={b.id} className="border-neutral-200 bg-white hover:border-blue-400">
                   <CardContent className="p-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="font-mono font-bold text-[#1047FA] text-sm">{b.reference}</span>
@@ -122,7 +122,7 @@ export default function TechnicianJobsPage() {
                           <Play className="size-3 mr-1" />
                           Start Inspection
                         </Button>
-                        <Button asChild variant="outline" size="sm" className="h-7 text-xs">
+                        <Button asChild variant="outline" size="sm" className="h-7 text-xs rounded-full">
                           <Link href={`${base}/jobs/${b.id}`}>Open</Link>
                         </Button>
                       </div>
@@ -145,7 +145,7 @@ export default function TechnicianJobsPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[...inInspection, ...inRepair].map((b) => (
-              <Card key={b.id} className="border-neutral-200 bg-white shadow-sm hover:border-blue-400">
+              <Card key={b.id} className="border-neutral-200 bg-white hover:border-blue-400">
                 <CardContent className="p-4 space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="font-mono font-bold text-[#1047FA] text-sm">{b.reference}</span>
@@ -164,7 +164,7 @@ export default function TechnicianJobsPage() {
                     <span className="text-xs font-bold text-neutral-900">
                       Estimate: {formatPKR(b.estimateTotal)}
                     </span>
-                    <Button asChild size="sm" className="bg-[#1047FA] text-white text-xs h-7">
+                    <Button asChild size="sm" className="bg-[#1047FA] text-white text-xs h-7 rounded-full">
                       <Link href={`${base}/jobs/${b.id}`}>
                         Manage Job
                         <ChevronRight className="size-3 ml-1" />

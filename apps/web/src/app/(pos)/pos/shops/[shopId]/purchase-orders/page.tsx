@@ -79,10 +79,10 @@ export default function PurchaseOrdersPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <span className="text-xs font-bold uppercase tracking-wider text-[#1047FA]">
+          <span className="text-xs font-bold tracking-[0.32px] text-[#1047FA]">
             Procurement & Suppliers
           </span>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-neutral-900 mt-1">
+          <h1 className="text-2xl sm:text-3xl font-semibold text-neutral-900 mt-1">
             Purchase Orders
           </h1>
           <p className="text-xs text-neutral-500 mt-0.5">
@@ -100,11 +100,11 @@ export default function PurchaseOrdersPage() {
       </div>
 
       {/* PO Table */}
-      <Card className="border-neutral-200 shadow-sm overflow-hidden">
+      <Card className="border-neutral-200 overflow-hidden">
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-neutral-50 text-[11px] font-bold uppercase text-neutral-400 border-b border-neutral-200">
+              <thead className="bg-neutral-50 text-[11px] font-bold text-neutral-400 border-b border-neutral-200">
                 <tr>
                   <th className="px-5 py-3">PO Number</th>
                   <th className="px-4 py-3">Supplier</th>
@@ -139,7 +139,7 @@ export default function PurchaseOrdersPage() {
 
                     <td className="px-4 py-3.5">
                       <span
-                        className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                        className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold tracking-[0.32px] ${
                           po.status === 'RECEIVED'
                             ? 'bg-emerald-100 text-emerald-800'
                             : po.status === 'PARTIALLY_RECEIVED'
@@ -160,7 +160,7 @@ export default function PurchaseOrdersPage() {
                         asChild
                         variant="outline"
                         size="sm"
-                        className="h-7 text-xs font-semibold"
+                        className="h-7 text-xs font-semibold rounded-full"
                       >
                         <Link href={`${base}/purchase-orders/${po.id}`}>
                           {po.status === 'RECEIVED' ? 'View' : 'Receive'}
@@ -242,7 +242,7 @@ export default function PurchaseOrdersPage() {
               <Button type="button" variant="outline" onClick={() => setCreateOpen(false)} className="text-xs font-semibold">
                 Cancel
               </Button>
-              <Button type="submit" className="bg-[#1047FA] text-white font-bold text-xs">
+              <Button type="submit" className="bg-[#1047FA] text-white font-bold text-xs rounded-full">
                 Issue Purchase Order
               </Button>
             </DialogFooter>

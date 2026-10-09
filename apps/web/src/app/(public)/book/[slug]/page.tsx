@@ -104,7 +104,7 @@ function BookingWizardContent() {
       <div className="mx-auto max-w-4xl px-4 py-16 text-center">
         <h1 className="text-2xl font-bold text-neutral-900">Workshop Not Found</h1>
         <p className="mt-2 text-neutral-600">Please choose a valid workshop to book an appointment.</p>
-        <Button asChild className="mt-6 bg-[#1047FA] text-white">
+        <Button asChild className="mt-6 bg-[#1047FA] text-white rounded-full">
           <Link href="/book">Choose a Workshop</Link>
         </Button>
       </div>
@@ -213,12 +213,12 @@ function BookingWizardContent() {
         <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#1047FA] mb-1">
+              <div className="flex items-center gap-2 text-xs font-bold tracking-[0.32px] text-[#1047FA] mb-1">
                 <span>Step {currentStep} of 5</span>
                 <span>•</span>
                 <span className="text-neutral-500 font-semibold">{shop.name}</span>
               </div>
-              <h1 className="text-2xl font-extrabold tracking-tight text-neutral-900">
+              <h1 className="text-2xl font-semibold text-neutral-900">
                 {currentStep === 2 && 'Choose Services & Describe Issue'}
                 {currentStep === 3 && 'Pick an Appointment Time'}
                 {currentStep === 4 && 'Your Vehicle & Contact Details'}
@@ -248,7 +248,7 @@ function BookingWizardContent() {
                       }}
                       className={`flex size-7 items-center justify-center rounded-full text-xs font-bold transition-all ${
                         isCurrent
-                          ? 'bg-[#1047FA] text-white shadow-sm ring-2 ring-blue-200'
+                          ? 'bg-[#1047FA] text-white ring-2 ring-blue-200'
                           : isPassed
                             ? 'bg-emerald-600 text-white cursor-pointer'
                             : 'bg-neutral-100 text-neutral-400'
@@ -296,7 +296,7 @@ function BookingWizardContent() {
                         onClick={() => handleToggleService(srv.id)}
                         className={`flex items-start gap-3.5 rounded-xl border p-4 cursor-pointer transition-all ${
                           isSelected
-                            ? 'border-[#1047FA] bg-blue-50/40 shadow-sm'
+                            ? 'border-[#1047FA] bg-blue-50/40'
                             : 'border-neutral-200 bg-white hover:border-neutral-300'
                         }`}
                       >
@@ -372,7 +372,7 @@ function BookingWizardContent() {
                         onClick={() => setScheduledDate(d.date)}
                         className={`rounded-xl border p-3 text-center text-xs font-semibold transition-all ${
                           scheduledDate === d.date
-                            ? 'border-[#1047FA] bg-[#1047FA] text-white shadow-sm'
+                            ? 'border-[#1047FA] bg-[#1047FA] text-white'
                             : 'border-neutral-200 bg-white text-neutral-700 hover:border-blue-300'
                         }`}
                       >
@@ -398,7 +398,7 @@ function BookingWizardContent() {
                           onClick={() => setScheduledTime(time)}
                           className={`rounded-xl border p-3 text-center text-xs font-bold transition-all ${
                             isSelected
-                              ? 'border-[#1047FA] bg-[#1047FA] text-white shadow-sm'
+                              ? 'border-[#1047FA] bg-[#1047FA] text-white'
                               : 'border-neutral-200 bg-white text-neutral-800 hover:border-neutral-300'
                           }`}
                         >
@@ -433,7 +433,7 @@ function BookingWizardContent() {
 
                 {/* Customer Details Box */}
                 <div className="rounded-xl border border-neutral-200 bg-white p-5 space-y-4">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-400">
+                  <h3 className="text-xs font-bold tracking-[0.32px] text-neutral-400">
                     Customer Information
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -479,7 +479,7 @@ function BookingWizardContent() {
 
                 {/* Vehicle Details Box */}
                 <div className="rounded-xl border border-neutral-200 bg-white p-5 space-y-4">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-400 flex items-center gap-1.5">
+                  <h3 className="text-xs font-bold tracking-[0.32px] text-neutral-400 flex items-center gap-1.5">
                     <Car className="size-3.5 text-neutral-500" />
                     Vehicle Information
                   </h3>
@@ -530,7 +530,7 @@ function BookingWizardContent() {
                         value={licensePlate}
                         onChange={(e) => setLicensePlate(e.target.value.toUpperCase())}
                         placeholder="LEA-20-4491"
-                        className="text-xs h-9 font-mono uppercase"
+                        className="text-xs h-9 font-mono"
                       />
                     </div>
                     <div className="space-y-1.5">
@@ -564,7 +564,7 @@ function BookingWizardContent() {
                   {/* Shop & Slot */}
                   <div className="rounded-xl border border-neutral-200 bg-white p-4 flex items-start justify-between">
                     <div className="space-y-1 text-xs">
-                      <span className="font-bold uppercase tracking-wider text-neutral-400 text-[10px]">
+                      <span className="font-bold tracking-[0.32px] text-neutral-400 text-[10px]">
                         Workshop & Time
                       </span>
                       <p className="font-bold text-neutral-900 text-sm">{shop.name}</p>
@@ -586,7 +586,7 @@ function BookingWizardContent() {
                   {/* Services Selected */}
                   <div className="rounded-xl border border-neutral-200 bg-white p-4 flex items-start justify-between">
                     <div className="space-y-2 text-xs flex-1">
-                      <span className="font-bold uppercase tracking-wider text-neutral-400 text-[10px]">
+                      <span className="font-bold tracking-[0.32px] text-neutral-400 text-[10px]">
                         Selected Services ({selectedServices.length})
                       </span>
                       <div className="space-y-1.5 pt-1">
@@ -618,7 +618,7 @@ function BookingWizardContent() {
                   {/* Vehicle & Customer */}
                   <div className="rounded-xl border border-neutral-200 bg-white p-4 flex items-start justify-between">
                     <div className="space-y-1 text-xs">
-                      <span className="font-bold uppercase tracking-wider text-neutral-400 text-[10px]">
+                      <span className="font-bold tracking-[0.32px] text-neutral-400 text-[10px]">
                         Customer & Vehicle
                       </span>
                       <p className="font-bold text-neutral-900">{customerName} • {customerPhone}</p>
@@ -655,7 +655,7 @@ function BookingWizardContent() {
                   type="button"
                   variant="outline"
                   onClick={handlePrevStep}
-                  className="text-xs font-semibold"
+                  className="text-xs font-semibold rounded-full"
                 >
                   <ArrowLeft className="size-3.5 mr-1.5" />
                   Back
@@ -664,7 +664,7 @@ function BookingWizardContent() {
                 <Button
                   asChild
                   variant="outline"
-                  className="text-xs font-semibold"
+                  className="text-xs font-semibold rounded-full"
                 >
                   <Link href="/book">
                     <ArrowLeft className="size-3.5 mr-1.5" />
@@ -677,7 +677,7 @@ function BookingWizardContent() {
                 <Button
                   type="button"
                   onClick={handleNextStep}
-                  className="bg-[#1047FA] hover:bg-blue-700 text-white font-semibold text-xs px-6"
+                  className="bg-[#1047FA] hover:bg-blue-700 text-white font-semibold text-xs px-6 rounded-full"
                 >
                   Continue
                   <ChevronRight className="size-3.5 ml-1.5" />
@@ -687,7 +687,7 @@ function BookingWizardContent() {
                   type="button"
                   disabled={isSubmitting}
                   onClick={handleConfirmBooking}
-                  className="bg-[#00c070] hover:bg-emerald-600 text-white font-bold text-sm px-8 h-11 shadow-sm"
+                  className="bg-[#00c070] hover:bg-emerald-600 text-white font-bold text-sm px-8 h-11 rounded-full"
                 >
                   {isSubmitting ? 'Confirming Appointment...' : 'Confirm Appointment'}
                 </Button>
@@ -697,7 +697,7 @@ function BookingWizardContent() {
 
           {/* Right Sticky Order Summary */}
           <div className="space-y-4">
-            <Card className="border-neutral-200 shadow-sm sticky top-20">
+            <Card className="border-neutral-200 sticky top-20">
               <CardHeader className="pb-3 border-b border-neutral-100">
                 <CardTitle className="text-sm font-bold text-neutral-900 flex items-center gap-1.5">
                   <Building2 className="size-4 text-[#1047FA]" />
@@ -709,20 +709,20 @@ function BookingWizardContent() {
               </CardHeader>
               <CardContent className="space-y-4 pt-4 text-xs">
                 <div className="space-y-1">
-                  <span className="text-[10px] uppercase font-bold text-neutral-400">Location</span>
+                  <span className="text-[10px] font-bold text-neutral-400">Location</span>
                   <p className="font-medium text-neutral-800">{shop.address}</p>
                   <p className="text-neutral-500">{shop.city}</p>
                 </div>
 
                 <div className="space-y-1 border-t border-neutral-100 pt-3">
-                  <span className="text-[10px] uppercase font-bold text-neutral-400">Selected Slot</span>
+                  <span className="text-[10px] font-bold text-neutral-400">Selected Slot</span>
                   <p className="font-semibold text-[#1047FA]">
                     {scheduledDate} at {scheduledTime}
                   </p>
                 </div>
 
                 <div className="space-y-2 border-t border-neutral-100 pt-3">
-                  <span className="text-[10px] uppercase font-bold text-neutral-400">
+                  <span className="text-[10px] font-bold text-neutral-400">
                     Services ({selectedServices.length})
                   </span>
                   <div className="space-y-1.5">

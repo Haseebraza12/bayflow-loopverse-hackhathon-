@@ -56,7 +56,7 @@ export default function PartsJobDetailPage() {
     return (
       <div className="py-16 text-center space-y-4">
         <h1 className="text-xl font-bold text-neutral-900">Job not found</h1>
-        <Button asChild className="bg-[#1047FA] text-white text-xs">
+        <Button asChild className="bg-[#1047FA] text-white text-xs rounded-full">
           <Link href={`${base}/parts`}>Back to Parts Queue</Link>
         </Button>
       </div>
@@ -157,11 +157,11 @@ export default function PartsJobDetailPage() {
       )}
 
       {/* Header & Action Bar */}
-      <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm space-y-4">
+      <div className="rounded-2xl border border-neutral-200 bg-white p-6 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <span className="font-mono text-xl sm:text-2xl font-extrabold text-[#1047FA]">
+              <span className="font-mono text-xl sm:text-2xl font-semibold text-[#1047FA]">
                 {booking.reference}
               </span>
               <StatusBadge status={booking.status} audience="staff" size="md" />
@@ -189,7 +189,7 @@ export default function PartsJobDetailPage() {
             {!anyShortage && booking.status === 'PARTS_PENDING' && (
               <Button
                 onClick={handleMarkReady}
-                className="bg-[#00c070] hover:bg-emerald-600 text-white font-bold text-xs h-9 px-4"
+                className="bg-[#00c070] hover:bg-emerald-600 text-white font-bold text-xs h-9 px-4 rounded-full"
               >
                 <CheckCircle2 className="size-3.5 mr-1.5" />
                 Mark Parts Ready
@@ -199,7 +199,7 @@ export default function PartsJobDetailPage() {
             {booking.status === 'PARTS_ORDERED' && (
               <Button
                 onClick={handleMarkReady}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs h-9 px-4"
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs h-9 px-4 rounded-full"
               >
                 Receive Shipment & Mark Ready
               </Button>
@@ -208,7 +208,7 @@ export default function PartsJobDetailPage() {
             {booking.status === 'PARTS_READY' && (
               <Button
                 onClick={handleAllocateParts}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-9 px-4"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-9 px-4 rounded-full"
               >
                 <PackageCheck className="size-3.5 mr-1.5" />
                 Allocate Parts to Technician
@@ -219,9 +219,9 @@ export default function PartsJobDetailPage() {
       </div>
 
       {/* Parts Requirements vs Stock Table */}
-      <Card className="border-neutral-200 shadow-sm overflow-hidden">
+      <Card className="border-neutral-200 overflow-hidden">
         <CardHeader className="bg-neutral-50/80 border-b border-neutral-100 p-4">
-          <CardTitle className="text-xs font-bold uppercase tracking-wider text-neutral-500 flex items-center gap-1.5">
+          <CardTitle className="text-xs font-bold tracking-[0.32px] text-neutral-500 flex items-center gap-1.5">
             <PackageSearch className="size-4 text-[#1047FA]" />
             Required Parts vs Available Warehouse Inventory
           </CardTitle>
@@ -229,7 +229,7 @@ export default function PartsJobDetailPage() {
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-neutral-50 text-[11px] font-bold uppercase text-neutral-400 border-b border-neutral-200">
+              <thead className="bg-neutral-50 text-[11px] font-bold text-neutral-400 border-b border-neutral-200">
                 <tr>
                   <th className="px-5 py-2.5">Part Name & SKU</th>
                   <th className="px-4 py-2.5 text-center">Required</th>
@@ -324,7 +324,7 @@ export default function PartsJobDetailPage() {
             <Button variant="outline" onClick={() => setOrderDialogOpen(false)} className="text-xs font-semibold">
               Cancel
             </Button>
-            <Button onClick={handleCreatePo} className="bg-[#1047FA] text-white text-xs font-bold">
+            <Button onClick={handleCreatePo} className="bg-[#1047FA] text-white text-xs font-bold rounded-full">
               Confirm & Dispatch PO
             </Button>
           </DialogFooter>

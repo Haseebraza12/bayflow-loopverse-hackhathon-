@@ -92,13 +92,13 @@ export default function CreateShopPage() {
         <span>Back to POS Hub</span>
       </Link>
 
-      <Card className="border-neutral-200 shadow-sm">
+      <Card className="border-neutral-200">
         <CardHeader className="space-y-1">
-          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#1047FA]">
+          <div className="flex items-center gap-2 text-xs font-bold tracking-[0.32px] text-[#1047FA]">
             <Building2 className="size-4" />
             Shop Setup & Onboarding
           </div>
-          <CardTitle className="text-2xl font-bold tracking-tight text-neutral-900">
+          <CardTitle className="text-2xl font-bold text-neutral-900">
             Create a New Auto Repair Workshop
           </CardTitle>
           <CardDescription className="text-xs text-neutral-500">
@@ -110,7 +110,7 @@ export default function CreateShopPage() {
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* General Profile */}
             <div className="space-y-4">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-400">
+              <h3 className="text-xs font-bold tracking-[0.32px] text-neutral-400">
                 1. Workshop Identity
               </h3>
 
@@ -175,7 +175,7 @@ export default function CreateShopPage() {
 
             {/* Bay Capacity & Scheduling */}
             <div className="space-y-4 pt-4 border-t border-neutral-100">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-400">
+              <h3 className="text-xs font-bold tracking-[0.32px] text-neutral-400">
                 2. Scheduling & Bay Allocation
               </h3>
 
@@ -223,7 +223,7 @@ export default function CreateShopPage() {
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="w-full bg-[#1047FA] hover:bg-blue-700 text-white font-semibold h-11 text-sm shadow-sm"
+              className="w-full bg-[#1047FA] hover:bg-blue-700 text-white font-semibold h-11 text-sm rounded-full"
             >
               {isSubmitting ? 'Configuring Workshop...' : 'Create Workshop & Open Dashboard'}
             </Button>

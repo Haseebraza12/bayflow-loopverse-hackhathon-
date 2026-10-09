@@ -61,7 +61,7 @@ export default function CustomerBookingDetailPage() {
       <div className="mx-auto max-w-4xl px-4 py-16 text-center">
         <h1 className="text-2xl font-bold text-neutral-900">Booking Not Found</h1>
         <p className="mt-2 text-neutral-600">We could not locate this booking reference.</p>
-        <Button asChild className="mt-6 bg-[#1047FA] text-white">
+        <Button asChild className="mt-6 bg-[#1047FA] text-white rounded-full">
           <Link href="/bookings">Go to My Bookings</Link>
         </Button>
       </div>
@@ -185,17 +185,17 @@ export default function CustomerBookingDetailPage() {
         )}
 
         {/* Booking Header Card */}
-        <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
+        <div className="rounded-2xl border border-neutral-200 bg-white p-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="space-y-1.5">
               <div className="flex items-center gap-2">
-                <span className="font-mono text-xl sm:text-2xl font-extrabold text-[#1047FA]">
+                <span className="font-mono text-xl sm:text-2xl font-semibold text-[#1047FA]">
                   {booking.reference}
                 </span>
                 <button
                   type="button"
                   onClick={handleCopyRef}
-                  className="rounded-md border border-neutral-200 p-1 text-neutral-400 hover:text-neutral-700"
+                  className="rounded-full border border-neutral-200 p-1 text-neutral-400 hover:text-neutral-700"
                   title="Copy Reference"
                 >
                   <Copy className="size-3.5" />
@@ -215,7 +215,7 @@ export default function CustomerBookingDetailPage() {
                 asChild
                 variant="outline"
                 size="sm"
-                className="text-xs font-semibold border-neutral-300"
+                className="text-xs font-semibold border-neutral-300 rounded-full"
               >
                 <a href="tel:+924235789011">
                   <Phone className="size-3.5 mr-1 text-[#1047FA]" />
@@ -239,10 +239,10 @@ export default function CustomerBookingDetailPage() {
 
         {/* DECISION CALLOUT: Awaiting Customer Estimate Approval */}
         {isAwaitingEstimate && (
-          <div className="rounded-2xl border-2 border-amber-400 bg-amber-50/70 p-6 shadow-sm space-y-4">
+          <div className="rounded-2xl border-2 border-amber-400 bg-amber-50/70 p-6 space-y-4">
             <div className="flex items-start justify-between gap-3">
               <div className="space-y-1">
-                <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-amber-900">
+                <span className="flex items-center gap-1.5 text-xs font-bold tracking-[0.32px] text-amber-900">
                   <FileCheck className="size-4 text-amber-600" />
                   Action Required: Approve Estimate
                 </span>
@@ -257,7 +257,7 @@ export default function CustomerBookingDetailPage() {
               <div className="flex flex-col sm:flex-row gap-2 shrink-0">
                 <Button
                   onClick={handleApproveEstimate}
-                  className="bg-[#00c070] hover:bg-emerald-600 text-white font-bold text-xs px-5 h-10 shadow-sm"
+                  className="bg-[#00c070] hover:bg-emerald-600 text-white font-bold text-xs px-5 h-10 rounded-full"
                 >
                   <CheckCircle2 className="size-4 mr-1.5" />
                   Approve Estimate ({formatPKR(booking.estimateTotal)})
@@ -278,10 +278,10 @@ export default function CustomerBookingDetailPage() {
 
         {/* READY FOR PICKUP CALLOUT */}
         {isReadyForPickup && (
-          <div className="rounded-2xl border-2 border-emerald-400 bg-emerald-50/70 p-6 shadow-sm space-y-4">
+          <div className="rounded-2xl border-2 border-emerald-400 bg-emerald-50/70 p-6 space-y-4">
             <div className="flex items-start justify-between gap-3">
               <div className="space-y-1">
-                <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-emerald-900">
+                <span className="flex items-center gap-1.5 text-xs font-bold tracking-[0.32px] text-emerald-900">
                   <Sparkles className="size-4 text-emerald-600" />
                   Ready for Collection
                 </span>
@@ -295,7 +295,7 @@ export default function CustomerBookingDetailPage() {
 
               <Button
                 onClick={handleCollectVehicle}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-6 h-10 shadow-sm shrink-0"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-6 h-10 shrink-0 rounded-full"
               >
                 I Have Collected My Vehicle
               </Button>
@@ -308,7 +308,7 @@ export default function CustomerBookingDetailPage() {
           {/* Left Column (2 spans): Itemized Estimate & Inspection Notes */}
           <div className="lg:col-span-2 space-y-6">
             {/* Estimate Table */}
-            <Card className="border-neutral-200 shadow-sm overflow-hidden">
+            <Card className="border-neutral-200 overflow-hidden">
               <CardHeader className="bg-neutral-50/80 border-b border-neutral-100 pb-3.5">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-sm font-bold text-neutral-900 flex items-center gap-2">
@@ -331,7 +331,7 @@ export default function CustomerBookingDetailPage() {
               <CardContent className="p-0">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs">
-                    <thead className="bg-neutral-50 text-[11px] font-bold uppercase text-neutral-400 border-b border-neutral-200">
+                    <thead className="bg-neutral-50 text-[11px] font-bold text-neutral-400 border-b border-neutral-200">
                       <tr>
                         <th className="px-5 py-2.5">Item / Description</th>
                         <th className="px-4 py-2.5">Type</th>
@@ -368,7 +368,7 @@ export default function CustomerBookingDetailPage() {
                         <td colSpan={4} className="px-5 py-3 text-right font-bold text-neutral-700">
                           Total Estimate
                         </td>
-                        <td className="px-5 py-3 text-right font-extrabold text-sm text-[#1047FA]">
+                        <td className="px-5 py-3 text-right font-semibold text-sm text-[#1047FA]">
                           {formatPKR(booking.estimateTotal)}
                         </td>
                       </tr>
@@ -389,7 +389,7 @@ export default function CustomerBookingDetailPage() {
 
             {/* Quality Check Results if available */}
             {booking.qcNotes && (
-              <Card className="border-neutral-200 shadow-sm">
+              <Card className="border-neutral-200">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-bold text-neutral-900 flex items-center gap-2">
                     <ShieldCheck className="size-4 text-emerald-600" />
@@ -412,7 +412,7 @@ export default function CustomerBookingDetailPage() {
           {/* Right Column: Status Timeline & Vehicle Info */}
           <div className="space-y-6">
             {/* Live Status Timeline */}
-            <Card className="border-neutral-200 shadow-sm">
+            <Card className="border-neutral-200">
               <CardHeader className="pb-3 border-b border-neutral-100">
                 <CardTitle className="text-sm font-bold text-neutral-900 flex items-center gap-2">
                   <Clock className="size-4 text-[#1047FA]" />
@@ -475,7 +475,7 @@ export default function CustomerBookingDetailPage() {
             </Card>
 
             {/* Vehicle Details Card */}
-            <Card className="border-neutral-200 shadow-sm">
+            <Card className="border-neutral-200">
               <CardHeader className="pb-3 border-b border-neutral-100">
                 <CardTitle className="text-sm font-bold text-neutral-900 flex items-center gap-2">
                   <Car className="size-4 text-[#1047FA]" />
@@ -484,7 +484,7 @@ export default function CustomerBookingDetailPage() {
               </CardHeader>
               <CardContent className="pt-4 text-xs space-y-3">
                 <div>
-                  <span className="text-[10px] uppercase font-bold text-neutral-400">License Plate</span>
+                  <span className="text-[10px] font-bold text-neutral-400">License Plate</span>
                   <p className="font-mono font-bold text-neutral-900 text-sm mt-0.5">
                     {booking.licensePlate}
                   </p>
@@ -494,7 +494,7 @@ export default function CustomerBookingDetailPage() {
                 </div>
 
                 <div className="pt-2 border-t border-neutral-100">
-                  <span className="text-[10px] uppercase font-bold text-neutral-400">Customer</span>
+                  <span className="text-[10px] font-bold text-neutral-400">Customer</span>
                   <p className="font-medium text-neutral-900 mt-0.5">{booking.customerName}</p>
                   <p className="text-neutral-500">{booking.customerPhone}</p>
                 </div>
@@ -537,7 +537,7 @@ export default function CustomerBookingDetailPage() {
             </Button>
             <Button
               onClick={handleDeclineEstimate}
-              className="bg-red-600 hover:bg-red-700 text-white text-xs font-bold"
+              className="bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-full"
             >
               Confirm Decline
             </Button>
@@ -578,7 +578,7 @@ export default function CustomerBookingDetailPage() {
             </Button>
             <Button
               onClick={handleCancelBooking}
-              className="bg-red-600 hover:bg-red-700 text-white text-xs font-bold"
+              className="bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-full"
             >
               Cancel Appointment
             </Button>

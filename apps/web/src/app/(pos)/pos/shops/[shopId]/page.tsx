@@ -56,13 +56,13 @@ export default function ShopHomePage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {ROLE_HOMES.map((home) => (
           <Link key={home.segment} href={`${base}/${home.segment}`}>
-            <Card className="border-neutral-200 hover:border-[#1047FA] transition-all cursor-pointer shadow-sm hover:shadow">
+            <Card className="border-neutral-200 hover:border-[#1047FA] transition-all cursor-pointer hover:shadow">
               <CardContent className="p-5 flex items-center gap-4">
                 <div className="size-11 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-[#1047FA]">
                   <home.icon className="size-5" />
                 </div>
                 <div>
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-400">
+                  <span className="text-[11px] font-bold tracking-[0.32px] text-neutral-400">
                     {home.role}
                   </span>
                   <h2 className="text-sm font-bold text-neutral-900">{home.label}</h2>

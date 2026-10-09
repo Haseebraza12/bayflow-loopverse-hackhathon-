@@ -11,7 +11,36 @@
 /* Design tokens — exact values from spec 09 §3.2 (colours) and §3.3 (status phases). Hex on purpose. */
 :root {
   color-scheme: light;
-  --radius: 0.5rem;
+  /*
+   * Carbon (IBM) look and feel for the product UI (DESIGN.md): square corners everywhere except
+   * pill buttons, tags and avatars. The marketing landing page opts back into rounded corners
+   * with `.marketing`, which restores the old 0.5rem base radius.
+   */
+  --radius: 0rem;
+
+  /* Carbon g10 layering, built from the existing Open Color gray palette (no new hues):
+     canvas (background) -> layer (tiles, tables) -> field (inputs on a layer). */
+  --canvas: #f1f3f5;
+  --layer: #ffffff;
+  --layer-hover: #f1f3f5;
+  --layer-accent: #e9ecef;
+  --layer-selected: #dee2e6;
+  --field: #f1f3f5;
+  --field-hover: #e9ecef;
+  --border-subtle: #dee2e6;
+  --border-strong: #868e96;
+  --text-helper: #6c757d;
+  --overlay: rgb(33 37 41 / 0.5);
+  /* Carbon motion: productive easing, fast-01 / fast-02 / moderate-01 */
+  --ease-productive: cubic-bezier(0.2, 0, 0.38, 0.9);
+  --ease-entrance: cubic-bezier(0, 0, 0.38, 0.9);
+  --ease-exit: cubic-bezier(0.2, 0, 1, 0.9);
+  --duration-fast-01: 70ms;
+  --duration-fast-02: 110ms;
+  --duration-moderate-01: 150ms;
+  --duration-moderate-02: 240ms;
+  /* Carbon elevation: only floating surfaces (menus, popovers, modals) cast a shadow */
+  --shadow-float: 0 2px 6px rgb(0 0 0 / 0.3);
 
   /* shadcn base tokens */
   --background: #ffffff;
@@ -106,8 +135,8 @@
 
 /* Expose the tokens as Tailwind utilities (`bg-primary`, `text-cta`, `border-status-parts-border`, …). */
 @theme inline {
-  --font-sans: var(--font-inter);
-  --font-heading: var(--font-inter);
+  --font-sans: var(--font-archivo);
+  --font-heading: var(--font-pragati-narrow);
   --font-mono: var(--font-jetbrains-mono);
   --font-handwriting: var(--font-caveat);
 
@@ -148,6 +177,22 @@
   --color-danger-ink: var(--danger-ink);
   --color-info-subtle: var(--info-subtle);
   --color-info-ink: var(--info-ink);
+
+  --color-canvas: var(--canvas);
+  --color-layer: var(--layer);
+  --color-layer-hover: var(--layer-hover);
+  --color-layer-accent: var(--layer-accent);
+  --color-layer-selected: var(--layer-selected);
+  --color-field: var(--field);
+  --color-field-hover: var(--field-hover);
+  --color-border-subtle: var(--border-subtle);
+  --color-border-strong: var(--border-strong);
+  --color-helper: var(--text-helper);
+  --color-overlay: var(--overlay);
+  --ease-productive: var(--ease-productive);
+  --ease-entrance: var(--ease-entrance);
+  --ease-exit: var(--ease-exit);
+  --shadow-float: var(--shadow-float);
 
   --color-nav: var(--nav);
   --color-nav-foreground: var(--nav-foreground);
@@ -217,6 +262,91 @@
   body {
     @apply bg-background font-sans text-foreground antialiased;
   }
+  ::selection {
+    background: var(--brand-navy);
+    color: #fff;
+  }
+  /* Carbon-style scrollbars: thin, square, neutral */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-strong) transparent;
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-pragati-narrow), var(--font-archivo), sans-serif;
+  }
+}
+
+/* The marketing landing page keeps its rounded, soft look (it is not part of the Carbon product UI). */
+.marketing {
+  --radius: 0.5rem;
+}
+
+/*
+ * Carbon type scale (productive). Fonts stay the project's own: Archivo (body), Pragati Narrow
+ * (headings). Sizes, line heights and tracking follow Carbon's tokens.
+ */
+@utility type-label-01 {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  letter-spacing: 0.32px;
+}
+@utility type-helper-01 {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  letter-spacing: 0.32px;
+  color: var(--text-helper);
+}
+@utility type-body-compact-01 {
+  font-size: 0.875rem;
+  line-height: 1.125rem;
+  letter-spacing: 0.16px;
+}
+@utility type-body-01 {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  letter-spacing: 0.16px;
+}
+@utility type-heading-compact-01 {
+  font-size: 0.875rem;
+  line-height: 1.125rem;
+  letter-spacing: 0.16px;
+  font-weight: 600;
+}
+@utility type-heading-compact-02 {
+  font-size: 1rem;
+  line-height: 1.375rem;
+  font-weight: 600;
+}
+@utility type-heading-03 {
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+  font-weight: 400;
+}
+@utility type-heading-04 {
+  font-family: var(--font-heading);
+  font-size: 1.75rem;
+  line-height: 2.25rem;
+  font-weight: 400;
+}
+@utility type-heading-05 {
+  font-family: var(--font-heading);
+  font-size: 2rem;
+  line-height: 2.5rem;
+  font-weight: 400;
+}
+
+/* Carbon focus: a 2px solid focus ring; inside fields and tiles it is drawn inset. */
+@utility carbon-focus {
+  &:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: -2px;
+  }
 }
 
 .font-handwriting {
@@ -228,4 +358,23 @@
   background-image: 
     linear-gradient(to right, rgba(226, 232, 240, 0.65) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(226, 232, 240, 0.65) 1px, transparent 1px);
+}
+
+/* Landing testimonials marquee: the track holds the list twice, so sliding -50% (minus half
+   the 1.5rem gap) loops seamlessly. Pauses on hover; static for reduced-motion users. */
+.reviews-marquee {
+  animation: reviews-marquee 60s linear infinite;
+}
+.reviews-marquee:hover {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .reviews-marquee {
+    animation: none;
+  }
+}
+@keyframes reviews-marquee {
+  to {
+    transform: translateX(calc(-50% - 0.75rem));
+  }
 }

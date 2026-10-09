@@ -70,7 +70,7 @@ export default function ServiceAdvisorBookingDetailPage() {
     return (
       <div className="py-16 text-center space-y-4">
         <h1 className="text-xl font-bold text-neutral-900">Booking not found</h1>
-        <Button asChild className="bg-[#1047FA] text-white text-xs">
+        <Button asChild className="bg-[#1047FA] text-white text-xs rounded-full">
           <Link href={`${base}/bookings`}>Back to Bookings Queue</Link>
         </Button>
       </div>
@@ -165,17 +165,17 @@ export default function ServiceAdvisorBookingDetailPage() {
       )}
 
       {/* Main Header & Action Bar */}
-      <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm space-y-4">
+      <div className="rounded-2xl border border-neutral-200 bg-white p-6 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <span className="font-mono text-xl sm:text-2xl font-extrabold text-[#1047FA]">
+              <span className="font-mono text-xl sm:text-2xl font-semibold text-[#1047FA]">
                 {booking.reference}
               </span>
               <button
                 type="button"
                 onClick={handleCopyRef}
-                className="rounded border border-neutral-200 p-1 text-neutral-400 hover:text-neutral-700"
+                className="rounded-full border border-neutral-200 p-1 text-neutral-400 hover:text-neutral-700"
               >
                 <Copy className="size-3.5" />
               </button>
@@ -196,7 +196,7 @@ export default function ServiceAdvisorBookingDetailPage() {
             {booking.status === 'PENDING' && (
               <Button
                 onClick={handleConfirmIntake}
-                className="bg-[#1047FA] hover:bg-blue-700 text-white font-bold text-xs h-9 px-4"
+                className="bg-[#1047FA] hover:bg-blue-700 text-white font-bold text-xs h-9 px-4 rounded-full"
               >
                 Confirm Booking Intake
               </Button>
@@ -215,7 +215,7 @@ export default function ServiceAdvisorBookingDetailPage() {
             {booking.status === 'ESTIMATE_REVIEW' && (
               <Button
                 onClick={handleSendEstimateToCustomer}
-                className="bg-[#00c070] hover:bg-emerald-600 text-white font-bold text-xs h-9 px-4"
+                className="bg-[#00c070] hover:bg-emerald-600 text-white font-bold text-xs h-9 px-4 rounded-full"
               >
                 <Send className="size-3.5 mr-1.5" />
                 Send Estimate to Customer
@@ -237,14 +237,14 @@ export default function ServiceAdvisorBookingDetailPage() {
                 <Button
                   onClick={handleNotifyReady}
                   variant="outline"
-                  className="text-xs font-semibold h-9"
+                  className="text-xs font-semibold h-9 rounded-full"
                 >
                   <Phone className="size-3.5 mr-1.5 text-[#1047FA]" />
                   Notify Customer Ready
                 </Button>
                 <Button
                   onClick={handleCompleteBooking}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-9 px-4"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-9 px-4 rounded-full"
                 >
                   Complete & Settle
                 </Button>
@@ -259,9 +259,9 @@ export default function ServiceAdvisorBookingDetailPage() {
         {/* Left Column (2 spans): Estimate & Inspection Details */}
         <div className="lg:col-span-2 space-y-6">
           {/* Estimate Table */}
-          <Card className="border-neutral-200 shadow-sm overflow-hidden">
+          <Card className="border-neutral-200 overflow-hidden">
             <CardHeader className="bg-neutral-50/80 border-b border-neutral-100 p-4 flex flex-row items-center justify-between">
-              <CardTitle className="text-xs font-bold uppercase tracking-wider text-neutral-500 flex items-center gap-1.5">
+              <CardTitle className="text-xs font-bold tracking-[0.32px] text-neutral-500 flex items-center gap-1.5">
                 <FileText className="size-4 text-[#1047FA]" />
                 Technician Inspection & Estimate ({booking.estimateItems.length} Items)
               </CardTitle>
@@ -278,7 +278,7 @@ export default function ServiceAdvisorBookingDetailPage() {
             <CardContent className="p-0">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-neutral-50 text-[11px] font-bold uppercase text-neutral-400 border-b border-neutral-200">
+                  <thead className="bg-neutral-50 text-[11px] font-bold text-neutral-400 border-b border-neutral-200">
                     <tr>
                       <th className="px-5 py-2.5">Line Description</th>
                       <th className="px-4 py-2.5">Type</th>
@@ -315,7 +315,7 @@ export default function ServiceAdvisorBookingDetailPage() {
                       <td colSpan={4} className="px-5 py-3 text-right text-neutral-600">
                         Grand Total
                       </td>
-                      <td className="px-5 py-3 text-right font-extrabold text-sm text-[#1047FA]">
+                      <td className="px-5 py-3 text-right font-semibold text-sm text-[#1047FA]">
                         {formatPKR(booking.estimateTotal)}
                       </td>
                     </tr>
@@ -337,9 +337,9 @@ export default function ServiceAdvisorBookingDetailPage() {
 
         {/* Right Column: Customer & Staff Assignment Card */}
         <div className="space-y-6">
-          <Card className="border-neutral-200 shadow-sm">
+          <Card className="border-neutral-200">
             <CardHeader className="pb-3 border-b border-neutral-100">
-              <CardTitle className="text-xs font-bold uppercase tracking-wider text-neutral-500 flex items-center gap-1.5">
+              <CardTitle className="text-xs font-bold tracking-[0.32px] text-neutral-500 flex items-center gap-1.5">
                 <User className="size-3.5 text-[#1047FA]" />
                 Customer Contact
               </CardTitle>
@@ -360,14 +360,14 @@ export default function ServiceAdvisorBookingDetailPage() {
               </div>
 
               <div className="pt-3 border-t border-neutral-100 space-y-1">
-                <span className="text-[10px] uppercase font-bold text-neutral-400">Assigned Technician</span>
+                <span className="text-[10px] font-bold text-neutral-400">Assigned Technician</span>
                 <p className="font-bold text-neutral-900">
                   {booking.assignedTechnicianName || 'Not yet assigned'}
                 </p>
               </div>
 
               <div className="pt-2 border-t border-neutral-100 space-y-1">
-                <span className="text-[10px] uppercase font-bold text-neutral-400">Vehicle</span>
+                <span className="text-[10px] font-bold text-neutral-400">Vehicle</span>
                 <p className="font-mono font-bold text-neutral-900">{booking.licensePlate}</p>
                 <p className="text-neutral-500">
                   {booking.vehicleYear} {booking.vehicleMake} {booking.vehicleModel}
@@ -417,7 +417,7 @@ export default function ServiceAdvisorBookingDetailPage() {
             <Button variant="outline" onClick={() => setAssignTechOpen(false)} className="text-xs font-semibold">
               Cancel
             </Button>
-            <Button onClick={handleAssignTechnician} className="bg-[#1047FA] text-white text-xs font-bold">
+            <Button onClick={handleAssignTechnician} className="bg-[#1047FA] text-white text-xs font-bold rounded-full">
               Confirm Assignment
             </Button>
           </DialogFooter>
@@ -463,7 +463,7 @@ export default function ServiceAdvisorBookingDetailPage() {
             <Button variant="outline" onClick={() => setAssignPartsOpen(false)} className="text-xs font-semibold">
               Cancel
             </Button>
-            <Button onClick={handleAssignParts} className="bg-[#1047FA] text-white text-xs font-bold">
+            <Button onClick={handleAssignParts} className="bg-[#1047FA] text-white text-xs font-bold rounded-full">
               Send to Parts Specialist
             </Button>
           </DialogFooter>

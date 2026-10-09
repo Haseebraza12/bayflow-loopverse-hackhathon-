@@ -2,6 +2,8 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 /** httpOnly session cookie set by the API (D8). The web app only checks that it exists. */
 const SESSION_COOKIE = 'bf_session'
+/** Set by `components/dev/screen-navigator.tsx`; honoured only outside production. */
+const DESIGN_PREVIEW_COOKIE = 'bf_design_preview'
 
 /**
  * Optimistic auth gate (Next 16 `proxy` convention, spec 09 §2.8; spec 04 "UX shortcut").
@@ -10,6 +12,10 @@ const SESSION_COOKIE = 'bf_session'
  */
 export function proxy(request: NextRequest) {
   if (request.cookies.has(SESSION_COOKIE)) return NextResponse.next()
+  // Dev-only: the design screen navigator sets this cookie so every screen opens without login.
+  if (process.env.NODE_ENV !== 'production' && request.cookies.has(DESIGN_PREVIEW_COOKIE)) {
+    return NextResponse.next()
+  }
 
   const login = new URL('/login', request.url)
   login.searchParams.set('next', `${request.nextUrl.pathname}${request.nextUrl.search}`)

@@ -27,9 +27,7 @@ export function PublicHeader() {
   const [solutionsOpen, setSolutionsOpen] = useState(false)
   const [companyOpen, setCompanyOpen] = useState(false)
   const [resourcesOpen, setResourcesOpen] = useState(false)
-  const [langOpen, setLangOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [selectedLang, setSelectedLang] = useState('English')
 
   const navRef = useRef<HTMLDivElement>(null)
 
@@ -40,7 +38,6 @@ export function PublicHeader() {
         setSolutionsOpen(false)
         setCompanyOpen(false)
         setResourcesOpen(false)
-        setLangOpen(false)
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
@@ -106,16 +103,8 @@ export function PublicHeader() {
     },
   ]
 
-  const languages = [
-    { name: 'English', flag: '🇬🇧' },
-    { name: 'العربية (Arabic)', flag: '🇦🇪' },
-    { name: 'اردو (Urdu)', flag: '🇵🇰' },
-    { name: 'Bahasa Melayu', flag: '🇲🇾' },
-    { name: 'ไทย (Thai)', flag: '🇹🇭' },
-  ]
-
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-neutral-200/80 bg-white/95 backdrop-blur-md">
+    <header className="marketing sticky top-0 z-50 w-full border-b border-neutral-200/80 bg-white/95 backdrop-blur-md">
       <div
         ref={navRef}
         className="mx-auto flex h-20 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8"
@@ -137,7 +126,7 @@ export function PublicHeader() {
                 setCompanyOpen(false)
                 setResourcesOpen(false)
               }}
-              className="inline-flex items-center gap-1 px-3 py-2 text-xs xl:text-sm font-bold uppercase tracking-wider text-neutral-700 hover:text-[#1047FA] transition-colors"
+              className="inline-flex items-center gap-1 px-3 py-2 text-xs xl:text-sm font-normal uppercase tracking-wider text-neutral-700 hover:text-[#1047FA] transition-colors"
             >
               Features
               <ChevronDown
@@ -203,7 +192,7 @@ export function PublicHeader() {
                 setCompanyOpen(false)
                 setResourcesOpen(false)
               }}
-              className="inline-flex items-center gap-1 px-3 py-2 text-xs xl:text-sm font-bold uppercase tracking-wider text-neutral-700 hover:text-[#1047FA] transition-colors"
+              className="inline-flex items-center gap-1 px-3 py-2 text-xs xl:text-sm font-normal uppercase tracking-wider text-neutral-700 hover:text-[#1047FA] transition-colors"
             >
               Solutions
               <ChevronDown
@@ -246,7 +235,7 @@ export function PublicHeader() {
                 setSolutionsOpen(false)
                 setResourcesOpen(false)
               }}
-              className="inline-flex items-center gap-1 px-3 py-2 text-xs xl:text-sm font-bold uppercase tracking-wider text-neutral-700 hover:text-[#1047FA] transition-colors"
+              className="inline-flex items-center gap-1 px-3 py-2 text-xs xl:text-sm font-normal uppercase tracking-wider text-neutral-700 hover:text-[#1047FA] transition-colors"
             >
               Company
               <ChevronDown
@@ -282,7 +271,7 @@ export function PublicHeader() {
                 setSolutionsOpen(false)
                 setCompanyOpen(false)
               }}
-              className="inline-flex items-center gap-1 px-3 py-2 text-xs xl:text-sm font-bold uppercase tracking-wider text-neutral-700 hover:text-[#1047FA] transition-colors"
+              className="inline-flex items-center gap-1 px-3 py-2 text-xs xl:text-sm font-normal uppercase tracking-wider text-neutral-700 hover:text-[#1047FA] transition-colors"
             >
               Resources
               <ChevronDown
@@ -313,46 +302,14 @@ export function PublicHeader() {
           {/* PRICING LINK */}
           <Link
             href="#pricing"
-            className="px-3 py-2 text-xs xl:text-sm font-bold uppercase tracking-wider text-neutral-700 hover:text-[#1047FA] transition-colors"
+            className="px-3 py-2 text-xs xl:text-sm font-normal uppercase tracking-wider text-neutral-700 hover:text-[#1047FA] transition-colors"
           >
             Pricing
           </Link>
         </nav>
 
-        {/* Right Actions: Language & Sign In */}
+        {/* Right Actions: Sign In */}
         <div className="hidden lg:flex items-center gap-4">
-          {/* Language selector */}
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setLangOpen(!langOpen)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-neutral-700 hover:text-neutral-900 transition-colors"
-            >
-              <span className="text-base">🇬🇧</span>
-              <span>{selectedLang}</span>
-              <ChevronDown className="size-3.5 text-neutral-500" />
-            </button>
-
-            {langOpen && (
-              <div className="absolute right-0 top-full mt-2 w-48 rounded-xl border border-neutral-200 bg-white p-1.5 shadow-lg z-50">
-                {languages.map((l) => (
-                  <button
-                    key={l.name}
-                    type="button"
-                    onClick={() => {
-                      setSelectedLang(l.name.split(' ')[0] ?? l.name)
-                      setLangOpen(false)
-                    }}
-                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-neutral-700 hover:bg-neutral-50 hover:text-[#1047FA]"
-                  >
-                    <span>{l.flag}</span>
-                    <span>{l.name}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
           {/* Emerald Sign In Button */}
           <Button
             asChild
@@ -407,15 +364,12 @@ export function PublicHeader() {
 
             <hr className="border-neutral-100" />
 
-            <div className="flex flex-col space-y-2.5 text-sm font-semibold text-neutral-800">
+            <div className="flex flex-col space-y-2.5 text-sm font-normal text-neutral-800">
               <Link href="#solutions" onClick={() => setMobileMenuOpen(false)}>
                 Solutions
               </Link>
               <Link href="#workflow" onClick={() => setMobileMenuOpen(false)}>
                 Workflow
-              </Link>
-              <Link href="#offices" onClick={() => setMobileMenuOpen(false)}>
-                Offices
               </Link>
               <Link href="#support" onClick={() => setMobileMenuOpen(false)}>
                 Support & Onboarding

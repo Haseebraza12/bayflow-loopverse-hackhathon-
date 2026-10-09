@@ -60,9 +60,9 @@ export default function RegisterPage() {
   }
 
   return (
-    <Card className="border-neutral-200 shadow-sm">
+    <Card className="border-neutral-200">
       <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl font-bold tracking-tight text-neutral-900">
+        <CardTitle className="text-2xl font-bold text-neutral-900">
           Register your garage
         </CardTitle>
         <CardDescription className="text-sm text-neutral-500">
@@ -184,7 +184,7 @@ export default function RegisterPage() {
           <Button
             type="submit"
             disabled={loading}
-            className="w-full bg-[#1047FA] hover:bg-blue-700 text-white font-semibold h-10 shadow-sm mt-2"
+            className="w-full bg-[#1047FA] hover:bg-blue-700 text-white font-semibold h-10 mt-2 rounded-full"
           >
             {loading ? 'Creating account...' : 'Create Owner Account & Shop'}
           </Button>
