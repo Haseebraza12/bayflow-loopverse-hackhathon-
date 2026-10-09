@@ -100,6 +100,11 @@ flowchart TD
 | `/pos/shops/:shopId/services` | O-03 Services catalogue | `(pos)` | `OWNER` | P0 |
 | `/pos/shops/:shopId/settings` | O-04 Shop settings | `(pos)` | `OWNER` | P0 |
 | `/pos/shops/:shopId/calls` | B-04 AI calls and tasks | `(pos)` | `SERVICE_ADVISOR`, `OWNER` | P2 |
+| `/admin` | A-01 Platform overview | `(admin)` | Platform admins (D94) | P1 |
+| `/admin/shops`, `/admin/shops/:shopId` | A-02 Shops, A-03 Shop detail (suspend / reactivate) | `(admin)` | Platform admins | P1 |
+| `/admin/users`, `/admin/users/:userId` | A-04 Users, A-05 User detail (deactivate, admin access) | `(admin)` | Platform admins | P1 |
+| `/admin/bookings`, `/admin/bookings/:bookingId` | A-06 Bookings, A-07 Booking detail (read-only) | `(admin)` | Platform admins | P1 |
+| `/admin/audit` | A-08 Audit log (filters, export) | `(admin)` | Platform admins | P1 |
 | *(overlays)* | X-01 Notifications panel · B-01 Incoming call · B-02 In-call bar | — | Logged in | P0 / P2 |
 | *(fallbacks)* | X-02 404 · X-03 403 · X-04 Session expired · X-05 Error and offline | — | — | P0 |
 

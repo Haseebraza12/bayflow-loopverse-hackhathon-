@@ -710,7 +710,7 @@ D69: login, owner registration, booking creation, shop creation, member creation
 |---|---|
 | 1 | Full CSP: ship as `Content-Security-Policy-Report-Only`, walk the demo script with DevTools open, fix violations, then enforce |
 | 2 | Origin / `Sec-Fetch-Site` check for cookie-authenticated unsafe requests → 403 `FORBIDDEN` (SEC-41) |
-| 3 | Auth audit trail as structured log events: login success/failure, logout, registration, membership add / role change / deactivate / reactivate, rate-limit blocks, WS rejections (no new table) |
+| 3 | ~~Auth audit trail as structured log events (no new table)~~ — superseded by D95: the persisted `audit_events` log (spec 19 §3) records these, admin actions and booking activity |
 | 4 | Password change `POST /api/v1/me/password` (current + new password, per-account limiter) that sets `users.tokens_valid_after` to the clock's now (D63) so tokens with an older `iat` are rejected, then re-issues the caller's cookie (SEC-43). A judge who changes a demo password locks the others out until the next seed run, which restores the demo password hash (D60) |
 | 5 | Single-use WS tickets (D70 makes them Tier 2): in-memory set of consumed ticket hashes until expiry (one replica, D14) — no new claim needed (SEC-42) |
 | 6 | Realtime hub closes a user's sockets when a membership is deactivated, and every socket older than the session lifetime |

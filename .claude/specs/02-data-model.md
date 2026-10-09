@@ -594,6 +594,12 @@ Created by the baseline revision together with the core tables (D84, section 9):
 
 The same baseline creates `ix_users_phone` (3.1). Index names follow 2.2; spec 05 does not name them, so the names above are this spec's (partial indexes are always named explicitly).
 
+### 3.22 Platform administration (P1, spec 19)
+
+- `users.is_platform_admin boolean NOT NULL DEFAULT false` (D94), partial index `ix_users_platform_admin` on `id` where true.
+- `shops.suspended_at timestamptz`, `shops.suspended_reason varchar(500)`, `shops.suspended_by_user_id uuid` FK `users` `RESTRICT` (D96); `ck_shops_suspension_complete`: all three null or all three set.
+- `audit_events` — audit (append-only, section 8; trigger `trg_audit_events_append_only`): columns and indexes in spec 19 §3.1 (D95).
+
 ## 4. Tenant integrity at the database level (D20)
 
 ### 4.1 The pattern

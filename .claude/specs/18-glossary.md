@@ -37,6 +37,9 @@ Source of truth for requirements: `helping-folder/Web Dev - Virtual.pdf` (BayFlo
 | **QC inspection** | One QC attempt on a booking (`qc_inspections` row): who picked it, checklist, notes, result. |
 | **QC issue** | A problem recorded by a failed QC inspection (`qc_issues` row); returns the job to the technician (§5.3). |
 | **Booking event** | Audit-log row for every transition and operation on a booking (`booking_events`): who, role, when, from, to, action, note (§7.5). |
+| **Platform admin** | A BayFlow operator ("super admin"): a user with `is_platform_admin`, not a shop role; manages tenants and accounts from the admin console (D94, spec 19). |
+| **Audit event** | One row of the platform-wide, append-only `audit_events` log: who did what to which target in which shop, when, from where (D95, spec 19 §3). |
+| **Suspended shop** | A shop a platform admin has switched off with a reason: hidden publicly, closed to its staff, readable by its customers; fully reversible (D96). |
 | **Notification** | In-app message shown under the bell icon with unread count (§5.4). |
 | **Transition** | A booking action that changes `bookings.status`. |
 | **Operation** | A booking action that does **not** change status (e.g. `START_REPAIR`, `NOTIFY_READY`) but is still role-guarded and audited. |
@@ -311,6 +314,7 @@ Key column names other specs rely on (full definitions in spec 02; bonus tables 
 | `CALL_NOT_ACTIVE` *(bonus)* | 409 | Accept/decline on a call that is no longer ringing, or an internal agent request for a call outside its active window (ending an already-ended call is idempotent and returns 200) |
 | `CONFLICT` | 409 | Other conflicts (duplicate SKU, duplicate membership, grid change blocked by future bookings, `order-parts` when nothing is short, receiving a PO that is already `RECEIVED`, …) |
 | `PAYLOAD_TOO_LARGE` | 413 | Request body over the size limit |
+| `SHOP_SUSPENDED` | 403 | The shop is suspended by BayFlow: every staff route, and customer booking actions except `cancel` (D96) |
 | `RATE_LIMITED` | 429 | Too many attempts (login, owner registration, booking creation, shop creation, member creation, and — bonus — call starts) |
 | `INTERNAL_ERROR` | 500 | Unexpected error (no internals leaked) |
 | `CALLING_DISABLED` *(bonus)* | 503 | Calling not configured (`CALL_PROVIDER_*` blank) or the monthly calling cap (`CALL_MONTHLY_MINUTES_CAP`) reached. A blank `LLM_API_KEY` or a reached `AI_DAILY_CALL_CAP` never fails a call; they only mean no AI answers missed calls |

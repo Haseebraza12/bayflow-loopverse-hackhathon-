@@ -50,6 +50,7 @@ Names come from [18-glossary.md](18-glossary.md). [17-decisions.md](17-decisions
 | Current user | `/api/v1/me`, `/api/v1/me/*`, `/api/v1/realtime/ticket` | the caller; `CUSTOMER` for booking reads and actions | Queries filtered by `customer_user_id` / `recipient_user_id` / owner of the vehicle = caller; anything else → 404 |
 | Wizard | `POST /api/v1/bookings` | `CUSTOMER` | The body's `shop_id` only selects where to book; it is never an authorization claim (D20) |
 | Staff | `/api/v1/shops/{shop_id}/*` | the caller's membership role in `shop_id` | Every staff route group is built with `app.shared.auth.shop_scoped_router()` (prefix `/api/v1/shops/{shop_id}`, D80), which attaches `require_shop_member` at router level: it loads the caller's **active** membership or answers 404 on every route, whether the shop doesn't exist, belongs to another tenant, or the membership is inactive (D9, D20). `POST /api/v1/shops` is the only `/shops` route outside it. |
+| Platform admin (P1) | `/api/v1/admin/*` | a platform admin (`require_platform_admin`, D94) | Every tenant; E-61…E-75 in spec 19 §4 |
 | Agent (P2) | `/api/v1/internal/calls/{call_id}/*` | the AI Front Desk | The call's shop and customer, read from `call_logs` (spec 05 §5.1) |
 
 - **Management routes** add `require_roles(...)`: a member with another role gets 403 `FORBIDDEN`. Each route's roles are listed in §4.
@@ -202,6 +203,7 @@ Every glossary §10 code, with its status and where this contract raises it.
 | `CALL_NOT_ACTIVE` *(P2)* | 409 | Accept or decline on a call that is no longer ringing; agent routes after the AI leg's window (ending an ended call is 200, not an error) |
 | `CONFLICT` | 409 | Duplicate SKU, membership or active service name; grid change blocked by future bookings (D37); `order-parts` when nothing is short; receiving a `RECEIVED` PO |
 | `PAYLOAD_TOO_LARGE` | 413 | Body over the §1.10 limit |
+| `SHOP_SUSPENDED` | 403 | Staff routes of a suspended shop and customer actions on its bookings except `cancel` (D96, spec 19 §2) |
 | `RATE_LIMITED` | 429 | §1.9 limiters |
 | `INTERNAL_ERROR` | 500 | Unexpected errors (traceback logged with the request ID, never returned) |
 | `CALLING_DISABLED` *(P2)* | 503 | Calling not configured (`CALL_PROVIDER_*` blank), LiveKit unreachable or out of quota, or the monthly calling cap `CALL_MONTHLY_MINUTES_CAP` reached (glossary §10, spec 05 §8.7). A blank `LLM_API_KEY` or a reached `AI_DAILY_CALL_CAP` never fails a call; the call just gets no AI leg |
