@@ -15,6 +15,705 @@
         "title": "ActorRole",
         "type": "string"
       },
+      "AdminBookingDetail": {
+        "description": "E-73 (spec 19 §4): the staff projection of any tenant's booking with its full timeline.\nRead-only: no `allowed_actions` (no admin edits a tenant's booking, D94); the customer's\ncontact details and the parts summary are always shown.",
+        "properties": {
+          "cancel_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cancel Reason"
+          },
+          "cancelled_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cancelled At"
+          },
+          "cancelled_by": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UserRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "customer": {
+            "$ref": "#/components/schemas/BookingCustomer"
+          },
+          "customer_notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customer Notes"
+          },
+          "estimate_summary": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EstimateSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/BookingEventRead"
+            },
+            "title": "Events",
+            "type": "array"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "inspection_notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inspection Notes"
+          },
+          "last_event": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BookingEventRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "mileage_km": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The mileage given at booking time (D65).",
+            "title": "Mileage Km"
+          },
+          "open_qc_issues_count": {
+            "title": "Open Qc Issues Count",
+            "type": "integer"
+          },
+          "parts_person": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MemberRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "parts_summary": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PartsSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "qc_inspector": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MemberRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "qc_round": {
+            "title": "Qc Round",
+            "type": "integer"
+          },
+          "ready_notified_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ready Notified At"
+          },
+          "reference": {
+            "title": "Reference",
+            "type": "string"
+          },
+          "repair_started_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Repair Started At"
+          },
+          "services": {
+            "items": {
+              "$ref": "#/components/schemas/BookingServiceRead"
+            },
+            "title": "Services",
+            "type": "array"
+          },
+          "shop": {
+            "$ref": "#/components/schemas/BookingShopRef"
+          },
+          "shop_id": {
+            "format": "uuid",
+            "title": "Shop Id",
+            "type": "string"
+          },
+          "slot_end": {
+            "title": "Slot End",
+            "type": "string"
+          },
+          "slot_start": {
+            "title": "Slot Start",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/BookingStatus"
+          },
+          "status_changed_at": {
+            "title": "Status Changed At",
+            "type": "string"
+          },
+          "technician": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MemberRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "updated_at": {
+            "title": "Updated At",
+            "type": "string"
+          },
+          "vehicle": {
+            "$ref": "#/components/schemas/VehicleRead"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "shop_id",
+          "reference",
+          "status",
+          "version",
+          "slot_start",
+          "slot_end",
+          "status_changed_at",
+          "customer",
+          "vehicle",
+          "mileage_km",
+          "services",
+          "customer_notes",
+          "inspection_notes",
+          "technician",
+          "parts_person",
+          "qc_inspector",
+          "estimate_summary",
+          "parts_summary",
+          "open_qc_issues_count",
+          "qc_round",
+          "repair_started_at",
+          "ready_notified_at",
+          "completed_at",
+          "cancelled_at",
+          "cancelled_by",
+          "cancel_reason",
+          "last_event",
+          "created_at",
+          "updated_at",
+          "shop",
+          "events"
+        ],
+        "title": "AdminBookingDetail",
+        "type": "object"
+      },
+      "AdminBookingSummary": {
+        "description": "An E-72 list item (spec 19 §4): any tenant's booking, read-only.",
+        "properties": {
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "customer": {
+            "$ref": "#/components/schemas/BookingCustomer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "reference": {
+            "title": "Reference",
+            "type": "string"
+          },
+          "service_names": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Service Names",
+            "type": "array"
+          },
+          "shop": {
+            "$ref": "#/components/schemas/BookingShopRef"
+          },
+          "slot_end": {
+            "title": "Slot End",
+            "type": "string"
+          },
+          "slot_start": {
+            "title": "Slot Start",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/BookingStatus"
+          },
+          "updated_at": {
+            "title": "Updated At",
+            "type": "string"
+          },
+          "vehicle": {
+            "$ref": "#/components/schemas/VehicleBrief"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "reference",
+          "shop",
+          "status",
+          "version",
+          "slot_start",
+          "slot_end",
+          "customer",
+          "vehicle",
+          "service_names",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "AdminBookingSummary",
+        "type": "object"
+      },
+      "AdminMemberRead": {
+        "properties": {
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "full_name": {
+            "title": "Full Name",
+            "type": "string"
+          },
+          "is_active": {
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "membership_id": {
+            "format": "uuid",
+            "title": "Membership Id",
+            "type": "string"
+          },
+          "user_id": {
+            "format": "uuid",
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "membership_id",
+          "user_id",
+          "full_name",
+          "email",
+          "is_active"
+        ],
+        "title": "AdminMemberRead",
+        "type": "object"
+      },
+      "AdminMembershipRead": {
+        "properties": {
+          "is_active": {
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "membership_id": {
+            "format": "uuid",
+            "title": "Membership Id",
+            "type": "string"
+          },
+          "role": {
+            "$ref": "#/components/schemas/MembershipRole"
+          },
+          "shop": {
+            "$ref": "#/components/schemas/AdminShopRef"
+          }
+        },
+        "required": [
+          "membership_id",
+          "shop",
+          "role",
+          "is_active"
+        ],
+        "title": "AdminMembershipRead",
+        "type": "object"
+      },
+      "AdminShopDetail": {
+        "description": "E-63 (A-03), also the answer of E-64 / E-65: the profile, the suspension, the team by role\n(every role, glossary order), all bookings per phase, the 10 newest bookings and the 10 newest\naudit events of the shop.",
+        "properties": {
+          "booking_counts_by_phase": {
+            "items": {
+              "$ref": "#/components/schemas/PhaseCount"
+            },
+            "title": "Booking Counts By Phase",
+            "type": "array"
+          },
+          "latest_audit_events": {
+            "items": {
+              "$ref": "#/components/schemas/AuditEventRead"
+            },
+            "title": "Latest Audit Events",
+            "type": "array"
+          },
+          "latest_bookings": {
+            "items": {
+              "$ref": "#/components/schemas/AdminBookingSummary"
+            },
+            "title": "Latest Bookings",
+            "type": "array"
+          },
+          "members_by_role": {
+            "items": {
+              "$ref": "#/components/schemas/RoleMembers"
+            },
+            "title": "Members By Role",
+            "type": "array"
+          },
+          "owners": {
+            "items": {
+              "$ref": "#/components/schemas/AdminUserRef"
+            },
+            "title": "Owners",
+            "type": "array"
+          },
+          "shop": {
+            "$ref": "#/components/schemas/ShopRead"
+          },
+          "suspension": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ShopSuspensionRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "shop",
+          "suspension",
+          "owners",
+          "members_by_role",
+          "booking_counts_by_phase",
+          "latest_bookings",
+          "latest_audit_events"
+        ],
+        "title": "AdminShopDetail",
+        "type": "object"
+      },
+      "AdminShopRef": {
+        "description": "A shop in admin lists.",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "name"
+        ],
+        "title": "AdminShopRef",
+        "type": "object"
+      },
+      "AdminShopRow": {
+        "description": "An E-62 row (A-02).",
+        "properties": {
+          "active_members": {
+            "title": "Active Members",
+            "type": "integer"
+          },
+          "bookings_30d": {
+            "title": "Bookings 30D",
+            "type": "integer"
+          },
+          "city": {
+            "title": "City",
+            "type": "string"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "is_listed": {
+            "title": "Is Listed",
+            "type": "boolean"
+          },
+          "owners": {
+            "items": {
+              "$ref": "#/components/schemas/AdminUserRef"
+            },
+            "title": "Owners",
+            "type": "array"
+          },
+          "shop": {
+            "$ref": "#/components/schemas/AdminShopRef"
+          },
+          "suspension": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ShopSuspensionRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "shop",
+          "city",
+          "created_at",
+          "is_listed",
+          "suspension",
+          "owners",
+          "active_members",
+          "bookings_30d"
+        ],
+        "title": "AdminShopRow",
+        "type": "object"
+      },
+      "AdminShopStatus": {
+        "description": "E-62 `status` filter: suspended or not (D96).",
+        "enum": [
+          "ACTIVE",
+          "SUSPENDED"
+        ],
+        "title": "AdminShopStatus",
+        "type": "string"
+      },
+      "AdminUserDetail": {
+        "description": "E-67 (A-05), also the answer of E-68 - E-71: the account, its bookings as a customer and\nthe 10 newest audit events done by or about it.",
+        "properties": {
+          "bookings_as_customer": {
+            "$ref": "#/components/schemas/CustomerBookings"
+          },
+          "latest_audit_events": {
+            "items": {
+              "$ref": "#/components/schemas/AuditEventRead"
+            },
+            "title": "Latest Audit Events",
+            "type": "array"
+          },
+          "user": {
+            "$ref": "#/components/schemas/AdminUserRow"
+          }
+        },
+        "required": [
+          "user",
+          "bookings_as_customer",
+          "latest_audit_events"
+        ],
+        "title": "AdminUserDetail",
+        "type": "object"
+      },
+      "AdminUserKind": {
+        "description": "E-66 `kind` filter: `CUSTOMER` = no active membership, `STAFF` = at least one,\n`PLATFORM_ADMIN` = the flag (D94). A platform admin without memberships is also a customer.",
+        "enum": [
+          "CUSTOMER",
+          "STAFF",
+          "PLATFORM_ADMIN"
+        ],
+        "title": "AdminUserKind",
+        "type": "string"
+      },
+      "AdminUserRef": {
+        "description": "A person in admin views: name and e-mail.",
+        "properties": {
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "full_name": {
+            "title": "Full Name",
+            "type": "string"
+          },
+          "user_id": {
+            "format": "uuid",
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "full_name",
+          "email"
+        ],
+        "title": "AdminUserRef",
+        "type": "object"
+      },
+      "AdminUserRow": {
+        "description": "An E-66 row (A-04): the account and every membership, active or not.",
+        "properties": {
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "full_name": {
+            "title": "Full Name",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_active": {
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "is_platform_admin": {
+            "title": "Is Platform Admin",
+            "type": "boolean"
+          },
+          "last_login_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Login At"
+          },
+          "memberships": {
+            "items": {
+              "$ref": "#/components/schemas/AdminMembershipRead"
+            },
+            "title": "Memberships",
+            "type": "array"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          }
+        },
+        "required": [
+          "id",
+          "full_name",
+          "email",
+          "phone",
+          "is_active",
+          "is_platform_admin",
+          "created_at",
+          "last_login_at",
+          "memberships"
+        ],
+        "title": "AdminUserRow",
+        "type": "object"
+      },
+      "AdminUserStatus": {
+        "description": "E-66 `status` filter: the account's `is_active` (D9).",
+        "enum": [
+          "ACTIVE",
+          "INACTIVE"
+        ],
+        "title": "AdminUserStatus",
+        "type": "string"
+      },
       "AllocatePartsRequest": {
         "additionalProperties": false,
         "description": "`allocate-parts` (T16).",
@@ -123,6 +822,219 @@
         "title": "AssignTechnicianRequest",
         "type": "object"
       },
+      "AuditActorRole": {
+        "description": "`audit_events.actor_role`: the hat the actor wore (spec 19 §3.1). `PLATFORM_ADMIN` for admin\nactions (D94), a `MembershipRole` for shop actions, `CUSTOMER`, `SYSTEM` (scripts, the seed,\nautomatic transitions) or `ANONYMOUS` (failed sign-ins).",
+        "enum": [
+          "PLATFORM_ADMIN",
+          "OWNER",
+          "SERVICE_ADVISOR",
+          "TECHNICIAN",
+          "PARTS_PERSON",
+          "QC_INSPECTOR",
+          "CUSTOMER",
+          "SYSTEM",
+          "ANONYMOUS"
+        ],
+        "title": "AuditActorRole",
+        "type": "string"
+      },
+      "AuditCategory": {
+        "description": "`audit_events.category` (spec 19 §3.1; stored as VARCHAR + CHECK like every enum, D29).",
+        "enum": [
+          "AUTH",
+          "USER",
+          "SHOP",
+          "MEMBERSHIP",
+          "BOOKING",
+          "ADMIN"
+        ],
+        "title": "AuditCategory",
+        "type": "string"
+      },
+      "AuditEventRead": {
+        "description": "One `audit_events` row (spec 19 §3.1). `actor_name` and `shop_name` are today's names;\n`metadata` never holds a password, a token or a hash.",
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "actor_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Name"
+          },
+          "actor_role": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AuditActorRole"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "actor_user_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor User Id"
+          },
+          "category": {
+            "$ref": "#/components/schemas/AuditCategory"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "ip": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ip"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "title": "Metadata",
+            "type": "object"
+          },
+          "occurred_at": {
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "request_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Request Id"
+          },
+          "shop_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shop Id"
+          },
+          "shop_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shop Name"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "target_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Id"
+          },
+          "target_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Label"
+          },
+          "target_type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AuditTargetType"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "user_agent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Agent"
+          }
+        },
+        "required": [
+          "id",
+          "occurred_at",
+          "category",
+          "action",
+          "summary",
+          "actor_user_id",
+          "actor_name",
+          "actor_role",
+          "shop_id",
+          "shop_name",
+          "target_type",
+          "target_id",
+          "target_label",
+          "metadata",
+          "ip",
+          "user_agent",
+          "request_id"
+        ],
+        "title": "AuditEventRead",
+        "type": "object"
+      },
+      "AuditTargetType": {
+        "description": "`audit_events.target_type`: what an audit event is about (spec 19 §3.1).",
+        "enum": [
+          "USER",
+          "SHOP",
+          "MEMBERSHIP",
+          "BOOKING"
+        ],
+        "title": "AuditTargetType",
+        "type": "string"
+      },
       "AvailabilityRead": {
         "description": "The free slots of one shop-local date, ordered by `slot_start` (D37).",
         "properties": {
@@ -227,6 +1139,53 @@
         ],
         "title": "BookingActionSlug",
         "type": "string"
+      },
+      "BookingCounts": {
+        "description": "`today`, `last_7_days`, `last_30_days`: bookings **placed** (created) on those local days;\n`open`: not completed or cancelled, now; `completed_30d` / `cancelled_30d`: completed /\ncancelled in the last 30 local days; `open_by_phase`: open bookings per phase, every phase.",
+        "properties": {
+          "cancelled_30d": {
+            "title": "Cancelled 30D",
+            "type": "integer"
+          },
+          "completed_30d": {
+            "title": "Completed 30D",
+            "type": "integer"
+          },
+          "last_30_days": {
+            "title": "Last 30 Days",
+            "type": "integer"
+          },
+          "last_7_days": {
+            "title": "Last 7 Days",
+            "type": "integer"
+          },
+          "open": {
+            "title": "Open",
+            "type": "integer"
+          },
+          "open_by_phase": {
+            "items": {
+              "$ref": "#/components/schemas/PhaseCount"
+            },
+            "title": "Open By Phase",
+            "type": "array"
+          },
+          "today": {
+            "title": "Today",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "today",
+          "last_7_days",
+          "last_30_days",
+          "open",
+          "completed_30d",
+          "cancelled_30d",
+          "open_by_phase"
+        ],
+        "title": "BookingCounts",
+        "type": "object"
       },
       "BookingCreate": {
         "additionalProperties": false,
@@ -1540,6 +2499,28 @@
         "title": "CustomerBookingSummary",
         "type": "object"
       },
+      "CustomerBookings": {
+        "description": "The person's bookings as a customer: how many, and the 10 newest.",
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "latest": {
+            "items": {
+              "$ref": "#/components/schemas/AdminBookingSummary"
+            },
+            "title": "Latest",
+            "type": "array"
+          }
+        },
+        "required": [
+          "count",
+          "latest"
+        ],
+        "title": "CustomerBookings",
+        "type": "object"
+      },
       "CustomerCancelRequest": {
         "additionalProperties": false,
         "description": "Customer `cancel` (T22): the reason is optional.",
@@ -1778,6 +2759,25 @@
         "title": "CustomerWrite",
         "type": "object"
       },
+      "DayCount": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "date",
+          "count"
+        ],
+        "title": "DayCount",
+        "type": "object"
+      },
       "DeclineRequest": {
         "additionalProperties": false,
         "description": "`decline` (T03): the reason is required and shown to the customer.",
@@ -1835,6 +2835,7 @@
           "CALL_NOT_ACTIVE",
           "CONFLICT",
           "PAYLOAD_TOO_LARGE",
+          "SHOP_SUSPENDED",
           "RATE_LIMITED",
           "INTERNAL_ERROR",
           "CALLING_DISABLED"
@@ -2643,7 +3644,7 @@
         "type": "object"
       },
       "MeRead": {
-        "description": "`GET /api/v1/me`: the account and its **active** memberships, sorted by shop name (D66).",
+        "description": "`GET /api/v1/me`: the account and its **active** memberships, sorted by shop name (D66).\n`is_platform_admin` opens the admin console (D94, spec 19 §4).",
         "properties": {
           "email": {
             "title": "Email",
@@ -2657,6 +3658,10 @@
             "format": "uuid",
             "title": "Id",
             "type": "string"
+          },
+          "is_platform_admin": {
+            "title": "Is Platform Admin",
+            "type": "boolean"
           },
           "memberships": {
             "items": {
@@ -2682,6 +3687,7 @@
           "email",
           "full_name",
           "phone",
+          "is_platform_admin",
           "memberships"
         ],
         "title": "MeRead",
@@ -2894,7 +3900,7 @@
         "type": "object"
       },
       "MembershipRead": {
-        "description": "One active membership of the caller (spec 04 `/me`, D66).",
+        "description": "One active membership of the caller (spec 04 `/me`, D66). `shop_suspended`: the shop is\nsuspended by BayFlow (D96), so the POS can show it without calling a blocked route.",
         "properties": {
           "capabilities": {
             "items": {
@@ -2923,6 +3929,10 @@
           "shop_slug": {
             "title": "Shop Slug",
             "type": "string"
+          },
+          "shop_suspended": {
+            "title": "Shop Suspended",
+            "type": "boolean"
           }
         },
         "required": [
@@ -2930,6 +3940,7 @@
           "shop_id",
           "shop_name",
           "shop_slug",
+          "shop_suspended",
           "role",
           "capabilities"
         ],
@@ -3555,7 +4566,7 @@
         "type": "object"
       },
       "OwnerSummaryRead": {
-        "description": "`GET /api/v1/me/owner-summary`: one row per shop the caller owns, by shop name; `items: []`\nfor anyone who owns no shop.",
+        "description": "`GET /api/v1/me/owner-summary`: one row per shop the caller owns that is not suspended\n(D99), by shop name; `items: []` for anyone who owns no such shop.",
         "properties": {
           "items": {
             "items": {
@@ -3569,6 +4580,154 @@
           "items"
         ],
         "title": "OwnerSummaryRead",
+        "type": "object"
+      },
+      "Page_AdminBookingSummary_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AdminBookingSummary"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "maximum": 2147483647.0,
+            "minimum": 0.0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "description": "Number of items matching the filters, on all pages.",
+            "minimum": 0.0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "Page[AdminBookingSummary]",
+        "type": "object"
+      },
+      "Page_AdminShopRow_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AdminShopRow"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "maximum": 2147483647.0,
+            "minimum": 0.0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "description": "Number of items matching the filters, on all pages.",
+            "minimum": 0.0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "Page[AdminShopRow]",
+        "type": "object"
+      },
+      "Page_AdminUserRow_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AdminUserRow"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "maximum": 2147483647.0,
+            "minimum": 0.0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "description": "Number of items matching the filters, on all pages.",
+            "minimum": 0.0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "Page[AdminUserRow]",
+        "type": "object"
+      },
+      "Page_AuditEventRead_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AuditEventRead"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "maximum": 2147483647.0,
+            "minimum": 0.0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "description": "Number of items matching the filters, on all pages.",
+            "minimum": 0.0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "Page[AuditEventRead]",
         "type": "object"
       },
       "Page_BookingSummary_": {
@@ -4323,6 +5482,23 @@
         "title": "PassQcRequest",
         "type": "object"
       },
+      "PhaseCount": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "phase": {
+            "$ref": "#/components/schemas/StatusPhase"
+          }
+        },
+        "required": [
+          "phase",
+          "count"
+        ],
+        "title": "PhaseCount",
+        "type": "object"
+      },
       "PickQcRequest": {
         "additionalProperties": false,
         "description": "`pick-qc` (T18).",
@@ -4342,6 +5518,67 @@
           }
         },
         "title": "PickQcRequest",
+        "type": "object"
+      },
+      "PlatformOverviewRead": {
+        "description": "E-61 (A-01): platform KPIs. \"Today\" and the 14-day series are local dates in the shops'\ndefault time zone (`Asia/Karachi`, D38); `bookings_per_day` runs oldest first to today.",
+        "properties": {
+          "bookings": {
+            "$ref": "#/components/schemas/BookingCounts"
+          },
+          "bookings_per_day": {
+            "items": {
+              "$ref": "#/components/schemas/DayCount"
+            },
+            "title": "Bookings Per Day",
+            "type": "array"
+          },
+          "generated_at": {
+            "title": "Generated At",
+            "type": "string"
+          },
+          "latest_audit_events": {
+            "items": {
+              "$ref": "#/components/schemas/AuditEventRead"
+            },
+            "title": "Latest Audit Events",
+            "type": "array"
+          },
+          "shops": {
+            "$ref": "#/components/schemas/ShopCounts"
+          },
+          "timezone": {
+            "title": "Timezone",
+            "type": "string"
+          },
+          "today": {
+            "format": "date",
+            "title": "Today",
+            "type": "string"
+          },
+          "top_shops": {
+            "items": {
+              "$ref": "#/components/schemas/TopShop"
+            },
+            "title": "Top Shops",
+            "type": "array"
+          },
+          "users": {
+            "$ref": "#/components/schemas/UserCounts"
+          }
+        },
+        "required": [
+          "generated_at",
+          "timezone",
+          "today",
+          "shops",
+          "users",
+          "bookings",
+          "bookings_per_day",
+          "top_shops",
+          "latest_audit_events"
+        ],
+        "title": "PlatformOverviewRead",
         "type": "object"
       },
       "Problem": {
@@ -5262,6 +6499,27 @@
         "title": "ReviseEstimateRequest",
         "type": "object"
       },
+      "RoleMembers": {
+        "description": "The shop's memberships of one role, active or not, by name.",
+        "properties": {
+          "members": {
+            "items": {
+              "$ref": "#/components/schemas/AdminMemberRead"
+            },
+            "title": "Members",
+            "type": "array"
+          },
+          "role": {
+            "$ref": "#/components/schemas/MembershipRole"
+          }
+        },
+        "required": [
+          "role",
+          "members"
+        ],
+        "title": "RoleMembers",
+        "type": "object"
+      },
       "SendEstimateRequest": {
         "additionalProperties": false,
         "description": "`send-estimate` (T07).",
@@ -5615,6 +6873,40 @@
           "user"
         ],
         "title": "SessionRead",
+        "type": "object"
+      },
+      "ShopCounts": {
+        "description": "`active` = not suspended; `listed` = the `is_listed` flag; `new_30d` = created in the last 30\nlocal days.",
+        "properties": {
+          "active": {
+            "title": "Active",
+            "type": "integer"
+          },
+          "listed": {
+            "title": "Listed",
+            "type": "integer"
+          },
+          "new_30d": {
+            "title": "New 30D",
+            "type": "integer"
+          },
+          "suspended": {
+            "title": "Suspended",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total",
+          "active",
+          "suspended",
+          "listed",
+          "new_30d"
+        ],
+        "title": "ShopCounts",
         "type": "object"
       },
       "ShopCreate": {
@@ -5997,6 +7289,53 @@
         "title": "ShopRead",
         "type": "object"
       },
+      "ShopSuspendRequest": {
+        "additionalProperties": false,
+        "description": "E-64: suspend a shop (D96). Its staff are locked out at their next request.",
+        "properties": {
+          "reason": {
+            "maxLength": 500,
+            "minLength": 5,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "title": "ShopSuspendRequest",
+        "type": "object"
+      },
+      "ShopSuspensionRead": {
+        "description": "A shop's suspension (D96): when, why and by which platform admin.",
+        "properties": {
+          "at": {
+            "title": "At",
+            "type": "string"
+          },
+          "by": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdminUserRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "at",
+          "reason",
+          "by"
+        ],
+        "title": "ShopSuspensionRead",
+        "type": "object"
+      },
       "ShopUpdate": {
         "additionalProperties": false,
         "description": "`PATCH /api/v1/shops/{shop_id}` (at least one field). `logo_url: null` clears the logo.\n\nChanging `slot_duration_minutes` or `timezone` is refused with 409 while the shop has future\nbookings (D37); capacity and listing changes are always allowed.",
@@ -6245,6 +7584,20 @@
         "title": "StatusCountsRead",
         "type": "object"
       },
+      "StatusPhase": {
+        "description": "Glossary §5, in glossary order.",
+        "enum": [
+          "INTAKE",
+          "INSPECTION",
+          "ESTIMATE",
+          "PARTS",
+          "REPAIR_QC",
+          "HANDOVER",
+          "CLOSED"
+        ],
+        "title": "StatusPhase",
+        "type": "string"
+      },
       "StockAdjustmentCreate": {
         "additionalProperties": false,
         "description": "`POST …/parts/{part_id}/adjustments`: opening stock and count corrections (D82).",
@@ -6463,6 +7816,23 @@
         "title": "SubmitEstimateRequest",
         "type": "object"
       },
+      "TopShop": {
+        "properties": {
+          "bookings_30d": {
+            "title": "Bookings 30D",
+            "type": "integer"
+          },
+          "shop": {
+            "$ref": "#/components/schemas/AdminShopRef"
+          }
+        },
+        "required": [
+          "shop",
+          "bookings_30d"
+        ],
+        "title": "TopShop",
+        "type": "object"
+      },
       "UnreadCountRead": {
         "description": "`GET /api/v1/me/notifications/unread-count` (polled every 15 s, D14).",
         "properties": {
@@ -6476,6 +7846,62 @@
           "count"
         ],
         "title": "UnreadCountRead",
+        "type": "object"
+      },
+      "UserCounts": {
+        "description": "`customers` = accounts without an active membership, `staff` = with one, `platform_admins`\n= the flag (any status), `inactive` = deactivated accounts, `new_30d` = created in the last 30\nlocal days.",
+        "properties": {
+          "customers": {
+            "title": "Customers",
+            "type": "integer"
+          },
+          "inactive": {
+            "title": "Inactive",
+            "type": "integer"
+          },
+          "new_30d": {
+            "title": "New 30D",
+            "type": "integer"
+          },
+          "platform_admins": {
+            "title": "Platform Admins",
+            "type": "integer"
+          },
+          "staff": {
+            "title": "Staff",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total",
+          "customers",
+          "staff",
+          "platform_admins",
+          "inactive",
+          "new_30d"
+        ],
+        "title": "UserCounts",
+        "type": "object"
+      },
+      "UserDeactivateRequest": {
+        "additionalProperties": false,
+        "description": "E-68: deactivate an account; its tokens stop working at its next request (D9).",
+        "properties": {
+          "reason": {
+            "maxLength": 500,
+            "minLength": 5,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "title": "UserDeactivateRequest",
         "type": "object"
       },
       "UserRead": {
@@ -6878,6 +8304,1876 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/admin/audit-events": {
+      "get": {
+        "description": "Every recorded action across tenants (D95). Sort `-occurred_at` (default).",
+        "operationId": "admin_list_audit_events",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "default": "-occurred_at",
+              "enum": [
+                "-occurred_at",
+                "occurred_at"
+              ],
+              "title": "Sort",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Maximum number of items to return.",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "description": "Maximum number of items to return.",
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Number of items to skip.",
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "description": "Number of items to skip.",
+              "maximum": 2147483647,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Repeatable: `?category=A&category=B`.",
+            "in": "query",
+            "name": "category",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "$ref": "#/components/schemas/AuditCategory"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Repeatable: `?category=A&category=B`.",
+              "title": "Category"
+            }
+          },
+          {
+            "description": "E.g. `shop.suspended`.",
+            "in": "query",
+            "name": "action",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 64,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "E.g. `shop.suspended`.",
+              "title": "Action"
+            }
+          },
+          {
+            "in": "query",
+            "name": "actor_user_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Actor User Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "shop_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Shop Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "target_type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/AuditTargetType"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Target Type"
+            }
+          },
+          {
+            "in": "query",
+            "name": "target_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Target Id"
+            }
+          },
+          {
+            "description": "Inclusive instant (`Z` or offset).",
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Inclusive instant (`Z` or offset).",
+              "title": "From"
+            }
+          },
+          {
+            "description": "Exclusive instant (`Z` or offset).",
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Exclusive instant (`Z` or offset).",
+              "title": "To"
+            }
+          },
+          {
+            "description": "Matches the summary or target label.",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 100,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Matches the summary or target label.",
+              "title": "Q"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_AuditEventRead_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblem"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "BearerToken": []
+          }
+        ],
+        "summary": "The platform audit log",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/audit-events/export": {
+      "get": {
+        "description": "The same filters as the list; at most 10 000 rows, newest first. RFC 4180 CSV in UTF-8 with a header row; a cell starting with `=`, `+`, `-` or `@` is prefixed with `'`. Recorded as `admin.audit_exported`.",
+        "operationId": "admin_export_audit_events",
+        "parameters": [
+          {
+            "description": "Repeatable: `?category=A&category=B`.",
+            "in": "query",
+            "name": "category",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "$ref": "#/components/schemas/AuditCategory"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Repeatable: `?category=A&category=B`.",
+              "title": "Category"
+            }
+          },
+          {
+            "description": "E.g. `shop.suspended`.",
+            "in": "query",
+            "name": "action",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 64,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "E.g. `shop.suspended`.",
+              "title": "Action"
+            }
+          },
+          {
+            "in": "query",
+            "name": "actor_user_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Actor User Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "shop_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Shop Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "target_type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/AuditTargetType"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Target Type"
+            }
+          },
+          {
+            "in": "query",
+            "name": "target_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Target Id"
+            }
+          },
+          {
+            "description": "Inclusive instant (`Z` or offset).",
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Inclusive instant (`Z` or offset).",
+              "title": "From"
+            }
+          },
+          {
+            "description": "Exclusive instant (`Z` or offset).",
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Exclusive instant (`Z` or offset).",
+              "title": "To"
+            }
+          },
+          {
+            "description": "Matches the summary or target label.",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 100,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Matches the summary or target label.",
+              "title": "Q"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The CSV file."
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblem"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "BearerToken": []
+          }
+        ],
+        "summary": "Export the audit log as CSV",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/bookings": {
+      "get": {
+        "description": "Read-only (no `allowed_actions`). Sort `-slot_start` (default), `slot_start` or `-created_at`.",
+        "operationId": "admin_list_bookings",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "default": "-slot_start",
+              "enum": [
+                "-slot_start",
+                "slot_start",
+                "-created_at"
+              ],
+              "title": "Sort",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Maximum number of items to return.",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "description": "Maximum number of items to return.",
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Number of items to skip.",
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "description": "Number of items to skip.",
+              "maximum": 2147483647,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Reference (with or without `BF-`), plate, customer name or e-mail.",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 100,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Reference (with or without `BF-`), plate, customer name or e-mail.",
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "shop_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Shop Id"
+            }
+          },
+          {
+            "description": "Repeatable: `?status=A&status=B`.",
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "$ref": "#/components/schemas/BookingStatus"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Repeatable: `?status=A&status=B`.",
+              "title": "Status"
+            }
+          },
+          {
+            "description": "Slot date in the shop's zone, inclusive.",
+            "in": "query",
+            "name": "date_from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Slot date in the shop's zone, inclusive.",
+              "title": "Date From"
+            }
+          },
+          {
+            "description": "Slot date in the shop's zone, inclusive.",
+            "in": "query",
+            "name": "date_to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Slot date in the shop's zone, inclusive.",
+              "title": "Date To"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_AdminBookingSummary_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblem"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "BearerToken": []
+          }
+        ],
+        "summary": "Every tenant's bookings",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/bookings/{booking_id}": {
+      "get": {
+        "description": "The staff projection without `allowed_actions`, with the full timeline. Recorded as `admin.booking_viewed`.",
+        "operationId": "admin_get_booking",
+        "parameters": [
+          {
+            "description": "The booking id.",
+            "in": "path",
+            "name": "booking_id",
+            "required": true,
+            "schema": {
+              "description": "The booking id.",
+              "format": "uuid",
+              "title": "Booking Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminBookingDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblem"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "BearerToken": []
+          }
+        ],
+        "summary": "One booking (read-only)",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/overview": {
+      "get": {
+        "description": "Shops, accounts and bookings across every tenant: booking counts by placement date in `Asia/Karachi` local days (D38), open bookings per phase, bookings per day for 14 days, the 5 busiest shops of the last 30 days and the 10 newest audit events.",
+        "operationId": "admin_get_overview",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformOverviewRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "BearerToken": []
+          }
+        ],
+        "summary": "Platform overview",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/shops": {
+      "get": {
+        "description": "Every tenant, suspended ones included. `q` matches the name, slug, city or the owner's e-mail. Sort `-created_at` (default), `name` or `-bookings_30d` (bookings placed in the last 30 days).",
+        "operationId": "admin_list_shops",
+        "parameters": [
+          {
+            "description": "Case-insensitive search text.",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 100,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Case-insensitive search text.",
+              "title": "Q"
+            }
+          },
+          {
+            "description": "Suspended or not.",
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/AdminShopStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Suspended or not.",
+              "title": "Status"
+            }
+          },
+          {
+            "description": "The `is_listed` flag.",
+            "in": "query",
+            "name": "listed",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The `is_listed` flag.",
+              "title": "Listed"
+            }
+          },
+          {
+            "description": "Exact city.",
+            "in": "query",
+            "name": "city",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 80,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Exact city.",
+              "title": "City"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "default": "-created_at",
+              "enum": [
+                "-created_at",
+                "name",
+                "-bookings_30d"
+              ],
+              "title": "Sort",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Maximum number of items to return.",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "description": "Maximum number of items to return.",
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Number of items to skip.",
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "description": "Number of items to skip.",
+              "maximum": 2147483647,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_AdminShopRow_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblem"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "BearerToken": []
+          }
+        ],
+        "summary": "Every shop",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/shops/{shop_id}": {
+      "get": {
+        "description": "The profile, the suspension, the team by role, bookings per phase, the 10 newest bookings and the 10 newest audit events of the shop.",
+        "operationId": "admin_get_shop",
+        "parameters": [
+          {
+            "description": "The shop (tenant) id.",
+            "in": "path",
+            "name": "shop_id",
+            "required": true,
+            "schema": {
+              "description": "The shop (tenant) id.",
+              "format": "uuid",
+              "title": "Shop Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminShopDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblem"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "BearerToken": []
+          }
+        ],
+        "summary": "One shop",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/shops/{shop_id}/reactivate": {
+      "post": {
+        "description": "Everything resumes as it was (D96). Not suspended → 409.",
+        "operationId": "admin_reactivate_shop",
+        "parameters": [
+          {
+            "description": "The shop (tenant) id.",
+            "in": "path",
+            "name": "shop_id",
+            "required": true,
+            "schema": {
+              "description": "The shop (tenant) id.",
+              "format": "uuid",
+              "title": "Shop Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminShopDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblem"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "BearerToken": []
+          }
+        ],
+        "summary": "Reactivate a suspended shop",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/shops/{shop_id}/suspend": {
+      "post": {
+        "description": "With a reason of 5-500 characters (D96). The shop disappears from the public directory and booking, its staff get 403 `SHOP_SUSPENDED`, its customers can still read and cancel their bookings. Nothing is deleted. Already suspended → 409. Answers the shop's detail.",
+        "operationId": "admin_suspend_shop",
+        "parameters": [
+          {
+            "description": "The shop (tenant) id.",
+            "in": "path",
+            "name": "shop_id",
+            "required": true,
+            "schema": {
+              "description": "The shop (tenant) id.",
+              "format": "uuid",
+              "title": "Shop Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ShopSuspendRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminShopDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblem"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "BearerToken": []
+          }
+        ],
+        "summary": "Suspend a shop",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/users": {
+      "get": {
+        "description": "`q` matches the name, e-mail or phone; `kind` `CUSTOMER` = no active membership, `STAFF` = at least one, `PLATFORM_ADMIN` = the flag. Sort `-created_at` (default), `name` or `-last_login_at`.",
+        "operationId": "admin_list_users",
+        "parameters": [
+          {
+            "description": "Case-insensitive search text.",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 100,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Case-insensitive search text.",
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "kind",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/AdminUserKind"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Kind"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/AdminUserStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "default": "-created_at",
+              "enum": [
+                "-created_at",
+                "name",
+                "-last_login_at"
+              ],
+              "title": "Sort",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Maximum number of items to return.",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "description": "Maximum number of items to return.",
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Number of items to skip.",
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "description": "Number of items to skip.",
+              "maximum": 2147483647,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_AdminUserRow_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblem"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "BearerToken": []
+          }
+        ],
+        "summary": "Every account",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/users/{user_id}": {
+      "get": {
+        "description": "The account with its memberships, its bookings as a customer and the 10 newest audit events done by or about it. Recorded as `admin.user_viewed`.",
+        "operationId": "admin_get_user",
+        "parameters": [
+          {
+            "description": "The account id.",
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "description": "The account id.",
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblem"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "BearerToken": []
+          }
+        ],
+        "summary": "One account",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/users/{user_id}/deactivate": {
+      "post": {
+        "description": "With a reason of 5-500 characters. Its tokens stop working at its next request (D9). Yourself → 403; the last active platform admin → 409; already inactive → 409.",
+        "operationId": "admin_deactivate_user",
+        "parameters": [
+          {
+            "description": "The account id.",
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "description": "The account id.",
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserDeactivateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblem"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "BearerToken": []
+          }
+        ],
+        "summary": "Deactivate an account",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/users/{user_id}/grant-platform-admin": {
+      "post": {
+        "description": "An inactive account → 422 (`path.user_id`); already an admin → 409.",
+        "operationId": "admin_grant_platform_admin",
+        "parameters": [
+          {
+            "description": "The account id.",
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "description": "The account id.",
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblem"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "BearerToken": []
+          }
+        ],
+        "summary": "Make an account a platform admin",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/users/{user_id}/reactivate": {
+      "post": {
+        "description": "Already active → 409.",
+        "operationId": "admin_reactivate_user",
+        "parameters": [
+          {
+            "description": "The account id.",
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "description": "The account id.",
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblem"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "BearerToken": []
+          }
+        ],
+        "summary": "Reactivate an account",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/users/{user_id}/revoke-platform-admin": {
+      "post": {
+        "description": "Yourself → 403; the last active platform admin → 409; not an admin → 409.",
+        "operationId": "admin_revoke_platform_admin",
+        "parameters": [
+          {
+            "description": "The account id.",
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "description": "The account id.",
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblem"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "BearerToken": []
+          }
+        ],
+        "summary": "Revoke an account's platform admin access",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/api/v1/auth/login": {
       "post": {
         "description": "Returns the session token and the user (no memberships, D81) and sets the `bf_session` cookie. Call `GET /api/v1/me` next for memberships and capabilities. Five failed password checks per e-mail within 15 minutes block the account for the rest of the window (429), even with the right password (D69).",
@@ -6942,11 +10238,21 @@
     },
     "/api/v1/auth/logout": {
       "post": {
-        "description": "Expires the `bf_session` cookie. Idempotent and needs no authentication. The JWT is stateless, so a copied Bearer token stays valid until it expires (spec 04).",
+        "description": "Expires the `bf_session` cookie. Idempotent and needs no authentication. The JWT is stateless, so a copied Bearer token stays valid until it expires (spec 04). When the cookie or Bearer token names an active user, the sign-out is recorded in the platform audit log (spec 19); a failure there never changes the 204.",
         "operationId": "identity_logout",
         "responses": {
           "204": {
             "description": "Successful Response"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Too Many Requests"
           }
         },
         "summary": "Log out",
@@ -7379,6 +10685,16 @@
             },
             "description": "Unauthorized"
           },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
           "404": {
             "content": {
               "application/problem+json": {
@@ -7561,6 +10877,16 @@
             },
             "description": "Unauthorized"
           },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
           "404": {
             "content": {
               "application/problem+json": {
@@ -7651,6 +10977,16 @@
               }
             },
             "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Forbidden"
           },
           "404": {
             "content": {
@@ -8058,7 +11394,7 @@
     },
     "/api/v1/me/owner-summary": {
       "get": {
-        "description": "One row per shop where the caller is the `OWNER`, ordered by shop name: today's bookings, bookings needing the Service Advisor, jobs in progress, ready for pick-up and low-stock parts. `items` is empty for anyone who owns no shop.",
+        "description": "One row per shop where the caller is the `OWNER`, ordered by shop name: today's bookings, bookings needing the Service Advisor, jobs in progress, ready for pick-up and low-stock parts. Suspended shops are left out (`/me` flags them with `shop_suspended`). `items` is empty for anyone who owns no open shop.",
         "operationId": "reporting_get_owner_summary",
         "responses": {
           "200": {
@@ -8516,6 +11852,16 @@
             },
             "description": "Unauthorized"
           },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
           "404": {
             "content": {
               "application/problem+json": {
@@ -8848,6 +12194,16 @@
             },
             "description": "Unauthorized"
           },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
           "404": {
             "content": {
               "application/problem+json": {
@@ -8918,6 +12274,16 @@
               }
             },
             "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Forbidden"
           },
           "404": {
             "content": {
@@ -9001,6 +12367,16 @@
               }
             },
             "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Forbidden"
           },
           "404": {
             "content": {
@@ -11684,6 +15060,16 @@
             },
             "description": "Unauthorized"
           },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
           "404": {
             "content": {
               "application/problem+json": {
@@ -11766,6 +15152,16 @@
               }
             },
             "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Forbidden"
           },
           "404": {
             "content": {
@@ -11942,6 +15338,16 @@
               }
             },
             "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Forbidden"
           },
           "404": {
             "content": {
@@ -13512,6 +16918,16 @@
             },
             "description": "Unauthorized"
           },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
           "404": {
             "content": {
               "application/problem+json": {
@@ -13621,6 +17037,16 @@
               }
             },
             "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Forbidden"
           },
           "404": {
             "content": {

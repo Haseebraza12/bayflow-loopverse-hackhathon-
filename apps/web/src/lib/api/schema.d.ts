@@ -4,6 +4,306 @@
  */
 
 export interface paths {
+    "/api/v1/admin/audit-events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The platform audit log
+         * @description Every recorded action across tenants (D95). Sort `-occurred_at` (default).
+         */
+        get: operations["admin_list_audit_events"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/audit-events/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export the audit log as CSV
+         * @description The same filters as the list; at most 10 000 rows, newest first. RFC 4180 CSV in UTF-8 with a header row; a cell starting with `=`, `+`, `-` or `@` is prefixed with `'`. Recorded as `admin.audit_exported`.
+         */
+        get: operations["admin_export_audit_events"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/bookings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Every tenant's bookings
+         * @description Read-only (no `allowed_actions`). Sort `-slot_start` (default), `slot_start` or `-created_at`.
+         */
+        get: operations["admin_list_bookings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/bookings/{booking_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One booking (read-only)
+         * @description The staff projection without `allowed_actions`, with the full timeline. Recorded as `admin.booking_viewed`.
+         */
+        get: operations["admin_get_booking"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Platform overview
+         * @description Shops, accounts and bookings across every tenant: booking counts by placement date in `Asia/Karachi` local days (D38), open bookings per phase, bookings per day for 14 days, the 5 busiest shops of the last 30 days and the 10 newest audit events.
+         */
+        get: operations["admin_get_overview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/shops": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Every shop
+         * @description Every tenant, suspended ones included. `q` matches the name, slug, city or the owner's e-mail. Sort `-created_at` (default), `name` or `-bookings_30d` (bookings placed in the last 30 days).
+         */
+        get: operations["admin_list_shops"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/shops/{shop_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One shop
+         * @description The profile, the suspension, the team by role, bookings per phase, the 10 newest bookings and the 10 newest audit events of the shop.
+         */
+        get: operations["admin_get_shop"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/shops/{shop_id}/reactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reactivate a suspended shop
+         * @description Everything resumes as it was (D96). Not suspended → 409.
+         */
+        post: operations["admin_reactivate_shop"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/shops/{shop_id}/suspend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Suspend a shop
+         * @description With a reason of 5-500 characters (D96). The shop disappears from the public directory and booking, its staff get 403 `SHOP_SUSPENDED`, its customers can still read and cancel their bookings. Nothing is deleted. Already suspended → 409. Answers the shop's detail.
+         */
+        post: operations["admin_suspend_shop"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Every account
+         * @description `q` matches the name, e-mail or phone; `kind` `CUSTOMER` = no active membership, `STAFF` = at least one, `PLATFORM_ADMIN` = the flag. Sort `-created_at` (default), `name` or `-last_login_at`.
+         */
+        get: operations["admin_list_users"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One account
+         * @description The account with its memberships, its bookings as a customer and the 10 newest audit events done by or about it. Recorded as `admin.user_viewed`.
+         */
+        get: operations["admin_get_user"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users/{user_id}/deactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Deactivate an account
+         * @description With a reason of 5-500 characters. Its tokens stop working at its next request (D9). Yourself → 403; the last active platform admin → 409; already inactive → 409.
+         */
+        post: operations["admin_deactivate_user"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users/{user_id}/grant-platform-admin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Make an account a platform admin
+         * @description An inactive account → 422 (`path.user_id`); already an admin → 409.
+         */
+        post: operations["admin_grant_platform_admin"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users/{user_id}/reactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reactivate an account
+         * @description Already active → 409.
+         */
+        post: operations["admin_reactivate_user"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users/{user_id}/revoke-platform-admin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revoke an account's platform admin access
+         * @description Yourself → 403; the last active platform admin → 409; not an admin → 409.
+         */
+        post: operations["admin_revoke_platform_admin"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/login": {
         parameters: {
             query?: never;
@@ -35,7 +335,7 @@ export interface paths {
         put?: never;
         /**
          * Log out
-         * @description Expires the `bf_session` cookie. Idempotent and needs no authentication. The JWT is stateless, so a copied Bearer token stays valid until it expires (spec 04).
+         * @description Expires the `bf_session` cookie. Idempotent and needs no authentication. The JWT is stateless, so a copied Bearer token stays valid until it expires (spec 04). When the cookie or Bearer token names an active user, the sign-out is recorded in the platform audit log (spec 19); a failure there never changes the 204.
          */
         post: operations["identity_logout"];
         delete?: never;
@@ -353,7 +653,7 @@ export interface paths {
         };
         /**
          * Get the multi-shop summary of the shops I own
-         * @description One row per shop where the caller is the `OWNER`, ordered by shop name: today's bookings, bookings needing the Service Advisor, jobs in progress, ready for pick-up and low-stock parts. `items` is empty for anyone who owns no shop.
+         * @description One row per shop where the caller is the `OWNER`, ordered by shop name: today's bookings, bookings needing the Service Advisor, jobs in progress, ready for pick-up and low-stock parts. Suspended shops are left out (`/me` flags them with `shop_suspended`). `items` is empty for anyone who owns no open shop.
          */
         get: operations["reporting_get_owner_summary"];
         put?: never;
@@ -1451,6 +1751,263 @@ export interface components {
          */
         ActorRole: "CUSTOMER" | "OWNER" | "SERVICE_ADVISOR" | "TECHNICIAN" | "PARTS_PERSON" | "QC_INSPECTOR" | "SYSTEM";
         /**
+         * AdminBookingDetail
+         * @description E-73 (spec 19 §4): the staff projection of any tenant's booking with its full timeline.
+         *     Read-only: no `allowed_actions` (no admin edits a tenant's booking, D94); the customer's
+         *     contact details and the parts summary are always shown.
+         */
+        AdminBookingDetail: {
+            /** Cancel Reason */
+            cancel_reason: string | null;
+            /** Cancelled At */
+            cancelled_at: string | null;
+            cancelled_by: components["schemas"]["UserRef"] | null;
+            /** Completed At */
+            completed_at: string | null;
+            /** Created At */
+            created_at: string;
+            customer: components["schemas"]["BookingCustomer"];
+            /** Customer Notes */
+            customer_notes: string | null;
+            estimate_summary: components["schemas"]["EstimateSummary"] | null;
+            /** Events */
+            events: components["schemas"]["BookingEventRead"][];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Inspection Notes */
+            inspection_notes: string | null;
+            last_event: components["schemas"]["BookingEventRead"] | null;
+            /**
+             * Mileage Km
+             * @description The mileage given at booking time (D65).
+             */
+            mileage_km: number | null;
+            /** Open Qc Issues Count */
+            open_qc_issues_count: number;
+            parts_person: components["schemas"]["MemberRef"] | null;
+            parts_summary: components["schemas"]["PartsSummary"] | null;
+            qc_inspector: components["schemas"]["MemberRef"] | null;
+            /** Qc Round */
+            qc_round: number;
+            /** Ready Notified At */
+            ready_notified_at: string | null;
+            /** Reference */
+            reference: string;
+            /** Repair Started At */
+            repair_started_at: string | null;
+            /** Services */
+            services: components["schemas"]["BookingServiceRead"][];
+            shop: components["schemas"]["BookingShopRef"];
+            /**
+             * Shop Id
+             * Format: uuid
+             */
+            shop_id: string;
+            /** Slot End */
+            slot_end: string;
+            /** Slot Start */
+            slot_start: string;
+            status: components["schemas"]["BookingStatus"];
+            /** Status Changed At */
+            status_changed_at: string;
+            technician: components["schemas"]["MemberRef"] | null;
+            /** Updated At */
+            updated_at: string;
+            vehicle: components["schemas"]["VehicleRead"];
+            /** Version */
+            version: number;
+        };
+        /**
+         * AdminBookingSummary
+         * @description An E-72 list item (spec 19 §4): any tenant's booking, read-only.
+         */
+        AdminBookingSummary: {
+            /** Created At */
+            created_at: string;
+            customer: components["schemas"]["BookingCustomer"];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Reference */
+            reference: string;
+            /** Service Names */
+            service_names: string[];
+            shop: components["schemas"]["BookingShopRef"];
+            /** Slot End */
+            slot_end: string;
+            /** Slot Start */
+            slot_start: string;
+            status: components["schemas"]["BookingStatus"];
+            /** Updated At */
+            updated_at: string;
+            vehicle: components["schemas"]["VehicleBrief"];
+            /** Version */
+            version: number;
+        };
+        /** AdminMemberRead */
+        AdminMemberRead: {
+            /** Email */
+            email: string;
+            /** Full Name */
+            full_name: string;
+            /** Is Active */
+            is_active: boolean;
+            /**
+             * Membership Id
+             * Format: uuid
+             */
+            membership_id: string;
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+        };
+        /** AdminMembershipRead */
+        AdminMembershipRead: {
+            /** Is Active */
+            is_active: boolean;
+            /**
+             * Membership Id
+             * Format: uuid
+             */
+            membership_id: string;
+            role: components["schemas"]["MembershipRole"];
+            shop: components["schemas"]["AdminShopRef"];
+        };
+        /**
+         * AdminShopDetail
+         * @description E-63 (A-03), also the answer of E-64 / E-65: the profile, the suspension, the team by role
+         *     (every role, glossary order), all bookings per phase, the 10 newest bookings and the 10 newest
+         *     audit events of the shop.
+         */
+        AdminShopDetail: {
+            /** Booking Counts By Phase */
+            booking_counts_by_phase: components["schemas"]["PhaseCount"][];
+            /** Latest Audit Events */
+            latest_audit_events: components["schemas"]["AuditEventRead"][];
+            /** Latest Bookings */
+            latest_bookings: components["schemas"]["AdminBookingSummary"][];
+            /** Members By Role */
+            members_by_role: components["schemas"]["RoleMembers"][];
+            /** Owners */
+            owners: components["schemas"]["AdminUserRef"][];
+            shop: components["schemas"]["ShopRead"];
+            suspension: components["schemas"]["ShopSuspensionRead"] | null;
+        };
+        /**
+         * AdminShopRef
+         * @description A shop in admin lists.
+         */
+        AdminShopRef: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Slug */
+            slug: string;
+        };
+        /**
+         * AdminShopRow
+         * @description An E-62 row (A-02).
+         */
+        AdminShopRow: {
+            /** Active Members */
+            active_members: number;
+            /** Bookings 30D */
+            bookings_30d: number;
+            /** City */
+            city: string;
+            /** Created At */
+            created_at: string;
+            /** Is Listed */
+            is_listed: boolean;
+            /** Owners */
+            owners: components["schemas"]["AdminUserRef"][];
+            shop: components["schemas"]["AdminShopRef"];
+            suspension: components["schemas"]["ShopSuspensionRead"] | null;
+        };
+        /**
+         * AdminShopStatus
+         * @description E-62 `status` filter: suspended or not (D96).
+         * @enum {string}
+         */
+        AdminShopStatus: "ACTIVE" | "SUSPENDED";
+        /**
+         * AdminUserDetail
+         * @description E-67 (A-05), also the answer of E-68 - E-71: the account, its bookings as a customer and
+         *     the 10 newest audit events done by or about it.
+         */
+        AdminUserDetail: {
+            bookings_as_customer: components["schemas"]["CustomerBookings"];
+            /** Latest Audit Events */
+            latest_audit_events: components["schemas"]["AuditEventRead"][];
+            user: components["schemas"]["AdminUserRow"];
+        };
+        /**
+         * AdminUserKind
+         * @description E-66 `kind` filter: `CUSTOMER` = no active membership, `STAFF` = at least one,
+         *     `PLATFORM_ADMIN` = the flag (D94). A platform admin without memberships is also a customer.
+         * @enum {string}
+         */
+        AdminUserKind: "CUSTOMER" | "STAFF" | "PLATFORM_ADMIN";
+        /**
+         * AdminUserRef
+         * @description A person in admin views: name and e-mail.
+         */
+        AdminUserRef: {
+            /** Email */
+            email: string;
+            /** Full Name */
+            full_name: string;
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+        };
+        /**
+         * AdminUserRow
+         * @description An E-66 row (A-04): the account and every membership, active or not.
+         */
+        AdminUserRow: {
+            /** Created At */
+            created_at: string;
+            /** Email */
+            email: string;
+            /** Full Name */
+            full_name: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Active */
+            is_active: boolean;
+            /** Is Platform Admin */
+            is_platform_admin: boolean;
+            /** Last Login At */
+            last_login_at: string | null;
+            /** Memberships */
+            memberships: components["schemas"]["AdminMembershipRead"][];
+            /** Phone */
+            phone: string | null;
+        };
+        /**
+         * AdminUserStatus
+         * @description E-66 `status` filter: the account's `is_active` (D9).
+         * @enum {string}
+         */
+        AdminUserStatus: "ACTIVE" | "INACTIVE";
+        /**
          * AllocatePartsRequest
          * @description `allocate-parts` (T16).
          */
@@ -1510,6 +2067,69 @@ export interface components {
             technician_user_id: string;
         };
         /**
+         * AuditActorRole
+         * @description `audit_events.actor_role`: the hat the actor wore (spec 19 §3.1). `PLATFORM_ADMIN` for admin
+         *     actions (D94), a `MembershipRole` for shop actions, `CUSTOMER`, `SYSTEM` (scripts, the seed,
+         *     automatic transitions) or `ANONYMOUS` (failed sign-ins).
+         * @enum {string}
+         */
+        AuditActorRole: "PLATFORM_ADMIN" | "OWNER" | "SERVICE_ADVISOR" | "TECHNICIAN" | "PARTS_PERSON" | "QC_INSPECTOR" | "CUSTOMER" | "SYSTEM" | "ANONYMOUS";
+        /**
+         * AuditCategory
+         * @description `audit_events.category` (spec 19 §3.1; stored as VARCHAR + CHECK like every enum, D29).
+         * @enum {string}
+         */
+        AuditCategory: "AUTH" | "USER" | "SHOP" | "MEMBERSHIP" | "BOOKING" | "ADMIN";
+        /**
+         * AuditEventRead
+         * @description One `audit_events` row (spec 19 §3.1). `actor_name` and `shop_name` are today's names;
+         *     `metadata` never holds a password, a token or a hash.
+         */
+        AuditEventRead: {
+            /** Action */
+            action: string;
+            /** Actor Name */
+            actor_name: string | null;
+            actor_role: components["schemas"]["AuditActorRole"] | null;
+            /** Actor User Id */
+            actor_user_id: string | null;
+            category: components["schemas"]["AuditCategory"];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Ip */
+            ip: string | null;
+            /** Metadata */
+            metadata: {
+                [key: string]: unknown;
+            };
+            /** Occurred At */
+            occurred_at: string;
+            /** Request Id */
+            request_id: string | null;
+            /** Shop Id */
+            shop_id: string | null;
+            /** Shop Name */
+            shop_name: string | null;
+            /** Summary */
+            summary: string;
+            /** Target Id */
+            target_id: string | null;
+            /** Target Label */
+            target_label: string | null;
+            target_type: components["schemas"]["AuditTargetType"] | null;
+            /** User Agent */
+            user_agent: string | null;
+        };
+        /**
+         * AuditTargetType
+         * @description `audit_events.target_type`: what an audit event is about (spec 19 §3.1).
+         * @enum {string}
+         */
+        AuditTargetType: "USER" | "SHOP" | "MEMBERSHIP" | "BOOKING";
+        /**
          * AvailabilityRead
          * @description The free slots of one shop-local date, ordered by `slot_start` (D37).
          */
@@ -1544,6 +2164,28 @@ export interface components {
          * @enum {string}
          */
         BookingActionSlug: "confirm" | "decline" | "assign-technician" | "start-inspection" | "edit-estimate" | "submit-estimate" | "send-estimate" | "approve-estimate" | "reject-estimate" | "revise-estimate" | "return-to-technician" | "assign-parts-person" | "order-parts" | "mark-parts-ready" | "allocate-parts" | "start-repair" | "send-to-qc" | "pick-qc" | "pass-qc" | "fail-qc" | "notify-ready" | "complete" | "cancel" | "reassign-technician" | "reassign-parts-person";
+        /**
+         * BookingCounts
+         * @description `today`, `last_7_days`, `last_30_days`: bookings **placed** (created) on those local days;
+         *     `open`: not completed or cancelled, now; `completed_30d` / `cancelled_30d`: completed /
+         *     cancelled in the last 30 local days; `open_by_phase`: open bookings per phase, every phase.
+         */
+        BookingCounts: {
+            /** Cancelled 30D */
+            cancelled_30d: number;
+            /** Completed 30D */
+            completed_30d: number;
+            /** Last 30 Days */
+            last_30_days: number;
+            /** Last 7 Days */
+            last_7_days: number;
+            /** Open */
+            open: number;
+            /** Open By Phase */
+            open_by_phase: components["schemas"]["PhaseCount"][];
+            /** Today */
+            today: number;
+        };
         /**
          * BookingCreate
          * @description `POST /api/v1/bookings` (T01). `shop_id` only selects where to book (D20).
@@ -2009,6 +2651,16 @@ export interface components {
             version: number;
         };
         /**
+         * CustomerBookings
+         * @description The person's bookings as a customer: how many, and the 10 newest.
+         */
+        CustomerBookings: {
+            /** Count */
+            count: number;
+            /** Latest */
+            latest: components["schemas"]["AdminBookingSummary"][];
+        };
+        /**
          * CustomerCancelRequest
          * @description Customer `cancel` (T22): the reason is optional.
          */
@@ -2105,6 +2757,16 @@ export interface components {
             /** Phone */
             phone?: string | null;
         };
+        /** DayCount */
+        DayCount: {
+            /** Count */
+            count: number;
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+        };
         /**
          * DeclineRequest
          * @description `decline` (T03): the reason is required and shown to the customer.
@@ -2123,7 +2785,7 @@ export interface components {
          * @description Every `code` an error response can carry (glossary §10). Values equal the names.
          * @enum {string}
          */
-        ErrorCode: "VALIDATION_ERROR" | "INVALID_SLOT" | "ESTIMATE_EMPTY" | "MEMBER_NOT_ELIGIBLE" | "UNAUTHENTICATED" | "INVALID_CREDENTIALS" | "FORBIDDEN" | "NOT_ASSIGNED" | "IDENTITY_NOT_VERIFIED" | "NOT_FOUND" | "METHOD_NOT_ALLOWED" | "EMAIL_ALREADY_REGISTERED" | "INVALID_TRANSITION" | "CONCURRENT_UPDATE" | "SLOT_FULL" | "ALREADY_PICKED" | "STALE_ESTIMATE" | "ESTIMATE_LOCKED" | "INSUFFICIENT_STOCK" | "CALL_BUSY" | "CALL_ALREADY_ANSWERED" | "CALL_NOT_ACTIVE" | "CONFLICT" | "PAYLOAD_TOO_LARGE" | "RATE_LIMITED" | "INTERNAL_ERROR" | "CALLING_DISABLED";
+        ErrorCode: "VALIDATION_ERROR" | "INVALID_SLOT" | "ESTIMATE_EMPTY" | "MEMBER_NOT_ELIGIBLE" | "UNAUTHENTICATED" | "INVALID_CREDENTIALS" | "FORBIDDEN" | "NOT_ASSIGNED" | "IDENTITY_NOT_VERIFIED" | "NOT_FOUND" | "METHOD_NOT_ALLOWED" | "EMAIL_ALREADY_REGISTERED" | "INVALID_TRANSITION" | "CONCURRENT_UPDATE" | "SLOT_FULL" | "ALREADY_PICKED" | "STALE_ESTIMATE" | "ESTIMATE_LOCKED" | "INSUFFICIENT_STOCK" | "CALL_BUSY" | "CALL_ALREADY_ANSWERED" | "CALL_NOT_ACTIVE" | "CONFLICT" | "PAYLOAD_TOO_LARGE" | "SHOP_SUSPENDED" | "RATE_LIMITED" | "INTERNAL_ERROR" | "CALLING_DISABLED";
         /**
          * EstimateEditRead
          * @description `PUT …/estimate` response (spec 03 §5.3): the editable version with live part stock, the
@@ -2434,6 +3096,7 @@ export interface components {
         /**
          * MeRead
          * @description `GET /api/v1/me`: the account and its **active** memberships, sorted by shop name (D66).
+         *     `is_platform_admin` opens the admin console (D94, spec 19 §4).
          */
         MeRead: {
             /** Email */
@@ -2445,6 +3108,8 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /** Is Platform Admin */
+            is_platform_admin: boolean;
             /** Memberships */
             memberships: components["schemas"]["MembershipRead"][];
             /** Phone */
@@ -2543,7 +3208,8 @@ export interface components {
         };
         /**
          * MembershipRead
-         * @description One active membership of the caller (spec 04 `/me`, D66).
+         * @description One active membership of the caller (spec 04 `/me`, D66). `shop_suspended`: the shop is
+         *     suspended by BayFlow (D96), so the POS can show it without calling a blocked route.
          */
         MembershipRead: {
             /** Capabilities */
@@ -2563,6 +3229,8 @@ export interface components {
             shop_name: string;
             /** Shop Slug */
             shop_slug: string;
+            /** Shop Suspended */
+            shop_suspended: boolean;
         };
         /**
          * MembershipRole
@@ -2888,12 +3556,68 @@ export interface components {
         };
         /**
          * OwnerSummaryRead
-         * @description `GET /api/v1/me/owner-summary`: one row per shop the caller owns, by shop name; `items: []`
-         *     for anyone who owns no shop.
+         * @description `GET /api/v1/me/owner-summary`: one row per shop the caller owns that is not suspended
+         *     (D99), by shop name; `items: []` for anyone who owns no such shop.
          */
         OwnerSummaryRead: {
             /** Items */
             items: components["schemas"]["OwnerShopSummary"][];
+        };
+        /** Page[AdminBookingSummary] */
+        Page_AdminBookingSummary_: {
+            /** Items */
+            items: components["schemas"]["AdminBookingSummary"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /**
+             * Total
+             * @description Number of items matching the filters, on all pages.
+             */
+            total: number;
+        };
+        /** Page[AdminShopRow] */
+        Page_AdminShopRow_: {
+            /** Items */
+            items: components["schemas"]["AdminShopRow"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /**
+             * Total
+             * @description Number of items matching the filters, on all pages.
+             */
+            total: number;
+        };
+        /** Page[AdminUserRow] */
+        Page_AdminUserRow_: {
+            /** Items */
+            items: components["schemas"]["AdminUserRow"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /**
+             * Total
+             * @description Number of items matching the filters, on all pages.
+             */
+            total: number;
+        };
+        /** Page[AuditEventRead] */
+        Page_AuditEventRead_: {
+            /** Items */
+            items: components["schemas"]["AuditEventRead"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /**
+             * Total
+             * @description Number of items matching the filters, on all pages.
+             */
+            total: number;
         };
         /** Page[BookingSummary] */
         Page_BookingSummary_: {
@@ -3180,6 +3904,12 @@ export interface components {
             /** Notes */
             notes?: string | null;
         };
+        /** PhaseCount */
+        PhaseCount: {
+            /** Count */
+            count: number;
+            phase: components["schemas"]["StatusPhase"];
+        };
         /**
          * PickQcRequest
          * @description `pick-qc` (T18).
@@ -3190,6 +3920,31 @@ export interface components {
              * @description The booking `version` the client rendered (D30).
              */
             expected_version?: number | null;
+        };
+        /**
+         * PlatformOverviewRead
+         * @description E-61 (A-01): platform KPIs. "Today" and the 14-day series are local dates in the shops'
+         *     default time zone (`Asia/Karachi`, D38); `bookings_per_day` runs oldest first to today.
+         */
+        PlatformOverviewRead: {
+            bookings: components["schemas"]["BookingCounts"];
+            /** Bookings Per Day */
+            bookings_per_day: components["schemas"]["DayCount"][];
+            /** Generated At */
+            generated_at: string;
+            /** Latest Audit Events */
+            latest_audit_events: components["schemas"]["AuditEventRead"][];
+            shops: components["schemas"]["ShopCounts"];
+            /** Timezone */
+            timezone: string;
+            /**
+             * Today
+             * Format: date
+             */
+            today: string;
+            /** Top Shops */
+            top_shops: components["schemas"]["TopShop"][];
+            users: components["schemas"]["UserCounts"];
         };
         /**
          * Problem
@@ -3576,6 +4331,15 @@ export interface components {
             expected_version?: number | null;
         };
         /**
+         * RoleMembers
+         * @description The shop's memberships of one role, active or not, by name.
+         */
+        RoleMembers: {
+            /** Members */
+            members: components["schemas"]["AdminMemberRead"][];
+            role: components["schemas"]["MembershipRole"];
+        };
+        /**
          * SendEstimateRequest
          * @description `send-estimate` (T07).
          */
@@ -3714,6 +4478,23 @@ export interface components {
              */
             token_type: "bearer";
             user: components["schemas"]["UserRead"];
+        };
+        /**
+         * ShopCounts
+         * @description `active` = not suspended; `listed` = the `is_listed` flag; `new_30d` = created in the last 30
+         *     local days.
+         */
+        ShopCounts: {
+            /** Active */
+            active: number;
+            /** Listed */
+            listed: number;
+            /** New 30D */
+            new_30d: number;
+            /** Suspended */
+            suspended: number;
+            /** Total */
+            total: number;
         };
         /**
          * ShopCreate
@@ -3866,6 +4647,25 @@ export interface components {
             working_hours: components["schemas"]["WorkingHoursRead"][];
         };
         /**
+         * ShopSuspendRequest
+         * @description E-64: suspend a shop (D96). Its staff are locked out at their next request.
+         */
+        ShopSuspendRequest: {
+            /** Reason */
+            reason: string;
+        };
+        /**
+         * ShopSuspensionRead
+         * @description A shop's suspension (D96): when, why and by which platform admin.
+         */
+        ShopSuspensionRead: {
+            /** At */
+            at: string;
+            by: components["schemas"]["AdminUserRef"] | null;
+            /** Reason */
+            reason: string;
+        };
+        /**
          * ShopUpdate
          * @description `PATCH /api/v1/shops/{shop_id}` (at least one field). `logo_url: null` clears the logo.
          *
@@ -3948,6 +4748,12 @@ export interface components {
             /** Total */
             total: number;
         };
+        /**
+         * StatusPhase
+         * @description Glossary §5, in glossary order.
+         * @enum {string}
+         */
+        StatusPhase: "INTAKE" | "INSPECTION" | "ESTIMATE" | "PARTS" | "REPAIR_QC" | "HANDOVER" | "CLOSED";
         /**
          * StockAdjustmentCreate
          * @description `POST …/parts/{part_id}/adjustments`: opening stock and count corrections (D82).
@@ -4040,6 +4846,12 @@ export interface components {
             /** Inspection Notes */
             inspection_notes?: string | null;
         };
+        /** TopShop */
+        TopShop: {
+            /** Bookings 30D */
+            bookings_30d: number;
+            shop: components["schemas"]["AdminShopRef"];
+        };
         /**
          * UnreadCountRead
          * @description `GET /api/v1/me/notifications/unread-count` (polled every 15 s, D14).
@@ -4047,6 +4859,34 @@ export interface components {
         UnreadCountRead: {
             /** Count */
             count: number;
+        };
+        /**
+         * UserCounts
+         * @description `customers` = accounts without an active membership, `staff` = with one, `platform_admins`
+         *     = the flag (any status), `inactive` = deactivated accounts, `new_30d` = created in the last 30
+         *     local days.
+         */
+        UserCounts: {
+            /** Customers */
+            customers: number;
+            /** Inactive */
+            inactive: number;
+            /** New 30D */
+            new_30d: number;
+            /** Platform Admins */
+            platform_admins: number;
+            /** Staff */
+            staff: number;
+            /** Total */
+            total: number;
+        };
+        /**
+         * UserDeactivateRequest
+         * @description E-68: deactivate an account; its tokens stop working at its next request (D9).
+         */
+        UserDeactivateRequest: {
+            /** Reason */
+            reason: string;
         };
         /**
          * UserRead
@@ -4215,6 +5055,946 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    admin_list_audit_events: {
+        parameters: {
+            query?: {
+                sort?: "-occurred_at" | "occurred_at";
+                /** @description Maximum number of items to return. */
+                limit?: number;
+                /** @description Number of items to skip. */
+                offset?: number;
+                /** @description Repeatable: `?category=A&category=B`. */
+                category?: components["schemas"]["AuditCategory"][] | null;
+                /** @description E.g. `shop.suspended`. */
+                action?: string | null;
+                actor_user_id?: string | null;
+                shop_id?: string | null;
+                target_type?: components["schemas"]["AuditTargetType"] | null;
+                target_id?: string | null;
+                /** @description Inclusive instant (`Z` or offset). */
+                from?: string | null;
+                /** @description Exclusive instant (`Z` or offset). */
+                to?: string | null;
+                /** @description Matches the summary or target label. */
+                q?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_AuditEventRead_"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    admin_export_audit_events: {
+        parameters: {
+            query?: {
+                /** @description Repeatable: `?category=A&category=B`. */
+                category?: components["schemas"]["AuditCategory"][] | null;
+                /** @description E.g. `shop.suspended`. */
+                action?: string | null;
+                actor_user_id?: string | null;
+                shop_id?: string | null;
+                target_type?: components["schemas"]["AuditTargetType"] | null;
+                target_id?: string | null;
+                /** @description Inclusive instant (`Z` or offset). */
+                from?: string | null;
+                /** @description Exclusive instant (`Z` or offset). */
+                to?: string | null;
+                /** @description Matches the summary or target label. */
+                q?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The CSV file. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    admin_list_bookings: {
+        parameters: {
+            query?: {
+                sort?: "-slot_start" | "slot_start" | "-created_at";
+                /** @description Maximum number of items to return. */
+                limit?: number;
+                /** @description Number of items to skip. */
+                offset?: number;
+                /** @description Reference (with or without `BF-`), plate, customer name or e-mail. */
+                q?: string | null;
+                shop_id?: string | null;
+                /** @description Repeatable: `?status=A&status=B`. */
+                status?: components["schemas"]["BookingStatus"][] | null;
+                /** @description Slot date in the shop's zone, inclusive. */
+                date_from?: string | null;
+                /** @description Slot date in the shop's zone, inclusive. */
+                date_to?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_AdminBookingSummary_"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    admin_get_booking: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The booking id. */
+                booking_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminBookingDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    admin_get_overview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformOverviewRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    admin_list_shops: {
+        parameters: {
+            query?: {
+                /** @description Case-insensitive search text. */
+                q?: string | null;
+                /** @description Suspended or not. */
+                status?: components["schemas"]["AdminShopStatus"] | null;
+                /** @description The `is_listed` flag. */
+                listed?: boolean | null;
+                /** @description Exact city. */
+                city?: string | null;
+                sort?: "-created_at" | "name" | "-bookings_30d";
+                /** @description Maximum number of items to return. */
+                limit?: number;
+                /** @description Number of items to skip. */
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_AdminShopRow_"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    admin_get_shop: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The shop (tenant) id. */
+                shop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminShopDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    admin_reactivate_shop: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The shop (tenant) id. */
+                shop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminShopDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    admin_suspend_shop: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The shop (tenant) id. */
+                shop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShopSuspendRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminShopDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    admin_list_users: {
+        parameters: {
+            query?: {
+                /** @description Case-insensitive search text. */
+                q?: string | null;
+                kind?: components["schemas"]["AdminUserKind"] | null;
+                status?: components["schemas"]["AdminUserStatus"] | null;
+                sort?: "-created_at" | "name" | "-last_login_at";
+                /** @description Maximum number of items to return. */
+                limit?: number;
+                /** @description Number of items to skip. */
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_AdminUserRow_"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    admin_get_user: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The account id. */
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminUserDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    admin_deactivate_user: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The account id. */
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserDeactivateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminUserDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    admin_grant_platform_admin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The account id. */
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminUserDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    admin_reactivate_user: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The account id. */
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminUserDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    admin_revoke_platform_admin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The account id. */
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminUserDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
     identity_login: {
         parameters: {
             query?: never;
@@ -4281,6 +6061,15 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
             };
         };
     };
@@ -4564,6 +6353,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description Not Found */
             404: {
                 headers: {
@@ -4690,6 +6488,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description Not Found */
             404: {
                 headers: {
@@ -4746,6 +6553,15 @@ export interface operations {
             };
             /** @description Unauthorized */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5342,6 +7158,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description Not Found */
             404: {
                 headers: {
@@ -5481,6 +7306,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description Not Found */
             404: {
                 headers: {
@@ -5524,6 +7358,15 @@ export interface operations {
             };
             /** @description Unauthorized */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5576,6 +7419,15 @@ export interface operations {
             };
             /** @description Unauthorized */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7337,6 +9189,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description Not Found */
             404: {
                 headers: {
@@ -7382,6 +9243,15 @@ export interface operations {
             };
             /** @description Unauthorized */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7495,6 +9365,15 @@ export interface operations {
             };
             /** @description Unauthorized */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -8442,6 +10321,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description Not Found */
             404: {
                 headers: {
@@ -8492,6 +10380,15 @@ export interface operations {
             };
             /** @description Unauthorized */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
