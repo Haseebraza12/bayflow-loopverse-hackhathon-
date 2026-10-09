@@ -256,9 +256,8 @@
     @apply border-border outline-ring;
   }
   html {
-    /* Keep focused/anchored content clear of the sticky headers (WCAG 2.4.11, spec 09 §5.2).
-       The tallest one is the 5rem public header, plus 1rem of breathing room. */
-    scroll-padding-top: 6rem;
+    /* Keep focused/anchored content clear of the sticky headers (WCAG 2.4.11, spec 09 §5.2). */
+    scroll-padding-top: 4rem;
   }
   body {
     @apply bg-background font-sans text-foreground antialiased;

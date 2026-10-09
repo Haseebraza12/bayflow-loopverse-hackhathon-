@@ -9,6 +9,7 @@ import {
   ChevronRight,
   ClipboardCheck,
   Menu,
+  PhoneCall,
   PlusCircle,
   ShoppingBag,
   Warehouse,
@@ -109,7 +110,7 @@ export function PublicHeader() {
         className="mx-auto flex h-20 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8"
       >
         {/* Brand Logo */}
-        <Link href="/" aria-label="BayFlow home" className="flex items-center gap-2">
+        <Link href="/" aria-label="GarageBox home" className="flex items-center gap-2">
           <Logo size="md" />
         </Link>
 
@@ -161,6 +162,13 @@ export function PublicHeader() {
                 </div>
 
                 <div className="flex items-center justify-between pt-4 px-2 text-xs font-semibold">
+                  <a
+                    href="tel:+923125699996"
+                    className="inline-flex items-center gap-2 text-neutral-600 hover:text-[#1047FA] transition-colors"
+                  >
+                    <PhoneCall className="size-3.5 text-[#1047FA]" />
+                    <span>Contact Sales</span>
+                  </a>
                   <Link
                     href="#features-all"
                     onClick={() => setFeaturesOpen(false)}

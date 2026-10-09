@@ -1,3 +1,8 @@
+import {
+  Mail,
+  MessageCircle,
+  Phone,
+} from 'lucide-react'
 import Link from 'next/link'
 
 import { Logo } from './logo'
@@ -8,11 +13,68 @@ export function PublicFooter() {
       {/* Upper Footer: Links & Contact */}
       <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 gap-12 lg:grid-cols-12">
-          {/* Col 1: Brand */}
+          {/* Col 1: Brand & Need Help? */}
           <div className="lg:col-span-4 space-y-6">
-            <Link href="/" aria-label="BayFlow home">
+            <Link href="/" aria-label="GarageBox home">
               <Logo size="md" />
             </Link>
+
+            <div className="pt-2">
+              <h3 className="text-xl font-bold text-neutral-900">Need Help?</h3>
+              <p className="mt-1 text-sm text-neutral-500">Contact us with any questions</p>
+            </div>
+
+            <div className="space-y-4">
+              {/* Call Us */}
+              <a
+                href="tel:+923125699996"
+                className="group flex items-center gap-3 text-neutral-900 transition-colors hover:text-[#1047FA]"
+              >
+                <div className="flex shrink-0 items-center justify-center text-neutral-500 transition-colors group-hover:text-[#1047FA]">
+                  <Phone className="size-4" />
+                </div>
+                <div>
+                  <span className="block text-[11px] font-bold uppercase tracking-wider text-neutral-400">
+                    Call Us
+                  </span>
+                  <span className="text-sm font-bold">+92 312 5699996</span>
+                </div>
+              </a>
+
+              {/* Email Us */}
+              <a
+                href="mailto:support@garagebox.io"
+                className="group flex items-center gap-3 text-neutral-900 transition-colors hover:text-[#1047FA]"
+              >
+                <div className="flex shrink-0 items-center justify-center text-neutral-500 transition-colors group-hover:text-[#1047FA]">
+                  <Mail className="size-4" />
+                </div>
+                <div>
+                  <span className="block text-[11px] font-bold uppercase tracking-wider text-neutral-400">
+                    Email Us
+                  </span>
+                  <span className="text-sm font-bold">support@garagebox.io</span>
+                </div>
+              </a>
+
+              {/* WhatsApp Us */}
+              <a
+                href="https://wa.me/923125699996"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group flex items-center gap-3 text-neutral-900 transition-colors hover:text-[#1047FA]"
+              >
+                <div className="flex shrink-0 items-center justify-center text-neutral-500 transition-colors group-hover:text-[#1047FA]">
+                  <MessageCircle className="size-4" />
+                </div>
+                <div>
+                  <span className="block text-[11px] font-bold uppercase tracking-wider text-neutral-400">
+                    WhatsApp Us
+                  </span>
+                  <span className="text-sm font-bold">+92 312 5699996</span>
+                </div>
+              </a>
+            </div>
 
             {/* Follow Us */}
             <div className="pt-2">
@@ -158,7 +220,7 @@ export function PublicFooter() {
 
           <div className="flex items-center gap-2">
             <Logo size="sm" showText={false} />
-            <p>© 2026 BayFlow. All rights reserved.</p>
+            <p>© 2026 GarageBox. All rights reserved.</p>
           </div>
         </div>
       </div>
