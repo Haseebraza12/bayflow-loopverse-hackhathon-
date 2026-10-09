@@ -72,7 +72,7 @@ Writes take `uow`, reads `session`, first (spec 01).
 
 | Function | Returns |
 |---|---|
-| `create_for_booking_action(uow, event: BookingActionApplied)` | `list[NotificationRead]` (empty when the action has no type) |
+| `create_for_booking_action(uow, event: BookingActionApplied)` | `list[NotificationRecord]` (empty when the action has no type). As built, `NotificationRecord` is `NotificationRead` plus `recipient_user_id`, which the pushes and the seed need; it is never sent on the wire |
 | `create_for_call_event(uow, event: CallStateChanged)` *(P2)* | `list[NotificationRead]` |
 | `create_for_ai_task(uow, event: AiTaskCreated)` *(P2)* | `list[NotificationRead]` |
 
@@ -86,7 +86,7 @@ Writes take `uow`, reads `session`, first (spec 01).
 | `mark_all_read(uow, *, user_id)` (top-level, commits) | number of rows changed | — |
 | `issue_ws_ticket(user_id)` | `RealtimeTicketRead(ticket, expires_in=60)` from `app.core.security.issue_token(user_id, "ws", utcnow())`; no server state | — |
 
-**Seed support (spec 11 "Notifications after seeding").** `list_for_bookings(session, *, shop_id, booking_ids) -> list[NotificationRead]` and `mark_read_bulk(uow, *, user_id, notification_ids) -> int` (ignores ids that are not that user's; commits).
+**Seed support (spec 11 "Notifications after seeding").** `list_for_bookings(session, *, shop_id, booking_ids) -> list[NotificationRecord]` (group by `recipient_user_id`) and `mark_read_bulk(uow, *, user_id, notification_ids) -> int` (ignores ids that are not that user's; commits).
 
 **Realtime hub** (P1, D88; `realtime.RealtimeHub`; one instance per app, created on first use by `get_realtime_hub(state)` and stored at `app.state.realtime_hub` (D90); its after-commit callbacks open their own session from `app_state.db`; no module-level state, spec 01 rule 5):
 
@@ -217,7 +217,7 @@ A failure in steps 1–2 raises and rolls the whole action back (no partial succ
 
 ### Realtime hub (spec 03 §6, spec 04 "WebSocket ticket")
 
-- **Handshake, before `accept()`, in this order:** an `Origin` header, when present, must equal `CLIENT_URL`; the `ticket` query value must decode with `decode_token(ticket, utcnow(), "ws")` (signature, `exp` by the app clock, `typ == "ws"`); the user must exist and be active (`identity.service.get_active_user`). Any failure → `close(code=1008)` before accept (browsers see 1006; tests assert 1008 with Starlette's `TestClient`, SEC-33).
+- **Handshake, before `accept()`, in this order:** an `Origin` header, when present, must equal `CLIENT_URL`; the `ticket` query value must decode with `decode_token(ticket, utcnow(), "ws")` (signature, `exp` by the app clock, `typ == "ws"`); the user must exist and be active (`identity.service.get_active_user`). Any policy failure → `close(code=1008)` before accept (browsers see 1006; tests assert 1008 with Starlette's `TestClient`, SEC-33). An internal error during the handshake (e.g. the database is unreachable) closes with **1011** instead, because it is not a policy violation; a socket whose send fails or times out is also closed with 1011 so its client reconnects (as built).
 - **After accept:** register the socket under the user id (several tabs allowed), run the connect hooks (P2), then read frames: `{"type": "ping"}` → `{"type": "pong", "data": {}}`; anything else, including invalid JSON, is ignored and the socket stays open. The socket outlives its 60 s ticket.
 - **Sends:** JSON text frames `{"type", "data"}`; each send has a 5 s timeout; a socket that fails is dropped. No replay: after a reconnect the client refetches (spec 09 §2.12) and polling covers gaps.
 - **State:** a `dict[UUID, set[WebSocket]]` mutated only on the event-loop thread; sends iterate over a copy. One replica (D14); presence is per process.
