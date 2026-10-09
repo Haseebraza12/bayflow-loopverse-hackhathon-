@@ -29,9 +29,15 @@ def is_whole_rupees(value: Decimal) -> bool:
     return value.is_finite() and value == value.to_integral_value()
 
 
+def _without_negative_zero(value: Decimal) -> Decimal:
+    """`Decimal("-0")` equals 0 but keeps its sign through `quantize` and prints `"-0.00"`."""
+    return value.copy_abs() if value.is_zero() else value
+
+
 def format_decimal(value: Decimal, places: int = 2) -> str:
     """Plain notation with exactly `places` decimals: `Decimal("1.5")` -> `"1.50"`."""
-    return f"{value.quantize(Decimal(1).scaleb(-places), rounding=ROUND_HALF_UP):f}"
+    rounded = value.quantize(Decimal(1).scaleb(-places), rounding=ROUND_HALF_UP)
+    return f"{_without_negative_zero(rounded):f}"
 
 
 def format_money(value: Decimal) -> str:
@@ -50,7 +56,7 @@ def _accept_string_or_integer(value: object) -> object:
 def _require_whole_rupees(value: Decimal) -> Decimal:
     if not is_whole_rupees(value):
         raise PydanticCustomError(_NOT_WHOLE_RUPEES, "Amounts must be whole rupees (no paisa).")
-    return value.quantize(CENTS)
+    return _without_negative_zero(value.quantize(CENTS))
 
 
 Money = Annotated[

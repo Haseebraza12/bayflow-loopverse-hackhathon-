@@ -91,3 +91,16 @@ def test_money_rejects_everything_else(raw: object, error_type: str) -> None:
 def test_money_json_schema_is_a_string_in_responses() -> None:
     schema = Line.model_json_schema(mode="serialization")
     assert schema["properties"]["unit_price"]["type"] == "string"
+
+
+@pytest.mark.parametrize("raw", ["-0", "-0.00", "-000"])
+def test_negative_zero_is_plain_zero(raw: str) -> None:
+    line = Line.model_validate({"unit_price": raw})
+    assert not line.unit_price.is_signed()
+    assert line.model_dump_json() == '{"unit_price":"0.00"}'
+
+
+@pytest.mark.parametrize("value", [Decimal("-0"), Decimal("-0.00"), round_rupees(Decimal("-0.4"))])
+def test_formatting_never_prints_a_negative_zero(value: Decimal) -> None:
+    assert format_money(value) == "0.00"
+    assert format_decimal(value, 1) == "0.0"
