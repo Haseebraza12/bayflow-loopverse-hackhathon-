@@ -38,7 +38,7 @@ Names come from [18-glossary.md](18-glossary.md). [17-decisions.md](17-decisions
 
 - Every authenticated request re-reads `users.is_active`: an inactive user gets 401 `UNAUTHENTICATED` everywhere (D9).
 - Token types never mix: a `typ = "ws"` ticket used as a session → 401; a session token never opens the WebSocket.
-- Public routes (`/api/v1/public/*`, `/health`, the three `/api/v1/auth/*` routes) never read credentials. `POST /api/v1/bookings` reads them optionally: none → anonymous wizard; present but invalid, expired or belonging to an inactive user → 401, never a silent downgrade to the anonymous path (spec 04 case A).
+- Public routes (`/api/v1/public/*`, `/health`, the three `/api/v1/auth/*` routes) never require or reject credentials. Only `POST /api/v1/auth/logout` reads them, leniently: when the Bearer header (which wins) or else the cookie decodes to an active user, the sign-out is recorded as `auth.logged_out` (spec 19 §3.3); anything absent, malformed or expired is ignored, and the answer is 204 whatever happens. `POST /api/v1/bookings` reads them optionally: none → anonymous wizard; present but invalid, expired or belonging to an inactive user → 401, never a silent downgrade to the anonymous path (spec 04 case A).
 - `/api/v1/internal/*` (bonus) accepts only `Authorization: Bearer <AGENT_SERVICE_TOKEN>` plus `X-Agent-Call-Token` (spec 05 §5.1). Session JWTs are rejected there, and the service token is rejected everywhere else.
 - Every 401 carries `WWW-Authenticate: Bearer` (RFC 9110 §15.5.2 requires a challenge; a `Bearer` challenge never opens a browser login prompt).
 
@@ -49,8 +49,8 @@ Names come from [18-glossary.md](18-glossary.md). [17-decisions.md](17-decisions
 | Public | `/api/v1/public/*` | anonymous | Listed shops only (D64, D68); anything else → 404 |
 | Current user | `/api/v1/me`, `/api/v1/me/*`, `/api/v1/realtime/ticket` | the caller; `CUSTOMER` for booking reads and actions | Queries filtered by `customer_user_id` / `recipient_user_id` / owner of the vehicle = caller; anything else → 404 |
 | Wizard | `POST /api/v1/bookings` | `CUSTOMER` | The body's `shop_id` only selects where to book; it is never an authorization claim (D20) |
-| Staff | `/api/v1/shops/{shop_id}/*` | the caller's membership role in `shop_id` | Every staff route group is built with `app.shared.auth.shop_scoped_router()` (prefix `/api/v1/shops/{shop_id}`, D80), which attaches `require_shop_member` at router level: it loads the caller's **active** membership or answers 404 on every route, whether the shop doesn't exist, belongs to another tenant, or the membership is inactive (D9, D20). `POST /api/v1/shops` is the only `/shops` route outside it. |
-| Platform admin (P1) | `/api/v1/admin/*` | a platform admin (`require_platform_admin`, D94) | Every tenant; E-61…E-75 in spec 19 §4 |
+| Staff | `/api/v1/shops/{shop_id}/*` | the caller's membership role in `shop_id` | Every staff route group is built with `app.shared.auth.shop_scoped_router()` (prefix `/api/v1/shops/{shop_id}`, D80), which attaches `require_shop_member` at router level: it loads the caller's **active** membership or answers 404 on every route, whether the shop doesn't exist, belongs to another tenant, or the membership is inactive (D9, D20); a member of a **suspended** shop gets 403 `SHOP_SUSPENDED` on every route, the Owner included (D96), so the router declares 403 for all of them. `POST /api/v1/shops` is the only `/shops` route outside it. |
+| Platform admin (P1) | `/api/v1/admin/*` | a platform admin (`require_platform_admin`, D94), from BayFlow's own pages (D98: a `Sec-Fetch-Site` header other than `same-origin` or `none` → 403 `FORBIDDEN`) | Every tenant; E-61…E-75 in spec 19 §4 |
 | Agent (P2) | `/api/v1/internal/calls/{call_id}/*` | the AI Front Desk | The call's shop and customer, read from `call_logs` (spec 05 §5.1) |
 
 - **Management routes** add `require_roles(...)`: a member with another role gets 403 `FORBIDDEN`. Each route's roles are listed in §4.
@@ -61,11 +61,13 @@ Names come from [18-glossary.md](18-glossary.md). [17-decisions.md](17-decisions
 ### 1.4 Check order
 
 ```text
-staff route     401 auth → 404 membership → 403 require_roles (management routes only) → 422 request schema
+staff route     401 auth → 404 membership → 403 SHOP_SUSPENDED (D96) → 403 require_roles (management routes only) → 422 request schema
                 → 404 visibility (D21) → 403 FORBIDDEN (role not in the rule) → 403 NOT_ASSIGNED (guard)
                 → 409 status (INVALID_TRANSITION, or ESTIMATE_LOCKED / ALREADY_PICKED) → 409 CONCURRENT_UPDATE
                 → 422 / 409 data guards → side effects, commit, response
-customer route  401 auth → 422 request schema → 404 own booking → 403 FORBIDDEN → 409 status → 409 version → guards
+customer route  401 auth → 422 request schema → 404 own booking → 403 SHOP_SUSPENDED (every action but cancel, D96)
+                → 403 FORBIDDEN → 409 status → 409 version → guards
+admin route     403 FORBIDDEN cross-site (D98) → 401 auth → 403 FORBIDDEN not a platform admin → 422 → 404 → 409 / 422
 ```
 
 This is glossary §10's order with two framework facts made explicit (both verified on FastAPI 0.143.0):
@@ -132,6 +134,7 @@ Verified pitfall: Starlette's `ServerErrorMiddleware` is always the outermost la
 |---|---|---|---|
 | Failed password checks (primary) | normalised e-mail | 5 per 15 min, moving window; cleared on success. A blocked account gets 429 even with the right password; unknown e-mails count like known ones. | `POST /api/v1/auth/login`; `POST /api/v1/bookings` cases C and D |
 | Login | client IP | 30 per min | `POST /api/v1/auth/login` |
+| Logout | client IP | 30 per min | `POST /api/v1/auth/logout` (a 429 leaves the cookie in place; spec 04) |
 | Owner sign-up | client IP | 20 per hour | `POST /api/v1/auth/register-owner` |
 | Anonymous booking | client IP | 20 per min | `POST /api/v1/bookings` without a session |
 | Authenticated booking | user | 30 per hour | `POST /api/v1/bookings` with a session |
@@ -185,7 +188,7 @@ Every glossary §10 code, with its status and where this contract raises it.
 | `MEMBER_NOT_ELIGIBLE` | 422 | `assign-technician`, `assign-parts-person`, `reassign-*`: not an active member with the required role in this shop |
 | `UNAUTHENTICATED` | 401 | Missing, invalid or expired token; inactive user; wrong token type; bad agent service token; bad webhook signature |
 | `INVALID_CREDENTIALS` | 401 | `POST /api/v1/auth/login`: unknown e-mail, wrong password or inactive user (identical bodies) |
-| `FORBIDDEN` | 403 | The caller can see the resource but the role may not do this (incl. any change to the `OWNER` membership, D19); the QC picker would be the booking's technician (D47) |
+| `FORBIDDEN` | 403 | The caller can see the resource but the role may not do this (incl. any change to the `OWNER` membership, D19); the QC picker would be the booking's technician (D47); `/api/v1/admin/*` for anyone but a platform admin, for an admin deactivating or revoking themselves, and for any request whose `Sec-Fetch-Site` is not `same-origin` or `none` (D94, D98, spec 19 §4) |
 | `NOT_ASSIGNED` | 403 | Visible booking, right role, not the assignee: in practice a QC inspector passing or failing a job someone else picked |
 | `IDENTITY_NOT_VERIFIED` *(P2)* | 403 | Agent data routes before `verify-caller` succeeded |
 | `NOT_FOUND` | 404 | Unknown or invisible resource (other tenant, not assigned, not own booking, inactive membership); unknown path or action slug |
@@ -201,7 +204,7 @@ Every glossary §10 code, with its status and where this contract raises it.
 | `CALL_BUSY` *(P2)* | 409 | The booking already has an active call, or the caller or the called customer is already in another call |
 | `CALL_ALREADY_ANSWERED` *(P2)* | 409 | Another callee accepted first |
 | `CALL_NOT_ACTIVE` *(P2)* | 409 | Accept or decline on a call that is no longer ringing; agent routes after the AI leg's window (ending an ended call is 200, not an error) |
-| `CONFLICT` | 409 | Duplicate SKU, membership or active service name; grid change blocked by future bookings (D37); `order-parts` when nothing is short; receiving a `RECEIVED` PO |
+| `CONFLICT` | 409 | Duplicate SKU, membership or active service name; grid change blocked by future bookings (D37); `order-parts` when nothing is short; receiving a `RECEIVED` PO; the platform levers' wrong states and the last active platform admin (spec 19 §4) |
 | `PAYLOAD_TOO_LARGE` | 413 | Body over the §1.10 limit |
 | `SHOP_SUSPENDED` | 403 | Staff routes of a suspended shop and customer actions on its bookings except `cancel` (D96, spec 19 §2) |
 | `RATE_LIMITED` | 429 | §1.9 limiters |
@@ -312,8 +315,8 @@ Notation: `name` type, separated by `·`. `T?` = may be `null` (the field is alw
 | Schema | Fields | Notes |
 |---|---|---|
 | `UserRead` | `id` uuid · `email` string · `full_name` string · `phone` string? | The account itself, without memberships (D81). Never `password_hash` |
-| `MeRead` | every `UserRead` field + `memberships` MembershipRead[] | Flat, as spec 04 fixes it. **Active** memberships only, sorted by shop name; `[]` for a pure customer. Never `password_hash`, inactive memberships or another user's data |
-| `MembershipRead` | `membership_id` uuid · `shop_id` uuid · `shop_name` string · `shop_slug` string · `role` MembershipRole · `capabilities` Capability[] | Flat item (spec 04, D66); drives the shop switcher, role routing and non-booking buttons |
+| `MeRead` | every `UserRead` field + `is_platform_admin` bool + `memberships` MembershipRead[] | Flat, as spec 04 fixes it. `is_platform_admin` opens the admin console (D94, spec 19 §4). **Active** memberships only, sorted by shop name; `[]` for a pure customer. Never `password_hash`, inactive memberships or another user's data |
+| `MembershipRead` | `membership_id` uuid · `shop_id` uuid · `shop_name` string · `shop_slug` string · `shop_suspended` bool · `role` MembershipRole · `capabilities` Capability[] | Flat item (spec 04, D66); drives the shop switcher, role routing and non-booking buttons. `shop_suspended` (D96) lets the POS show a suspended shop without calling its blocked routes |
 | `SessionRead` | `access_token` string · `token_type` `"bearer"` · `expires_in` int · `user` UserRead | Login and owner registration (D8, D81); the matching cookie is set too. No memberships: the web calls `GET /api/v1/me` next (D81) |
 | `WorkingHoursRead` | `weekday` int 0–6 · `is_closed` bool · `opens_at` string? (`HH:MM`) · `closes_at` string? | Always 7 entries, Monday (0) first; times `null` on closed days |
 | `WorkingHoursWrite` (request) | `weekday` int 0–6 · `is_closed` bool · `opens_at` string? · `closes_at` string? | Open day: both times required, on the slot grid (minutes since local midnight divisible by `slot_duration_minutes`, D37) → else `not_on_grid`; `closes_at` > `opens_at` → else `invalid_range`. Closed day: times ignored and stored as `null`. A list must hold exactly 7 entries with distinct weekdays (`duplicate`) |
@@ -414,7 +417,7 @@ Event lists are ordered by `(created_at, seq)` (D79). `seq` is not exposed: it i
 | `UnreadCountRead` | `count` int | |
 | `OverviewRead` | `shop` {`id`, `slug`, `name`, `city`, `is_listed`} · `status_counts` {`status`, `count`}[] · `today` {`date`, `bookings`, `ready_for_pickup`, `completed`} · `team` {`membership_id`, `user_id`, `full_name`, `role`, `is_active`, `open_jobs`}[] · `inventory` {`parts_count`, `low_stock_count`, `out_of_stock_count`, `stock_value` Money, `open_purchase_orders`} · `low_stock` PartRead[] · `setup` {`has_services`, `has_team`, `has_parts`, `is_listed`} | Brief §7.4 Owner |
 | `OwnerShopSummary` | `shop` {`id`, `slug`, `name`, `city`} · `today_bookings` int · `needs_sa_action` int · `in_progress` int · `ready_for_pickup` int · `low_stock_count` int | P1 |
-| `OwnerSummaryRead` | `items` OwnerShopSummary[] | Shops where the caller is `OWNER`, by name |
+| `OwnerSummaryRead` | `items` OwnerShopSummary[] | Shops where the caller is `OWNER` and that are not suspended (D99), by name |
 
 Reporting definitions (shop timezone): `today.bookings` = non-cancelled bookings whose slot starts today; `today.ready_for_pickup` = bookings currently `READY_FOR_PICKUP`; `today.completed` = `completed_at` today; `needs_sa_action` = statuses whose step owner is the SA (`PENDING`, `CONFIRMED`, `ESTIMATE_REVIEW`, `ESTIMATE_APPROVED`, `ESTIMATE_REJECTED`, `READY_FOR_PICKUP`); `in_progress` = every other non-terminal status; `stock_value` = Σ `on_hand × unit_cost` over active parts; `low_stock` = up to 5 active parts, `OUT` first, then by `available`; `low_stock_count` counts `LOW` and `OUT`; `has_team` = at least one active non-owner member; `has_parts` / `has_services` = at least one active part / service.
 
@@ -536,11 +539,13 @@ The three `/api/v1/auth/*` routes are served by the `identity` module's router (
 
 #### `POST /api/v1/auth/logout` — `identity_logout` · public · P0 · S-01 user menu, X-04 · E-02
 - No body, no authentication needed. **204** + `Set-Cookie: bf_session=""; HttpOnly; Max-Age=0; Path=/; SameSite=lax` (+ `Secure`). Idempotent. A copied Bearer token stays valid until `exp` (stateless JWT, spec 04).
+- When the Bearer token or else the cookie names an active user, `auth.logged_out` is recorded (spec 19 §3.3). Recording is best effort: any failure there (database, audit write) is logged without the token, rolled back, and the answer is still 204 with the cookie expired.
+- **Errors:** 429 `RATE_LIMITED`, 30 per minute per IP (§1.9).
 
 ### 4.4 Current user
 
 #### `GET /api/v1/me` — `shops_get_me` · session · P0 · every screen · E-04
-- **200 `MeRead`**: the user and their active memberships, each with server-computed `capabilities` (D66). Built by `shops.service.get_me`; the shops module serves and tags this route because it combines identity and memberships (spec 01, D81; §1.11), while the identity module serves `/api/v1/auth/*`, whose bodies carry only the token fields and the `user` (§4.3). The web calls it on app load and right after login, owner registration and the booking wizard (D81, spec 09 §2.8).
+- **200 `MeRead`**: the user, `is_platform_admin` (D94) and their active memberships, each with server-computed `capabilities` (D66) and `shop_suspended` (D96). Built by `shops.service.get_me`; the shops module serves and tags this route because it combines identity and memberships (spec 01, D81; §1.11), while the identity module serves `/api/v1/auth/*`, whose bodies carry only the token fields and the `user` (§4.3). The web calls it on app load and right after login, owner registration and the booking wizard (D81, spec 09 §2.8).
 - **Errors:** 401 (the web treats a 401 here as "anonymous", spec 09).
 
 ### 4.5 Public directory and availability
@@ -570,7 +575,8 @@ The three `/api/v1/auth/*` routes are served by the `identity` module's router (
   - `vehicle` `VehicleWrite` (§3.3).
 - **201 `BookingCreatedRead`** + `Set-Cookie: bf_session` in every successful case (D32: a booking always logs the customer in; with a session the token is re-issued).
 - **Account rule (D32, spec 04):** A, a valid session → booked for that user (`account_created: false`). B, new e-mail → user created (`account_created: true`). C, existing active account + correct password → reused (`false`; Argon2 rehash if needed). D, wrong password or inactive account → 409 `EMAIL_ALREADY_REGISTERED`, **nothing is created**, and it counts as a failed password check.
-- **Order of checks:** 422 schema → 404 shop unknown, unlisted or without an active service (D64; spec 12 BK-15) → 422 `VALIDATION_ERROR` when a service is unknown, inactive or of another shop (`service_ids.N`, `invalid_reference`) → 422 `INVALID_SLOT` (`slot_start`, reason `off_grid`, `in_past`, `beyond_horizon`, `closed_day` or `outside_hours`, §2.3) when the slot is off the grid, not after now, beyond 30 days, on a closed day, or starts before opening or ends after closing → account rule (409, or 429 for the account; Argon2 never holds a row lock) → one transaction: read the shop row `FOR SHARE` and re-check the slot rules against it (D37: a concurrent change of `slot_duration_minutes` or `timezone` holds that row `FOR UPDATE`, so the two never interleave; a slot that is off the new grid → 422 `INVALID_SLOT` with reason `off_grid`; spec 02 §7.2), create the user (case B), upsert the vehicle on its normalised registration key (D35), lock the slot counter (409 `SLOT_FULL` when `booked_count ≥ slot_capacity`) and increment it, insert the booking (`reference` `BF-XXXXXX`, `version` 1, `mileage_km` snapshot, D65), snapshot the services (D34), write the `CREATE` event → commit → set the cookie. Any failure rolls back everything, so case B never leaves an orphan account.
+- **Audit (D100, spec 19 §3.2):** a case C sign-in records `auth.login_succeeded` in the booking's transaction (lost if the booking fails later); case D records `auth.login_failed`, and a blocked account `auth.login_rate_limited`, in a short transaction of their own committed before the 409 / 429, which holds nothing else.
+- **Order of checks:** 422 schema → 404 shop unknown, unlisted, suspended (D96) or without an active service (D64; spec 12 BK-15) → 422 `VALIDATION_ERROR` when a service is unknown, inactive or of another shop (`service_ids.N`, `invalid_reference`) → 422 `INVALID_SLOT` (`slot_start`, reason `off_grid`, `in_past`, `beyond_horizon`, `closed_day` or `outside_hours`, §2.3) when the slot is off the grid, not after now, beyond 30 days, on a closed day, or starts before opening or ends after closing → account rule (409, or 429 for the account; Argon2 never holds a row lock) → one transaction: read the shop row `FOR SHARE`, check again that the shop is bookable (404 when it was unlisted or suspended while the request waited for that lock: both write the shop row, so the re-read under the lock is final; spec 19 §7) and re-check the slot rules against it (D37: a concurrent change of `slot_duration_minutes` or `timezone` holds that row `FOR UPDATE`, so the two never interleave; a slot that is off the new grid → 422 `INVALID_SLOT` with reason `off_grid`; spec 02 §7.2), create the user (case B), upsert the vehicle on its normalised registration key (D35), lock the slot counter (409 `SLOT_FULL` when `booked_count ≥ slot_capacity`) and increment it, insert the booking (`reference` `BF-XXXXXX`, `version` 1, `mileage_km` snapshot, D65), snapshot the services (D34), write the `CREATE` event → commit → set the cookie. Any failure rolls back everything, so case B never leaves an orphan account.
 - **Errors:** 401 (credentials sent but invalid); 404; 409 `EMAIL_ALREADY_REGISTERED`; 409 `SLOT_FULL`; 422 `INVALID_SLOT`; 422; 429 (per IP when anonymous, per user with a session, per account for cases C and D).
 - **Notifications:** `BOOKING_CREATED` → the SAs of the shop (D26). After commit: `notification.created` to them and `booking.updated` to the customer and the booking's viewers.
 
@@ -591,6 +597,7 @@ The three `/api/v1/auth/*` routes are served by the `identity` module's router (
 
 #### `POST /api/v1/me/bookings/{booking_id}/actions/{slug}` — 4 routes · P0 · C-02 · E-15
 - `approve-estimate`, `reject-estimate`, `cancel`, `complete`; specified in §5.
+- At a suspended shop (D96) every action but `cancel` is 403 `SHOP_SUSPENDED` (the three routes declare 403), and the customer's `allowed_actions` hold `cancel` only.
 
 #### `GET /api/v1/me/vehicles` — `bookings_list_my_vehicles` · session · P1 · P-03 W4 · E-16
 - **200 `ItemList[VehicleRead]`**: the caller's vehicles, most recently updated first. Re-booking a listed vehicle sends its fields again in `vehicle`; the upsert matches on the registration key (D35).
@@ -736,7 +743,7 @@ The three `/api/v1/auth/*` routes are served by the `identity` module's router (
 - **Errors:** 403 for every other role (spec 12 RPT-03).
 
 #### `GET /api/v1/me/owner-summary` — `reporting_get_owner_summary` · session · P1 · O-07 · E-32
-- **200 `OwnerSummaryRead`**: one row per shop where the caller is `OWNER` (brief §2 "no visibility across locations"); `items: []` for everyone else (spec 12 RPT-02).
+- **200 `OwnerSummaryRead`**: one row per shop where the caller is `OWNER` (brief §2 "no visibility across locations"); `items: []` for everyone else (spec 12 RPT-02). A suspended shop is left out (D99): its staff routes are 403 `SHOP_SUSPENDED`, and `GET /api/v1/me` still lists the membership with `shop_suspended: true`.
 
 ### 4.14 Calls, tasks, webhook and agent routes (P2 — copied from spec 05 §5.3 and §8, which are authoritative)
 

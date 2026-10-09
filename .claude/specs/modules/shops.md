@@ -20,7 +20,7 @@ Brief sections satisfied:
 | Priority | In scope |
 |---|---|
 | **P0** | Shop create (with 7 working-hours rows and the `OWNER` membership in one transaction), read, update; working-hours replace with grid validation; the D37 grid-change guard (`ShopGridChanging`); slug generation (immutable); team list / add (D18) / role change, deactivate, reactivate (D19); service catalogue list / create / update; public directory, cities and shop detail by slug (D64, D68); `GET /api/v1/me` with capabilities (D66); rate limits for shop and member creation (D69); look-ups used by `app.shared.auth`, scheduling, bookings, notifications, reporting, inventory and qc; internal `set_rating` for the seed (D56). |
-| **P1** | Nothing extra in this module (the multi-shop summary is `reporting`). |
+| **P1** | Shop suspension (D96, spec 19 §2): the suspension columns, `suspend_shop` / `reactivate_shop` for the admin module, the `get_shop_suspension` read port behind `require_shop_member`, suspended shops treated as unlisted publicly, `shop_suspended` on `/me`; the audit events of §8 (D95); the admin reads of spec 19 §4 (E-61…E-63, E-66). The multi-shop summary is `reporting`. |
 | **P2** | `tasks.manage` capability for Owner and SA when calling is enabled (glossary §2.4); `get_shop_profile` for the AI agent's `GET /api/v1/internal/calls/{call_id}/shop` (spec 05). |
 | **Out of scope** | Deleting shops, memberships or services (never; deactivate instead, spec 02 §2); changing a slug; setting `rating` over HTTP (seed only, D56); logo file upload (URL only, D55); editing a user's name, e-mail or password through a membership (identity owns accounts, D18); invitations / consent for attaching an existing account (Tier 3); transferring ownership or a second `OWNER`; per-date holidays, split shifts, overnight hours; per-service slot lengths (`estimated_duration_minutes` is informational). |
 
@@ -58,10 +58,10 @@ Brief sections satisfied:
 
 | File | Contents |
 |---|---|
-| `models.py` | `Shop`, `ShopWorkingHours`, `ShopMembership`, `Service` (exist; spec 02 §3.2–§3.5) with their checks, `uq_shops_slug`, `uq_shop_working_hours_shop_id_weekday`, `uq_shop_memberships_shop_id_user_id`, `uq_shop_memberships_one_owner_per_shop`, `uq_services_shop_id_id`, `uq_services_active_name`, `ix_shops_listed_city_name`, `ix_shop_memberships_user_active`, `ix_shop_memberships_shop_role_active`. |
+| `models.py` | `Shop`, `ShopWorkingHours`, `ShopMembership`, `Service` (exist; spec 02 §3.2–§3.5) with their checks (`Shop` adds `suspended_at`, `suspended_reason` varchar(500), `suspended_by_user_id` FK `users` `RESTRICT`, `ck_shops_suspension_complete` and the `is_suspended` property, D96), `uq_shops_slug`, `uq_shop_working_hours_shop_id_weekday`, `uq_shop_memberships_shop_id_user_id`, `uq_shop_memberships_one_owner_per_shop`, `uq_services_shop_id_id`, `uq_services_active_name`, `ix_shops_listed_city_name`, `ix_shop_memberships_user_active`, `ix_shop_memberships_shop_role_active`. |
 | `repository.py` | `ShopRepository` (get, get_for_update, get_for_share, get_by_slug, slug look-up, directory page + count, cities, briefs), `WorkingHoursRepository` (list for shops, upsert 7 rows), `MembershipRepository` (exists: `get_active`; add: get_for_update by `(shop_id, membership_id)`, list by shop with filters, active ids by role, owner id, by user), `ServiceRepository` (page, active by ids, duplicate-name check, active services of many shops). Every shop-data method takes keyword-only `shop_id`. `uq_shops_slug` is caught locally (savepoint retry, §7.3); `uq_shop_memberships_shop_id_user_id` and `uq_services_active_name` already map to 409 `CONFLICT` through the global constraint map (`app.core.db_errors`). |
-| `schemas.py` | Requests: `ShopCreate`, `ShopUpdate`, `WorkingHoursWrite`, `WorkingHoursUpdate`, `MemberCreate`, `MemberUpdate`, `ServiceCreate`, `ServiceUpdate`. Responses (spec 03 §3.2): `ShopRead`, `WorkingHoursRead`, `ShopPublicSummary`, `ShopPublicDetail`, `ServiceRead`, `MemberRead`, `MemberCreatedRead`, `MeRead`, `MembershipRead`. Internal: `MembershipRecord` (today's internal `MembershipRead`: `id`, `shop_id`, `user_id`, `role`, `is_active`), `ShopBrief`, `ServiceSnapshot`, `MemberRef`, `TeamMember`. |
-| `events.py` | `ShopGridChanging` (glossary §7.1). |
+| `schemas.py` | Requests: `ShopCreate`, `ShopUpdate`, `WorkingHoursWrite`, `WorkingHoursUpdate`, `MemberCreate`, `MemberUpdate`, `ServiceCreate`, `ServiceUpdate`. Responses (spec 03 §3.2): `ShopRead`, `WorkingHoursRead`, `ShopPublicSummary`, `ShopPublicDetail`, `ServiceRead`, `MemberRead`, `MemberCreatedRead`, `MeRead` (+ `is_platform_admin`), `MembershipRead` (+ `shop_suspended`). Internal (`ShopBrief` + `is_suspended`; admin records `ShopSuspension`, `AdminShopRecord`, `AdminMembershipRecord`, `ShopStats`): `MembershipRecord` (today's internal `MembershipRead`: `id`, `shop_id`, `user_id`, `role`, `is_active`), `ShopBrief`, `ServiceSnapshot`, `MemberRef`, `TeamMember`. |
+| `events.py` | `ShopGridChanging` (glossary §7.1) and the audit events of §8 (spec 19 §3.3). |
 | `domain/capabilities.py` | `Capability` (`StrEnum`: `shop.manage`, `team.manage`, `services.manage`, `parts.manage`, `stock.manage`, `tasks.manage`), `CAPABILITY_ROLES`, `capabilities_for(role, *, tasks_enabled)`. |
 | `domain/grid.py` | Value objects `WorkingDay`, `ScheduleConfig`; `minutes_of`, `is_on_grid`, `week_problems`, `hours_fit_grid` (D37). Pure; scheduling's slot maths imports it. |
 | `domain/slugs.py` | `slugify(name)`, `slug_candidates(base)`. |
@@ -90,7 +90,7 @@ No `handlers.py`: shops subscribes to nothing.
 | `list_public_shops` | `(session, *, q, city, page) → Page[ShopPublicSummary]` | — |
 | `list_public_cities` | `(session) → list[str]` | — |
 | `get_public_shop` | `(session, *, shop_slug) → ShopPublicDetail` | 404 |
-| `get_me` | `(session, *, user_id) → MeRead` | 401 (user vanished) |
+| `get_me` | `(session, *, user_id) → MeRead` (with `is_platform_admin`, D94, and each membership's `shop_suspended`, D96) | 401 (user vanished) |
 | `set_rating` *(internal, seed only)* | `(uow, *, shop_id, rating: Decimal \| None) → None` | 404 |
 
 ### 5.2 Look-ups for other modules (reads, nested)
@@ -99,9 +99,12 @@ No `handlers.py`: shops subscribes to nothing.
 |---|---|---|
 | `get_active_membership` | `(session, *, shop_id, user_id) → MembershipRecord \| None` (fresh read, D9) | `app.shared.auth.require_shop_member` (exists) |
 | `list_memberships_for_user` | `(session, *, user_id, roles=None) → list[MembershipRecord]` (active only) | `get_me`; reporting owner summary (`roles={OWNER}`) |
-| `get_listed_shop` | `(session, *, shop_slug) → ShopBrief \| None` (`is_listed` only) | scheduling availability (spec 03 §4.5: 404 for unknown or unlisted) |
-| `get_bookable_shop` | `(session, *, shop_id) → ShopBrief \| None` (listed **and** ≥ 1 active service, D64) | bookings T01 (404 otherwise) |
-| `get_shop_briefs` | `(session, *, shop_ids) → dict[UUID, ShopBrief]` (any listing state) | bookings customer views, notifications, reporting |
+| `get_listed_shop` | `(session, *, shop_slug) → ShopBrief \| None` (listed **and** not suspended, D96) | scheduling availability (spec 03 §4.5: 404 for unknown, unlisted or suspended) |
+| `get_bookable_shop` | `(session, *, shop_id) → ShopBrief \| None` (listed, not suspended **and** ≥ 1 active service, D64, D96) | bookings T01, twice: before the account rule and again under the shop row's `FOR SHARE` (404 otherwise; spec 19 §7) |
+| `get_shop_briefs` | `(session, *, shop_ids) → dict[UUID, ShopBrief]` (any listing or suspension state; `ShopBrief.is_suspended`) | bookings customer views, notifications, reporting (the owner summary leaves suspended shops out, D99) |
+| `get_shop_suspension` | `(session, *, shop_id) → ShopSuspension \| None` (`suspended_at`, `reason`, `suspended_by_user_id`) | `app.shared.auth.require_shop_member` (403 `SHOP_SUSPENDED`); bookings customer actions and `allowed_actions` |
+| `suspend_shop` / `reactivate_shop` | `(uow, *, shop_id, actor_user_id[, reason]) → None`, nested: reason 5–500 → `identity.lock_acting_platform_admin` (actor row `FOR SHARE`, 403) → shop row `FOR UPDATE` (404) → 409 on the wrong state → write, publish `ShopSuspensionChanged` | admin (E-64, E-65) |
+| `list_shops_for_admin`, `list_shop_ids_for_admin`, `get_admin_shop_records`, `count_shops`, `count_staff_users`, `list_staff_user_ids`, `list_memberships_everywhere`, `get_shop_timezones` | admin reads across tenants (spec 19 §4) | admin, bookings (E-72's per-zone dates) |
 | `get_schedule_config` | `(session, *, shop_id, for_share: bool = False) → ScheduleConfig` | scheduling (availability, slot validation); bookings T01 with `for_share=True` (D37) |
 | `snapshot_services` | `(session, *, shop_id, service_ids) → list[ServiceSnapshot]` (request order) | bookings T01 (D34); 422 `service_ids.N` `invalid_reference` for unknown, inactive or other-shop ids |
 | `require_eligible_member` | `(session, *, shop_id, user_id, role, field) → MemberRef` | bookings T04, T12, O4, O5; 422 `MEMBER_NOT_ELIGIBLE` |
@@ -281,7 +284,19 @@ Lock the shop row `FOR UPDATE`; validate the 7 entries against the shop's curren
 |---|---|---|---|---|
 | `ShopGridChanging` | published | `shop_id`, `changed_fields` (subset of `slot_duration_minutes`, `timezone`), `actor_user_id`, `occurred_at` | `update_shop`, after the shop row is locked `FOR UPDATE`, before anything is written, only when one of the two fields really changes | `bookings.handlers.on_shop_grid_changing` → 409 `CONFLICT` while a booking with `slot_start > occurred_at` and `status <> 'CANCELLED'` exists; the exception rolls the change back |
 
-Nothing subscribed. Membership changes need no event: realtime recipients and notification recipients are resolved from live membership state at publish time (spec 01, D14).
+Published for the platform audit log (D95, spec 19 §3.3); shops never imports `audit`, which subscribes:
+
+| Event | Payload | Published by |
+|---|---|---|
+| `ShopCreated` | `shop_id`, `actor_user_id` | `create_shop`, after the flush |
+| `ShopUpdated` | `shop_id`, `actor_user_id`, `changes` (`{field: {from, to}}`, only the fields that really changed) | `update_shop`, only when something changed |
+| `WorkingHoursReplaced` | `shop_id`, `actor_user_id` | `replace_working_hours`, only when the week changed |
+| `ShopSuspensionChanged` | `shop_id`, `actor_user_id`, `suspended`, `reason` | `suspend_shop` / `reactivate_shop` |
+| `MembershipAdded` | `shop_id`, `actor_user_id`, `membership_id`, `user_id`, `role` | `add_member`, after the flush |
+| `MembershipRoleChanged` | `shop_id`, `actor_user_id`, `membership_id`, `user_id`, `from_role`, `to_role` | `update_member` |
+| `MembershipActiveChanged` | `shop_id`, `actor_user_id`, `membership_id`, `user_id`, `is_active` | `update_member` |
+
+Every event carries `occurred_at`. Nothing subscribed. Realtime and notification recipients are still resolved from live membership state at publish time (spec 01, D14); the membership events exist for the audit log only.
 
 ## 9. Permissions and visibility
 
@@ -301,9 +316,10 @@ Nothing subscribed. Membership changes need no event: realtime recipients and no
 
 | Code | HTTP | When |
 |---|---|---|
-| `NOT_FOUND` | 404 | Non-member on any `…` route; a membership or service of another shop; unknown or unlisted slug (public detail) |
-| `FORBIDDEN` | 403 | Non-owner on owner routes; T/PP/QC listing members; **any** change to the `OWNER` membership |
-| `CONFLICT` | 409 | Duplicate membership (active or inactive); duplicate active service name; grid change blocked by future bookings (raised by the bookings handler) |
+| `NOT_FOUND` | 404 | Non-member on any `…` route; a membership or service of another shop; unknown, unlisted or suspended slug (public detail) |
+| `SHOP_SUSPENDED` | 403 | Any member on any `…` route of a suspended shop, before the role check (`require_shop_member`, D96); every shop-scoped route declares 403 |
+| `FORBIDDEN` | 403 | Non-owner on owner routes; T/PP/QC listing members; **any** change to the `OWNER` membership; `suspend_shop` / `reactivate_shop` by anyone but an active platform admin |
+| `CONFLICT` | 409 | Duplicate membership (active or inactive); duplicate active service name; grid change blocked by future bookings (raised by the bookings handler); suspending a suspended shop or reactivating an active one |
 | `EMAIL_ALREADY_REGISTERED` | 409 | `add_member` losing the race to create the same new e-mail (from `identity.create_user`) |
 | `MEMBER_NOT_ELIGIBLE` | 422 | `require_eligible_member` (called by bookings) |
 | `VALIDATION_ERROR` | 422 | Schema errors; `working_hours.N.*` (`duplicate`, `missing`, `not_on_grid`, `invalid_range`); `slot_duration_minutes` `hours_not_on_grid`; `timezone`; `password` `missing` for a new member; `service_ids.N` `invalid_reference` (from `snapshot_services`) |
@@ -314,6 +330,7 @@ Nothing subscribed. Membership changes need no event: realtime recipients and no
 - Every use case in §5.1 is one transaction committed in the service. Look-ups in §5.2 never commit.
 - **Shop row:** `update_shop` and `replace_working_hours` take `SELECT … FOR UPDATE` on the `shops` row first; booking creation takes `FOR SHARE` on it first (D37, via `get_schedule_config(for_share=True)`). A grid change and a booking therefore never interleave: either the booking commits first and the change is vetoed (409), or the change commits first and the booking is validated against the new grid (CON-05). No other transaction locks the shop row, and it is always the first lock of the transactions that take it, so it adds no cycle to D30's order (booking → purchase order → parts → slot counter).
 - **Membership row:** `update_member` locks it `FOR UPDATE`; concurrent PATCHes serialise.
+- **Suspension:** `suspend_shop` / `reactivate_shop` lock the acting admin's `users` row `FOR SHARE` (identity's `lock_acting_platform_admin`) and then the `shops` row `FOR UPDATE`, always in that order. Two admins acting on one shop queue on the shop row and the second gets 409; a concurrent revoke or deactivation of the acting admin waits for the lever, or committed first and the lever answers 403 (spec 19 §1, §7). Unlisting (`update_shop`) and suspension both write the shop row, so booking creation's `FOR SHARE` sees either the closed shop (404) or commits first.
 - **Inserts:** races are settled by `uq_shops_slug` (retry with the next suffix in a savepoint), `uq_shop_memberships_shop_id_user_id` and `uq_services_active_name` (409 `CONFLICT`), `uq_users_email` (409 `EMAIL_ALREADY_REGISTERED`).
 - `add_member` runs Argon2 (new accounts) without holding any row lock.
 - Clock: one `utcnow()` per use case, read after the row lock.

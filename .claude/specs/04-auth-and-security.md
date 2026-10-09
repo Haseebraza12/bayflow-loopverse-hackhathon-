@@ -78,8 +78,8 @@ Rules (D15, D17):
 |---|---|---|---|---|
 | `POST /api/v1/auth/register-owner` | anonymous | Create an account (D17) | 201, sets `bf_session`, body = login body | 409 `EMAIL_ALREADY_REGISTERED`, 422, 429 |
 | `POST /api/v1/auth/login` | anonymous | Log in | 200, sets `bf_session`, body `{access_token, token_type, expires_in, user}` — no memberships (D81) | 401 `INVALID_CREDENTIALS`, 422, 429 |
-| `POST /api/v1/auth/logout` | anyone | Clear the cookie | 204 | — |
-| `GET /api/v1/me` | session | Profile + active memberships, each with server-computed `capabilities` (D66; routing, shop switcher, non-booking buttons). Served by the shops module; the web calls it right after login and registration (D81) | 200 | 401 |
+| `POST /api/v1/auth/logout` | anyone | Clear the cookie; record `auth.logged_out` when the credentials name an active user (spec 19 §3.3) | 204 | 429 (per IP) |
+| `GET /api/v1/me` | session | Profile + `is_platform_admin` (D94) + active memberships, each with server-computed `capabilities` (D66; routing, shop switcher, non-booking buttons) and `shop_suspended` (D96). Served by the shops module; the web calls it right after login and registration (D81) | 200 | 401 |
 | `POST /api/v1/shops` | session | Create a shop; caller becomes its `OWNER` (D17) | 201 | 422, 429 |
 | `POST /api/v1/shops/{shop_id}/members` | `OWNER` of `shop_id` | Add a staff member (D18) | 201 | 403, 404, 409 `CONFLICT`, 422, 429 |
 | `PATCH /api/v1/shops/{shop_id}/members/{membership_id}` | `OWNER` of `shop_id` | Change role, deactivate, reactivate (D19) | 200 | 403 `FORBIDDEN` (the `OWNER` membership), 404, 422 |
@@ -125,7 +125,9 @@ A user whose memberships are all deactivated can still log in (they may be a cus
 
 1. POST only (never GET, so a link or `<img>` cannot trigger it; a GET gets 405 `METHOD_NOT_ALLOWED`). The API calls `delete_cookie("bf_session", path="/", secure=…, httponly=True, samesite="lax")` and returns 204. Verified header: `bf_session=""; expires=<past date>; HttpOnly; Max-Age=0; Path=/; SameSite=lax; Secure`. Idempotent: works with a missing or expired session.
 2. The web clears its TanStack Query cache, closes the WebSocket and navigates to the landing page.
-3. **Stateless-JWT caveat.** Logout deletes the cookie; it does not revoke the token. A copy of the token (for example a Bearer token pasted into curl) stays valid until `exp`. Accepted for the hackathon because the browser's token is httpOnly (scripts cannot copy it), the web never stores the body token, and deactivation is still immediate (D9). Tier 2 adds `users.tokens_valid_after` for password change and "log out everywhere".
+3. **Audit, best effort.** Logout never requires or rejects credentials, but reads them leniently: when the Bearer header (which wins) or else the cookie decodes to an active user, it publishes `LoggedOut` and the audit log records `auth.logged_out` (spec 19 §3.3); a missing, malformed or expired token is simply ignored. Any failure while recording (a database blip, an audit write) is caught, logged without the token (only the exception type), rolled back, and the route still answers 204 with the cookie expired.
+4. **Rate limit.** 30 per minute per client IP (slowapi, like login; [Rate limiting](#rate-limiting)). A 429 leaves the cookie in place; the user retries.
+5. **Stateless-JWT caveat.** Logout deletes the cookie; it does not revoke the token. A copy of the token (for example a Bearer token pasted into curl) stays valid until `exp`. Accepted for the hackathon because the browser's token is httpOnly (scripts cannot copy it), the web never stores the body token, and deactivation is still immediate (D9). Tier 2 adds `users.tokens_valid_after` for password change and "log out everywhere".
 
 ### Current user — `GET /api/v1/me`
 
@@ -359,13 +361,20 @@ staff request  /api/v1/shops/{shop_id}/…
   0 route          the path exists in this endpoint family (e.g. no staff approve-estimate)  ✗ 404 NOT_FOUND
   1 authenticate   get_current_user: token → users row (fresh read) → is_active            ✗ 401 UNAUTHENTICATED
   2 tenant         require_shop_member(shop_id): caller's ACTIVE membership in shop_id       ✗ 404 NOT_FOUND
+  2b suspension    the shop is suspended (D96), for every member, the Owner included        ✗ 403 SHOP_SUSPENDED
   3 role           require_roles(...) on management routes                                   ✗ 403 FORBIDDEN
   4 visibility     booking queries carry the D21 predicate                                    ✗ 404 NOT_FOUND
   5 booking rule   spec 08: actor role → assignment guard → status → data guards              ✗ 403 FORBIDDEN / 403 NOT_ASSIGNED / 409 / 422
 
 customer request  /api/v1/me/…
   0 route (a staff-only slug such as confirm has no customer route → 404) → 1 authenticate
-  → own-scope query (customer_user_id = caller, else 404) → spec 08 rule for CUSTOMER
+  → own-scope query (customer_user_id = caller, else 404) → suspended shop: every action but
+  cancel → 403 SHOP_SUSPENDED (D96) → spec 08 rule for CUSTOMER
+
+admin request  /api/v1/admin/…
+  0 Fetch Metadata  Sec-Fetch-Site present and not same-origin / none (D98)               ✗ 403 FORBIDDEN
+  1 authenticate    get_current_user                                                          ✗ 401 UNAUTHENTICATED
+  2 platform admin  require_platform_admin: the re-read user's is_platform_admin (D94)        ✗ 403 FORBIDDEN
 ```
 
 Step 0 is routing, before any dependency runs: action routes exist per endpoint family only for the slugs that family's actors can perform (spec 03 §5.1), so a slug outside the caller's family is an unknown path → 404, never 403.
@@ -625,7 +634,7 @@ The role → capability table lives in the shops domain (`shops/domain/capabilit
 | 5 | Deactivated staff with a valid 7-day token | A dismissed technician keeps using the app | D9: membership and `is_active` re-read per request; realtime recipients from live state | SEC-13 |
 | 6 | Owner-membership removal or a second owner | Owner deactivates or re-roles their own `OWNER` membership; a second `OWNER` is added | 403 `FORBIDDEN` on the `OWNER` membership; `StaffRole` schema; partial unique index; no DELETE | SEC-15 |
 | 7 | Escalation through D17 | A technician creates their own shop hoping to gain owner rights in Lahore Auto Care | Ownership is per shop: the new `OWNER` membership covers only the new shop | SEC-40 |
-| 8 | CSRF with cookie auth (incl. login/logout CSRF) | `evil.example` auto-submits a form to `https://<web-host>/api/v1/me/bookings/{id}/actions/cancel` | `SameSite=Lax`; no state change on GET; JSON-only bodies (FastAPI strict content type); CORS allowlist; Tier 2 Origin/Fetch-Metadata check — see [CSRF in detail](#csrf-in-detail) | SEC-23, SEC-30, SEC-31, SEC-41 |
+| 8 | CSRF with cookie auth (incl. login/logout CSRF) | `evil.example` auto-submits a form to `https://<web-host>/api/v1/me/bookings/{id}/actions/cancel`; a link on another site opens `https://<web-host>/api/v1/admin/users/{id}` in a signed-in admin's browser (a `GET` that writes `admin.user_viewed`) | `SameSite=Lax`; no state change on GET except the admin API's audited reads, which refuse cross-site requests (D98: `Sec-Fetch-Site` present and not `same-origin`/`none` → 403 `FORBIDDEN` on every `/api/v1/admin/*` route); JSON-only bodies (FastAPI strict content type); CORS allowlist; Tier 2 Origin/Fetch-Metadata check for the rest — see [CSRF in detail](#csrf-in-detail) | SEC-23, SEC-30, SEC-31, SEC-41; `tests/modules/admin/test_authorization.py` (cross-site) |
 | 9 | XSS → token theft or forged actions | `<script>` in `customer_notes`, a shop name, a QC issue or an AI call summary | React escapes rendered text; `dangerouslySetInnerHTML` banned (ESLint `react/no-danger`); user and AI text rendered as text only; `logo_url` limited to `https://`; httpOnly cookie; CSP (baseline Tier 1, full Tier 2) | SEC-23, SEC-32 |
 | 10 | Brute force / credential stuffing | A script tries passwords for `fatima.owner@bayflow.test`, or uses the wizard's password check as an oracle | Per-account failure limiter shared by login and wizard (primary, D69); per-IP ceilings (secondary); Argon2id cost; generic errors | SEC-22, SEC-27 |
 | 11 | User enumeration and account squatting | Probing which e-mails exist via login, wizard 409, register-owner 409, add-member; or booking first with someone else's e-mail | Login: generic 401 plus dummy-hash timing. Wizard, register-owner and add-member **disclose existence by necessity** (the brief requires reuse-by-e-mail; OWASP notes registration-style enumeration cannot always be avoided) — rate-limited, and the per-account limiter treats unknown e-mails like known ones. No e-mail verification in scope → squatting accepted; Tier 3 adds verification and reset | SEC-22, SEC-27 |
@@ -651,21 +660,23 @@ The role → capability table lives in the shops domain (`shops/domain/capabilit
 ### CSRF in detail
 
 1. **`SameSite=Lax`, set explicitly.** Browsers do not attach `bf_session` to cross-site POST/PUT/PATCH/DELETE, `fetch` or iframe requests — only to top-level GET navigations. Chrome's two-minute "Lax+POST" exception applies only to cookies set **without** a SameSite attribute, so it does not apply here. `vercel.app` is on the Public Suffix List, so other Vercel-hosted apps are cross-site.
-2. **No state change on GET.** Every mutating endpoint uses POST/PUT/PATCH/DELETE (OWASP: Lax does not protect state-changing GETs); a method that a path does not support gets 405 `METHOD_NOT_ALLOWED` (glossary §10). The WS ticket GET creates no server state.
+2. **No state change on GET.** Every mutating endpoint uses POST/PUT/PATCH/DELETE (OWASP: Lax does not protect state-changing GETs); a method that a path does not support gets 405 `METHOD_NOT_ALLOWED` (glossary §10). The WS ticket GET creates no server state. The one exception is the admin API's audited reads (E-67, E-73, E-75 write an audit row on GET, D95), so the whole admin router refuses cross-site requests (point 6).
 3. **JSON-only bodies.** FastAPI's default `strict_content_type=True` (since 0.132) parses a body only when `Content-Type` is `application/json` or `application/*+json`. `text/plain`, form-encoded and missing content types are rejected with 422 (verified). A cross-origin page can only send a JSON body with `fetch`, which triggers a CORS preflight. Never set `strict_content_type=False`.
 4. **CORS allowlist.** `CORSMiddleware(allow_origins=[CLIENT_URL], allow_credentials=True, allow_methods=[…explicit…], allow_headers=["Content-Type", "Authorization"])` — explicit lists, because wildcards are not allowed with credentials (FastAPI docs). Preflights from other origins receive no `Access-Control-Allow-Origin`, so the browser never sends the real request. Note (verified): CORS **does not stop a simple cross-origin request from executing** — it only hides the response — which is why points 1–3 carry the protection.
 5. **Tier 2 — Origin / Fetch Metadata check.** For unsafe methods authenticated by the cookie (no `Authorization` header), reject with 403 `FORBIDDEN` when `Sec-Fetch-Site: cross-site`, or when an `Origin` header is present and not equal to `CLIENT_URL` (including `null`). Browsers send `Origin` on same-origin POST/PUT/PATCH/DELETE (MDN), so our own `fetch` calls pass; Swagger runs on the API host without the cookie, so it is unaffected. This closes login/logout CSRF and attacks from sibling subdomains if a custom domain is ever used.
+6. **Built — the admin API's Fetch Metadata check (D98).** Every `/api/v1/admin/*` route, whatever the method or credential, runs `app.shared.auth.refuse_cross_site_requests` first: a `Sec-Fetch-Site` header that is present and is not `same-origin` or `none` (so `cross-site`, `same-site`, or any other value) → 403 `FORBIDDEN`, "Admin requests must come from the BayFlow app.", before authentication and before anything is read or written. The web calls the API same-origin through the Vercel rewrite (D7), so its requests carry `same-origin`; an address typed in the bar sends `none`; clients that send no Fetch Metadata (curl, Swagger, tests, server-to-server) pass. Browsers that predate Fetch Metadata are covered by points 1–4 for writes; for the audited GETs only the admin's own click on a crafted link remains, which costs one audit row and no data.
 
 ---
 
 ## Rate limiting
 
-D69: login, owner registration, booking creation, shop creation, member creation and (bonus) call starts are rate-limited → 429 `RATE_LIMITED`. **Per-account (e-mail) failure limits are the primary control**; per-IP limits are only a secondary ceiling, because behind the Vercel rewrite many users can share egress IPs.
+D69: login, logout, owner registration, booking creation, shop creation, member creation and (bonus) call starts are rate-limited → 429 `RATE_LIMITED`. **Per-account (e-mail) failure limits are the primary control**; per-IP limits are only a secondary ceiling, because behind the Vercel rewrite many users can share egress IPs.
 
 | Limiter | Key | Starting limit | Applies to | Implemented with |
 |---|---|---|---|---|
 | Failed password checks | normalised e-mail | 5 failures / 15 min (moving window); cleared on success | login; wizard cases C and D; Tier 2 password change | `limits` (`MovingWindowRateLimiter` + `MemoryStorage`) called directly in the identity service |
 | Login requests | client IP | 30 / minute | `POST /api/v1/auth/login` | slowapi decorator |
+| Logout requests | client IP | 30 / minute | `POST /api/v1/auth/logout` (it writes an audit row; a 429 leaves the cookie in place) | slowapi decorator |
 | Owner sign-up | client IP | 20 / hour | `POST /api/v1/auth/register-owner` | slowapi decorator |
 | Anonymous booking creation | client IP | 20 / minute | `POST /api/v1/bookings` without a session | slowapi decorator |
 | Authenticated booking creation | user id | 30 / hour | wizard case A | `limits` in the bookings service |
@@ -709,7 +720,7 @@ D69: login, owner registration, booking creation, shop creation, member creation
 | # | Item |
 |---|---|
 | 1 | Full CSP: ship as `Content-Security-Policy-Report-Only`, walk the demo script with DevTools open, fix violations, then enforce |
-| 2 | Origin / `Sec-Fetch-Site` check for cookie-authenticated unsafe requests → 403 `FORBIDDEN` (SEC-41) |
+| 2 | Origin / `Sec-Fetch-Site` check for cookie-authenticated unsafe requests → 403 `FORBIDDEN` (SEC-41). Already built for `/api/v1/admin/*` (D98, [CSRF in detail](#csrf-in-detail) point 6) |
 | 3 | ~~Auth audit trail as structured log events (no new table)~~ — superseded by D95: the persisted `audit_events` log (spec 19 §3) records these, admin actions and booking activity |
 | 4 | Password change `POST /api/v1/me/password` (current + new password, per-account limiter) that sets `users.tokens_valid_after` to the clock's now (D63) so tokens with an older `iat` are rejected, then re-issues the caller's cookie (SEC-43). A judge who changes a demo password locks the others out until the next seed run, which restores the demo password hash (D60) |
 | 5 | Single-use WS tickets (D70 makes them Tier 2): in-memory set of consumed ticket hashes until expiry (one replica, D14) — no new claim needed (SEC-42) |

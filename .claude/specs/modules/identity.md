@@ -20,7 +20,7 @@ Brief sections satisfied:
 | Priority | In scope |
 |---|---|
 | **P0** | `POST /api/v1/auth/register-owner`, `POST /api/v1/auth/login`, `POST /api/v1/auth/logout` (D81). Password policy 12–128 characters and Argon2id hashing with transparent rehash (D10). Login with a constant-time dummy hash and identical 401 bodies. Per-account failure limiter (primary) and per-IP ceilings (secondary) (D69). Session token issuing (`typ = session`) and the `bf_session` cookie (D8). The project `Email` type on every e-mail field (D62). Service functions for other modules: user look-ups, user creation, the shared credential check, `set_phone_if_empty` (D33). Internal account-maintenance functions used only by the seed's demo-cast reconciliation (D60). |
-| **P1** | Structured auth audit log lines (spec 04 Tier 2 item 3: login success/failure, logout, registration, rate-limit blocks); no new table. |
+| **P1** | ~~Structured auth audit log lines~~ — superseded by D95: identity publishes audit events (§8) that the `audit` module stores in `audit_events` (spec 19 §3). The platform admin's account levers (spec 19, D94): `is_platform_admin`, the admin reads and the safeguarded `change_user_active` / `change_platform_admin`, the bootstrap script's `bootstrap_platform_admin`, and `lock_acting_platform_admin` for the shops levers. |
 | **P2** | Nothing new. The bonus `calls` module reuses `get_user` / `get_users_by_ids` for caller verification and display names (spec 05). |
 | **Out of scope** | Password change and `users.tokens_valid_after` (spec 04 Tier 2), password reset, e-mail verification, invitations, MFA (Tier 3); profile editing (no endpoint in spec 03); token revocation on logout (stateless JWT, spec 04); `GET /api/v1/me` (served by `shops`, D81); the WebSocket ticket (served by `notifications`, D70); any membership or role logic (`shops`). |
 
@@ -51,13 +51,14 @@ Brief sections satisfied:
 
 | File | Contents |
 |---|---|
-| `models.py` | `User` (exists; spec 02 §3.1): `email` varchar(254) unique, `password_hash`, `full_name`, `phone`, `is_active`, `last_login_at`; checks `ck_users_email_lowercase`, `ck_users_email_shape`, `ck_users_full_name_not_blank`; P2 index `ix_users_phone`. |
+| `models.py` | `User` (exists; spec 02 §3.1): `email` varchar(254) unique, `password_hash`, `full_name`, `phone`, `is_active`, `is_platform_admin` (D94, default false; partial index `ix_users_platform_admin`), `last_login_at`; checks `ck_users_email_lowercase`, `ck_users_email_shape`, `ck_users_full_name_not_blank`; P2 index `ix_users_phone`. |
 | `repository.py` | `UserRepository(Repository)` (exists, extend): `get(user_id)` (fresh read, `populate_existing`), `get_by_email(email)`, `get_many(user_ids)`, `find_ids_by_name(q, limit)`, `add(user)`. A `uq_users_email` violation surfaces as 409 `EMAIL_ALREADY_REGISTERED` through the global constraint map (`app.core.db_errors.CONSTRAINT_CODES`, already in code). Users are global, so no `shop_id` argument. |
 | `schemas.py` | The internal `UserRecord` other modules receive (`UserRead` + `is_active`; never `password_hash`; Open question 1); the wire schema `UserRead` of spec 03 §3.2 (`id`, `email`, `full_name`, `phone` — no `is_active`), used by `SessionRead.user`; `UserRef` (spec 03 §3.1, used by other modules for actors and authors); `OwnerRegistrationCreate`, `SessionCreate` (requests, `extra="forbid"`); `SessionToken` (`access_token`, `token_type = "bearer"`, `expires_in`); `SessionRead` (`SessionToken` + `user: UserRead`). |
 | `service.py` | The use cases and look-ups of §5. Never imports `app.shared.auth` (spec 01 rule 8). |
-| `router.py` | `APIRouter(prefix="/api/v1/auth", tags=["identity"])` with `register_owner`, `login`, `logout`; slowapi per-IP decorators; sets/clears the cookie through `app.shared.auth` helpers. |
+| `router.py` | `APIRouter(prefix="/api/v1/auth", tags=["identity"])` with `register_owner`, `login`, `logout`; slowapi per-IP decorators (login, register-owner, logout); sets/clears the cookie through `app.shared.auth` helpers. |
+| `events.py` | The audit events identity publishes (§8, spec 19 §3.3). |
 
-No `domain/`, `events.py` or `handlers.py`: the password policy is the `Password` type in `app.core.security`, e-mail normalisation is `app.shared.email`, and identity publishes and subscribes to nothing.
+No `domain/` or `handlers.py`: the password policy is the `Password` type in `app.core.security`, e-mail normalisation is `app.shared.email`, and identity subscribes to nothing.
 
 ## 5. Public service interface
 
@@ -67,7 +68,9 @@ Every function takes the request's `UnitOfWork` (`uow`, writes) or `AsyncSession
 |---|---|---|---|---|
 | `register_owner` | `(uow, *, email: str, full_name: str, password: SecretStr, phone: str \| None) → SessionRead` | top-level | 409 `EMAIL_ALREADY_REGISTERED` | identity router; seed Phase A (ignores the token) |
 | `login` | `(uow, *, email: str, password: SecretStr) → SessionRead` | top-level | 401 `INVALID_CREDENTIALS`, 429 `RATE_LIMITED` | identity router |
-| `authenticate` | `(uow, *, email: str, password: SecretStr) → UserRecord` | nested | 401 `INVALID_CREDENTIALS`, 429 `RATE_LIMITED` (with `Retry-After`) | `login`; `bookings.create_booking` (wizard cases C/D) |
+| `authenticate` | `(uow, *, email: str, password: SecretStr, now: datetime \| None = None) → UserRecord` | nested; publishes nothing | 401 `INVALID_CREDENTIALS`, 429 `RATE_LIMITED` (with `Retry-After`) | `login`, `sign_in_for_booking` |
+| `sign_in_for_booking` | `(uow, *, email: str, password: SecretStr, now: datetime) → UserRecord` | nested; a failure commits its audit row in **its own** transaction (D100) | as `authenticate` | `bookings.create_booking` (wizard cases C/D) |
+| `logout` | `(uow, *, user_id: UUID \| None) → None` | top-level (commits only when it records) | — | identity router |
 | `create_user` | `(uow, *, email: str, full_name: str, password: SecretStr, phone: str \| None) → UserRecord` | nested; **call without holding row locks** (Argon2) | 409 `EMAIL_ALREADY_REGISTERED` (race on `uq_users_email`) | `register_owner`; `shops.add_member` (new e-mail); `bookings.create_booking` (case B) |
 | `issue_session` | `(user_id: UUID) → SessionToken` | none (pure; reads the clock and settings) | — | `register_owner`, `login`; `bookings.create_booking` (D32 token in the body) |
 | `get_active_user` | `(session, user_id) → UserRecord \| None` | read | — | `app.shared.auth.get_current_user` / `get_optional_user` (exists, D9); `shops` (eligibility, `/me`) |
@@ -76,11 +79,16 @@ Every function takes the request's `UnitOfWork` (`uow`, writes) or `AsyncSession
 | `find_user_by_email` | `(session, email: str) → UserRecord \| None` | read | — | `shops.add_member`, `bookings.create_booking` |
 | `find_user_ids_by_name` | `(session, *, q: str, limit: int = 1000) → list[UUID]` (case-insensitive substring on `full_name`, `%`/`_` escaped) | read | — | `bookings.list_staff_bookings` (`q` matches the customer name, spec 03 §4.8) |
 | `set_phone_if_empty` | `(uow, *, user_id, phone: str) → bool` (True when written) | nested | — | `bookings.create_booking` (cases A, C; D33) |
-| `set_user_active` *(internal, not over HTTP)* | `(uow, *, user_id, is_active: bool) → bool` (True when changed) | top-level | 404 `NOT_FOUND` (unknown id) | seed Phase R (D60) |
+| `set_user_active` *(internal, not over HTTP)* | `(uow, *, user_id, is_active: bool) → bool` (True when changed; publishes `UserActiveChanged` with no actor, audited as `SYSTEM`) | top-level | 404 `NOT_FOUND` (unknown id) | seed Phase R (D60) |
+| `create_customer` | `(uow, *, email, full_name, password, phone, now) → UserRecord` (`create_user` that starts a session, publishes `CustomerAccountCreated`) | nested | as `create_user` | `bookings.create_booking` (case B) |
+| `list_users_for_admin`, `get_user_for_admin`, `count_users`, `find_user_ids_by_email` | admin reads (E-61, E-66, E-67; spec 19 §4) | read | — | admin, shops (E-62 owner e-mail search) |
+| `change_user_active`, `change_platform_admin` | `(uow, *, actor_user_id, user_id, …) → UserAdminRecord` with the spec 19 §1 safeguards under one `FOR UPDATE` of the target and every active admin | nested | 403, 404, 409, 422 (`path.user_id` `inactive_account`) | admin (E-68…E-71) |
+| `lock_acting_platform_admin` | `(session, *, actor_user_id) → None`: the actor's row `FOR SHARE`, 403 unless an active platform admin | nested | 403 `FORBIDDEN` | `shops.suspend_shop` / `reactivate_shop` |
+| `bootstrap_platform_admin` | `(uow, *, email, full_name, password) → (UserRecord, created, promoted)` (idempotent; commits) | top-level | 422 (password policy) | `app.scripts.create_platform_admin` |
 | `password_matches` *(internal)* | `(session, *, user_id, password: SecretStr) → bool` (one Argon2 verify; **no limiter**, no rehash write) | read | — | seed Phase R (D60) |
 | `set_password` *(internal)* | `(uow, *, user_id, new_password: SecretStr) → None` (hashes with Argon2id; D10 policy via the `Password` type) | top-level | 404 `NOT_FOUND` | seed Phase R (D60) |
 
-Spec 01's catalogue lists `register_owner`, `create_user`, `authenticate`, `get_active_user`, `find_user_by_email`, `set_phone_if_empty`, `get_users_by_ids`; the other functions are proposed in the last section. The logout endpoint calls no service: the session is a stateless JWT, so logout only clears the cookie.
+Spec 01's catalogue lists `register_owner`, `create_user`, `authenticate`, `get_active_user`, `find_user_by_email`, `set_phone_if_empty`, `get_users_by_ids`; the other functions are proposed in the last section. The logout endpoint calls `logout` only to record `auth.logged_out` (§7.7): the session is a stateless JWT, so logout itself only clears the cookie.
 
 ## 6. Endpoints
 
@@ -146,7 +154,9 @@ commit → issue_session(user.id) → SessionRead
 
 ### 7.5 Shared credential check (`authenticate`)
 
-`authenticate` is steps 1–5 of §7.4 without the commit and without issuing a token. It is the one implementation behind login and the wizard's cases C/D (spec 04), so the per-account limiter is shared (D69, SEC-27). The bookings module calls it with the transaction it already holds and **no row locks taken yet** (spec 03 §4.6: "Argon2 never holds a row lock"), and maps `InvalidCredentials` to `EmailAlreadyRegistered`; `RateLimited` passes through as 429. `last_login_at` and a rehash become durable only when the booking commits (a booking always logs the customer in, D32).
+`authenticate` is steps 1–5 of §7.4 without the commit and without issuing a token. It is the one implementation behind login and the wizard's cases C/D (spec 04), so the per-account limiter is shared (D69, SEC-27). The bookings module reaches it through `sign_in_for_booking` with the transaction it already holds and **no row locks taken yet** (spec 03 §4.6: "Argon2 never holds a row lock"), and maps `InvalidCredentials` to `EmailAlreadyRegistered`; `RateLimited` passes through as 429. `last_login_at` and a rehash become durable only when the booking commits (a booking always logs the customer in, D32).
+
+`sign_in_for_booking` (D100) audits the wizard's sign-ins like logins: a success publishes `LoginSucceeded` in the booking's transaction (lost with a booking that fails later, accepted); `InvalidCredentials` publishes `LoginFailed` and `RateLimited` publishes `LoginRateLimited`, each in a short transaction of its own (a separate `AsyncSession` on the same engine, `uow.session.bind`), committed before the error is re-raised, so the attempt survives the booking's rollback and nothing of the booking commits. The limiter is untouched.
 
 ### 7.6 Session token and cookie (D8, D81)
 
@@ -156,7 +166,9 @@ commit → issue_session(user.id) → SessionRead
 
 ### 7.7 Logout
 
-`POST` only (a `GET` is 405 `METHOD_NOT_ALLOWED`, SEC-30). No body, no authentication, idempotent: always 204, with the cookie expired by `delete_session_cookie(response)` (`bf_session=""; Max-Age=0; Path=/; SameSite=lax; HttpOnly` + `Secure`). A copied Bearer token stays valid until `exp` (stateless JWT; accepted, spec 04).
+`POST` only (a `GET` is 405 `METHOD_NOT_ALLOWED`, SEC-30). No body, no authentication, idempotent: always 204, with the cookie expired by `delete_session_cookie(response)` (`bf_session=""; Max-Age=0; Path=/; SameSite=lax; HttpOnly` + `Secure`). A copied Bearer token stays valid until `exp` (stateless JWT; accepted, spec 04). Per-IP ceiling `LOGOUT_IP_LIMIT` = 30 per minute (429; the cookie stays).
+
+The router reads the credentials leniently with `app.shared.auth.session_user_id(request)` (the Bearer header wins, else the cookie; it never raises) and calls `logout(uow, user_id=…)`, which publishes `LoggedOut` and commits only for an active user. Recording is best effort: the router catches any exception, logs `auth.logout_not_recorded` with the exception type only (never the token or SQL parameters), rolls the unit of work back (a failing rollback is logged too) and still answers 204 with the cookie expired.
 
 ### 7.8 Create user (`create_user`)
 
@@ -172,7 +184,20 @@ The project `Phone` type (spec 03 §1.5; location `app.shared.phone`, D84, gloss
 
 ## 8. Events
 
-None published, none subscribed. Identity is the bottom of the module graph; user-facing messages about accounts do not exist in P0.
+Published for the platform audit log (D95, spec 19 §3.3), from `events.py`; identity never imports `audit`, which subscribes. None subscribed: identity is the bottom of the module graph.
+
+| Event | Payload | Published by |
+|---|---|---|
+| `LoginSucceeded` | `user_id` | `login` (same transaction as `last_login_at`); `sign_in_for_booking` (the booking's transaction) |
+| `LoginFailed` | `email` (normalised) | `login` (its transaction, committed before the 401); `sign_in_for_booking` (its own transaction, before the 409) |
+| `LoginRateLimited` | `email` | per-account limiter only, as `LoginFailed` (429); per-IP slowapi refusals happen before the service and are not published |
+| `LoggedOut` | `user_id` | `logout`, only for an active user |
+| `OwnerRegistered` | `user_id` | `register_owner` |
+| `CustomerAccountCreated` | `user_id` | `create_customer` (wizard case B) |
+| `UserActiveChanged` | `user_id`, `is_active`, `actor_user_id` (None from the seed), `reason` | `change_user_active`; `set_user_active` (seed) |
+| `PlatformAdminChanged` | `user_id`, `is_platform_admin`, `actor_user_id` (None from the script) | `change_platform_admin`; `bootstrap_platform_admin` |
+
+Every event carries `occurred_at` (the action's one clock read, D63).
 
 ## 9. Permissions and visibility
 
@@ -189,7 +214,7 @@ None published, none subscribed. Identity is the bottom of the module graph; use
 | `VALIDATION_ERROR` | 422 | Schema: bad e-mail (D62), password outside 12–128 on register (D10) or outside 1–128 on login, blank `full_name`, invalid phone, unknown fields (`role`, `shop_id`, `memberships` → `extra_forbidden`, SEC-16) |
 | `EMAIL_ALREADY_REGISTERED` | 409 | `register_owner` with an existing e-mail; `create_user` losing the `uq_users_email` race |
 | `INVALID_CREDENTIALS` | 401 | `login` / `authenticate`: unknown e-mail, wrong password or inactive user (identical bodies) |
-| `RATE_LIMITED` | 429 | Per-account limiter (`login`, `authenticate`); per-IP ceilings on login and register-owner. Always with `Retry-After` |
+| `RATE_LIMITED` | 429 | Per-account limiter (`login`, `authenticate`); per-IP ceilings on login, register-owner and logout. Always with `Retry-After` |
 | `NOT_FOUND` | 404 | Internal `set_user_active` / `set_password` with an unknown id (seed only) |
 | `METHOD_NOT_ALLOWED` | 405 | e.g. `GET /api/v1/auth/logout` (framework) |
 
@@ -198,7 +223,9 @@ None published, none subscribed. Identity is the bottom of the module graph; use
 ## 11. Concurrency & transactions
 
 - `register_owner`, `login`, `set_user_active`, `set_password` are top-level: one transaction each, committed in the service before the response is built.
-- No row locks: login reads the user unlocked and updates `last_login_at` (last write wins between two parallel logins; harmless). Argon2 therefore never runs while a row lock is held — for the wizard this is the caller's job (bookings resolves the account before it takes the shop `FOR SHARE` and slot-counter locks, D32, D37).
+- The platform admin's levers lock (spec 19 §1): `change_user_active` / `change_platform_admin` take the target and every active platform admin `FOR UPDATE` in one statement in `id` order (two admins demoting each other cannot deadlock; the loser re-reads and gets 409), and `lock_acting_platform_admin` takes the actor's row `FOR SHARE` for the shops levers (a concurrent revoke waits for the lever, or committed first and the lever answers 403).
+- `logout` and a failed `login` commit their own (otherwise empty) transaction; `sign_in_for_booking` records a failure on a separate session (D100).
+- No row locks on the sign-in path: login reads the user unlocked and updates `last_login_at` (last write wins between two parallel logins; harmless). Argon2 therefore never runs while a row lock is held — for the wizard this is the caller's job (bookings resolves the account before it takes the shop `FOR SHARE` and slot-counter locks, D32, D37).
 - Races on a new e-mail are settled by `uq_users_email` (spec 02 §7.5) → 409 `EMAIL_ALREADY_REGISTERED`.
 - Limiter counters are in-memory per process (one API replica, D14) and reset on redeploy; tests reset them with `reset_rate_limits()`.
 

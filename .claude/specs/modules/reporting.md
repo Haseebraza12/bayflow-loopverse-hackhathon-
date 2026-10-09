@@ -14,7 +14,7 @@ The module owns no tables and runs no SQL of its own: it composes read functions
 ## In scope
 
 - **P0:** `GET /api/v1/shops/{shop_id}/overview` → `OverviewRead`: shop block, bookings by status (all 17), today's counts, team list with open jobs, inventory summary, the top five low-stock parts and the setup checklist (spec 03 §3.7, §4.13).
-- **P1:** `GET /api/v1/me/owner-summary` → `OwnerSummaryRead`: one row per shop the caller owns.
+- **P1:** `GET /api/v1/me/owner-summary` → `OwnerSummaryRead`: one row per shop the caller owns that is not suspended (D99).
 - **P2:** none.
 
 ## Out of scope
@@ -54,7 +54,7 @@ Both functions are top-level **reads**: they take the request's `AsyncSession`, 
 | Function | Returns | Raises |
 |---|---|---|
 | `get_owner_overview(session, ctx: ShopContext)` | `OverviewRead` | 403 `FORBIDDEN` when `ctx.role` is not `OWNER` (the route already checks; the service re-checks) |
-| `get_owner_summary(session, user: CurrentUser)` | `OwnerSummaryRead` (`items: []` when the caller owns no shop) | — |
+| `get_owner_summary(session, user: CurrentUser)` | `OwnerSummaryRead` (`items: []` when the caller owns no open shop; suspended shops are left out, D99) | — |
 
 Reads it composes:
 
@@ -136,7 +136,8 @@ None published, none subscribed.
 ## Permissions and visibility
 
 - Overview: the router-level `require_shop_member` answers 404 to non-members and other tenants; `require_roles(OWNER)` answers 403 `FORBIDDEN` to SA, technician, parts person and QC inspector (RPT-03, spec 04 RBAC A). Its data never mixes shops (RPT-01).
-- Owner summary: any logged-in user; only shops the caller owns appear (RPT-02); a customer or pure staff member gets `items: []`, never a 403.
+- Owner summary: any logged-in user; only shops the caller owns appear (RPT-02); a customer or pure staff member gets `items: []`, never a 403. A suspended shop is left out (D99, read from `ShopBrief.is_suspended`): its staff views, which these figures summarise, are closed (403 `SHOP_SUSPENDED`, D96), and `GET /api/v1/me` still lists the membership with `shop_suspended: true`, which is where the web shows it.
+- Overview of a suspended shop: 403 `SHOP_SUSPENDED` from the router-level `require_shop_member`, before `require_roles` (D96).
 - The team list shows only the shop's own members, which the Owner manages anyway; no customer data appears beyond counts.
 
 ## Errors
@@ -146,6 +147,7 @@ None published, none subscribed.
 | `UNAUTHENTICATED` | 401 | No or invalid session |
 | `NOT_FOUND` | 404 | Not an active member of `shop_id` (overview) |
 | `FORBIDDEN` | 403 | A member whose role is not `OWNER` (overview) |
+| `SHOP_SUSPENDED` | 403 | Any member of a suspended shop (overview, D96) |
 | `VALIDATION_ERROR` | 422 | Malformed `shop_id` in the path |
 
 ## Concurrency and transactions

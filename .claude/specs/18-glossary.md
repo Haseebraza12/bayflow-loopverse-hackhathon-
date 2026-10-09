@@ -296,7 +296,7 @@ Key column names other specs rely on (full definitions in spec 02; bonus tables 
 | `MEMBER_NOT_ELIGIBLE` | 422 | Assignee is not an active member with the required role in this shop |
 | `UNAUTHENTICATED` | 401 | Missing/invalid/expired token, or user deactivated |
 | `INVALID_CREDENTIALS` | 401 | Wrong e-mail or password at login |
-| `FORBIDDEN` | 403 | Visible resource, but the user's role may not do this (incl. any change to the `OWNER` membership) |
+| `FORBIDDEN` | 403 | Visible resource, but the user's role may not do this (incl. any change to the `OWNER` membership); the admin API for anyone but a platform admin, or for a cross-site request (D94, D98) |
 | `NOT_ASSIGNED` | 403 | Role is right but the user is not the assigned technician / parts person / QC picker |
 | `IDENTITY_NOT_VERIFIED` *(bonus)* | 403 | Internal agent data endpoint called before the caller's identity was verified |
 | `NOT_FOUND` | 404 | Does not exist **or** is not visible to this user (other shop, not assigned, not own booking, inactive membership), unknown path, or an action slug that does not exist in the caller's endpoint family |
@@ -315,7 +315,7 @@ Key column names other specs rely on (full definitions in spec 02; bonus tables 
 | `CONFLICT` | 409 | Other conflicts (duplicate SKU, duplicate membership, grid change blocked by future bookings, `order-parts` when nothing is short, receiving a PO that is already `RECEIVED`, …) |
 | `PAYLOAD_TOO_LARGE` | 413 | Request body over the size limit |
 | `SHOP_SUSPENDED` | 403 | The shop is suspended by BayFlow: every staff route, and customer booking actions except `cancel` (D96) |
-| `RATE_LIMITED` | 429 | Too many attempts (login, owner registration, booking creation, shop creation, member creation, and — bonus — call starts) |
+| `RATE_LIMITED` | 429 | Too many attempts (login, logout, owner registration, booking creation, shop creation, member creation, and — bonus — call starts) |
 | `INTERNAL_ERROR` | 500 | Unexpected error (no internals leaked) |
 | `CALLING_DISABLED` *(bonus)* | 503 | Calling not configured (`CALL_PROVIDER_*` blank) or the monthly calling cap (`CALL_MONTHLY_MINUTES_CAP`) reached. A blank `LLM_API_KEY` or a reached `AI_DAILY_CALL_CAP` never fails a call; they only mean no AI answers missed calls |
 

@@ -354,6 +354,8 @@ Every row is a spec 07 day-1 check (run with a "hello world" deploy, results in 
 | 15 · 11 | May a test be lower priority than the requirement it proves (G6 lists three cases)? | Coordinator | Decide with 15 · 10 |
 | reporting · 1 | `low_stock_count` counts `LOW` + `OUT` | Coordinator | Keep; UI subtracts `out_of_stock_count` (A13) |
 | shops · 6 | `tasks.manage` appears when `Settings.calling_enabled` is true | Spec 05 owner | Confirm |
+| 19 · retention; audit · 4 | **Audit log retention.** `audit_events` is append-only (D95): no API changes it and `trg_audit_events_append_only` rejects `UPDATE` and `DELETE`, so it grows forever (every booking action, sign-in and admin read adds a row) | Owner (post-hackathon) | Keep everything for the hackathon. Later: partition by month on `occurred_at` and archive or drop old partitions outside the app (partition drops are not row deletes), with a retention period the owner fixes |
+| 19 · seed admin; admin · 4 | The seed has no data yet, so the demo platform admin Areeba Hashmi (`admin@bayflow.test`, spec 19 §8, spec 11) does not exist until the seed is built | Coordinator | Add her with the seed; until then `python -m app.scripts.create_platform_admin` creates an admin |
 
 ### C.2 Resolved (by which decision or spec)
 
@@ -413,6 +415,7 @@ Already merged, so **not** to be proposed again: `BookingPartsChanged` (§7.1); 
 | `AiTaskCreated` payload: `shop_id`, `task_id`, `call_id`, `booking_id`, `booking_reference`, `kind`, `title`, `is_urgent` | `modules/calls.md` | — |
 | `BookingPartsChanged` payload: `shop_id`, `booking_id`, `status`, `version`, `occurred_at` | `modules/bookings.md` §8 | Event name already merged |
 | `REASSIGN_QC_INSPECTOR` / `reassign-qc-inspector` (operation O6, P1) | D87, `modules/bookings.md` | Only when implemented (glossary §4, spec 08) |
+| identity events `LoginSucceeded`, `LoginFailed`, `LoginRateLimited`, `LoggedOut`, `OwnerRegistered`, `CustomerAccountCreated`, `UserActiveChanged`, `PlatformAdminChanged`; shops events `ShopCreated`, `ShopUpdated`, `WorkingHoursReplaced`, `ShopSuspensionChanged`, `MembershipAdded`, `MembershipRoleChanged`, `MembershipActiveChanged` | spec 19 §3.3, `modules/audit.md` | Published for the audit log (D95) |
 
 ### D.2 Ports, runtime objects and wiring
 
@@ -422,6 +425,7 @@ Already merged, so **not** to be proposed again: `BookingPartsChanged` (§7.1); 
 | `Presence` (`online_user_ids`, `is_online`) | `modules/notifications.md`, `modules/calls.md` | Implemented by the hub |
 | `RealtimeHub`, `EmailSender` | `modules/notifications.md` | P1; one each per app, created on first use by `get_realtime_hub(state)` / `get_email_sender(state)`, stored at `state.realtime_hub` / `state.email_sender` and reached through `uow.app_state` (D90) |
 | `register_call_handlers(bus)` as a wiring function, called by notifications' own `handlers.register(bus)` only when the calls package exists | spec 01 rule 6, `modules/notifications.md` | Spec 01 now says the same (D89) |
+| `require_platform_admin` / `PlatformAdminDep`, `refuse_cross_site_requests` (`app.shared.auth`, D94, D98); identity ports `lock_acting_platform_admin`, `sign_in_for_booking` (D100), `change_user_active`, `change_platform_admin`, `bootstrap_platform_admin`; shops ports `get_shop_suspension`, `suspend_shop`, `reactivate_shop`; script `app.scripts.create_platform_admin` | spec 19, `modules/admin.md`, `modules/audit.md` | — |
 
 ### D.3 Schemas, wire enums and fields
 
@@ -440,12 +444,14 @@ Already merged, so **not** to be proposed again: `BookingPartsChanged` (§7.1); 
 | Field-error codes of spec 03 §2.3 (`invalid_reference` … `unchanged`; `not_on_grid` for working hours only) | spec 03 |
 | Problem members (`type` = `about:blank`, `title` = reason phrase, `instance` = path); OpenAPI tag and `operationId` conventions | spec 03 |
 | Key column `users.tokens_valid_after` (only if spec 04 Tier 2 item 4 ships) | spec 04 |
+| Response fields `MeRead.is_platform_admin`, `MembershipRead.shop_suspended`; internal `ShopBrief.is_suspended`; stored enums `AuditCategory`, `AuditActorRole`, `AuditTargetType`; admin wire enums `AdminShopStatus`, `AdminUserKind`, `AdminUserStatus`, `StatusPhase`; field-error code `inactive_account` (E-70) | spec 19, `modules/admin.md`, `modules/audit.md` |
 
 ### D.4 Constants and identifiers
 
 | Name | Proposed by |
 |---|---|
 | `BOOKING_HORIZON_DAYS = 30` | `modules/scheduling.md` |
+| `LOGOUT_IP_LIMIT = "30/minute"`; header `Sec-Fetch-Site` values `same-origin` / `none` accepted by the admin API (D98); trigger `trg_audit_events_append_only` | spec 04, spec 19 |
 | `SA_ACTION_STATUSES`, `IN_PROGRESS_STATUSES` | `modules/reporting.md` |
 | `REFERENCE_ALPHABET`, `QC_QUEUE_STATUSES`, `UNROUTED_SLUGS`, `CUSTOMER_HIDDEN_ACTIONS`, `CUSTOMER_NOTE_ACTIONS` | `modules/bookings.md` |
 | `OPEN_STATUSES`, `CUSTOMER_VISIBLE_STATUSES`, `FINAL_STATUSES`, `MAX_AMOUNT`, `EditDecision` | `modules/estimates.md` |
