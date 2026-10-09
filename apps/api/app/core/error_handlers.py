@@ -22,7 +22,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
-from app.core.db_errors import constraint_name, error_code_for, sqlstate
+from app.core.db_errors import INVALID_TEXT_DETAIL, constraint_name, error_code_for, sqlstate
 from app.core.errors import AppError, ErrorCode, FieldError
 from app.core.http_headers import REQUEST_ID_HEADER, resolve_request_id, standard_headers
 from app.core.logging import request_id_var
@@ -206,6 +206,11 @@ async def database_error_handler(request: Request, exc: Exception) -> Response:
             exc_info=exc,
         )
         return internal_error_response(request.url.path)
+    if code is ErrorCode.VALIDATION_ERROR:  # text the database cannot store (NUL, lone surrogate)
+        logger.info("database rejected client text (sqlstate=%s)", sqlstate(exc))
+        return problem_response(
+            code, instance=request.url.path, detail=INVALID_TEXT_DETAIL, errors=[]
+        )
     logger.warning("database constraint %s -> %s", constraint_name(exc) or sqlstate(exc), code)
     return problem_response(code, instance=request.url.path)
 

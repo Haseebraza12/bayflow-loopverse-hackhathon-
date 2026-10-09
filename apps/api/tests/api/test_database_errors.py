@@ -1,16 +1,41 @@
 """Database errors mapped by constraint name (spec 02 §7.5-7.6, spec 03 §2.4)."""
 
+import json
+
 import httpx
 import pytest
 from fastapi import APIRouter, FastAPI
+from pydantic import BaseModel
+from sqlalchemy import text
 from sqlalchemy.exc import DBAPIError
 
 from app.core.database import DbSession
-from app.core.db_errors import error_code_for
+from app.core.db_errors import INVALID_TEXT_DETAIL, error_code_for
 from app.core.errors import ErrorCode
 from tests.rows import make_part, make_shop, make_user
 
 router = APIRouter(prefix="/api/v1/_dberr", tags=["test"])
+
+
+class TextIn(BaseModel):
+    value: str
+
+
+@router.post("/text")
+async def store_text(body: TextIn, session: DbSession) -> dict[str, str]:
+    result = await session.execute(text("SELECT CAST(:v AS text)"), {"v": body.value})
+    return {"value": result.scalar_one()}
+
+
+@router.get("/search")
+async def search_text(q: str, session: DbSession) -> dict[str, bool]:
+    result = await session.execute(text("SELECT 'Honda Civic' ILIKE :q"), {"q": f"%{q}%"})
+    return {"match": result.scalar_one()}
+
+
+@router.post("/jsonb")
+async def store_jsonb(body: TextIn, session: DbSession) -> None:
+    await session.execute(text("SELECT CAST(:v AS jsonb)"), {"v": json.dumps({"k": body.value})})
 
 
 @router.post("/duplicate-email")
@@ -61,6 +86,9 @@ def wrap(constraint: str | None, state: str | None, *, as_cause: bool = False) -
         ("ck_parts_sku_format", "23514", None),
         (None, "P0001", None),
         (None, None, None),
+        (None, "22021", ErrorCode.VALIDATION_ERROR),  # NUL in text
+        (None, "22P05", ErrorCode.VALIDATION_ERROR),  # NUL inside JSONB
+        (None, "22000", None),  # a generic data error without an encoding cause is a bug
     ],
 )
 def test_error_codes_by_constraint_name(
@@ -68,6 +96,16 @@ def test_error_codes_by_constraint_name(
 ) -> None:
     assert error_code_for(wrap(constraint, state)) == code
     assert error_code_for(wrap(constraint, state, as_cause=True)) == code
+
+
+def test_a_lone_surrogate_rejected_by_the_driver_is_a_validation_error() -> None:
+    """asyncpg raises DataError (22000) from UnicodeEncodeError before sending anything."""
+    encode_error = UnicodeEncodeError("utf-8", "\ud800", 0, 1, "surrogates not allowed")
+    driver = FakeDriverError(None, "22000")
+    driver.__cause__ = encode_error
+    adapted = Exception("adapted")
+    adapted.__cause__ = driver
+    assert error_code_for(DBAPIError("SQL", {}, adapted)) == ErrorCode.VALIDATION_ERROR
 
 
 @pytest.fixture
@@ -83,6 +121,55 @@ async def test_a_unique_violation_becomes_its_code(db_client: httpx.AsyncClient)
     assert body["code"] == "EMAIL_ALREADY_REGISTERED"
     assert "uq_users_email" not in response.text
     assert "INSERT" not in response.text
+
+
+def assert_invalid_text(response: httpx.Response) -> None:
+    assert response.status_code == 422
+    body = response.json()
+    assert body["code"] == "VALIDATION_ERROR"
+    assert body["detail"] == INVALID_TEXT_DETAIL
+    assert body["errors"] == []
+    assert response.headers["content-type"] == "application/problem+json"
+    assert response.headers["cache-control"] == "no-store"
+    assert "SELECT" not in response.text
+
+
+@pytest.mark.usefixtures("_routes")
+async def test_plain_text_is_stored(db_client: httpx.AsyncClient) -> None:
+    response = await db_client.post("/api/v1/_dberr/text", json={"value": "Oil leak — filter"})
+    assert response.status_code == 200
+    assert response.json() == {"value": "Oil leak — filter"}
+
+
+@pytest.mark.usefixtures("_routes")
+async def test_a_nul_character_in_a_body_is_a_validation_error(
+    db_client: httpx.AsyncClient,
+) -> None:
+    assert_invalid_text(await db_client.post("/api/v1/_dberr/text", json={"value": "a\u0000b"}))
+
+
+@pytest.mark.usefixtures("_routes")
+async def test_a_nul_character_in_a_query_string_is_a_validation_error(
+    db_client: httpx.AsyncClient,
+) -> None:
+    assert_invalid_text(await db_client.get("/api/v1/_dberr/search?q=civ%00ic"))
+
+
+@pytest.mark.usefixtures("_routes")
+async def test_a_nul_character_inside_jsonb_is_a_validation_error(
+    db_client: httpx.AsyncClient,
+) -> None:
+    assert_invalid_text(await db_client.post("/api/v1/_dberr/jsonb", json={"value": "a\u0000b"}))
+
+
+@pytest.mark.usefixtures("_routes")
+async def test_a_lone_surrogate_is_a_validation_error(db_client: httpx.AsyncClient) -> None:
+    response = await db_client.post(
+        "/api/v1/_dberr/text",
+        content=b'{"value": "\\ud800"}',  # valid JSON escape, unpaired surrogate
+        headers={"Content-Type": "application/json"},
+    )
+    assert_invalid_text(response)
 
 
 @pytest.mark.usefixtures("_routes")
