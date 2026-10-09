@@ -37,7 +37,8 @@ Stops the BayFlow dev stack started by ./start.sh and frees ports 3000 and 4000.
   --keep-db       leave the PostgreSQL container running
   --quiet         print only problems
   --bayflow-only  stop only BayFlow's own processes; if another program holds 3000/4000,
-                  name it and exit 1 instead of stopping it (used by ./start.sh)
+                  name it and exit 1 instead of stopping it. Not used by ./start.sh, which
+                  frees the ports from any program
   -h, --help      show this help
 
 The database volume is always kept. To wipe the local data: make db-reset

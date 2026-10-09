@@ -221,7 +221,8 @@ echo.
 echo   --keep-db       leave the PostgreSQL container running
 echo   --quiet         print only problems
 echo   --bayflow-only  stop only BayFlow's own processes; if another program holds port 3000
-echo                   or 4000, name it and exit with code 1 instead - used by start.bat
+echo                   or 4000, name it and exit with code 1 instead. Not used by start.bat,
+echo                   which frees the ports from any program.
 echo   --help          show this help
 echo.
 echo The database volume is always kept. To wipe the local data use: make db-reset

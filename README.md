@@ -177,7 +177,7 @@ On the first run the script creates `.env` from `.env.example`, installs the API
 | `--no-install` | never install dependencies; fail if `apps/api/.venv` or `apps/web/node_modules` is missing |
 | `--help` | show the help |
 
-What the scripts do, in order: check the tools (Docker + Compose v2, uv, Node 24+, pnpm, curl) → create `.env` if missing → install dependencies if missing → stop stale BayFlow processes (if *another* program holds port 3000 or 4000 they name it and stop; `./stop.sh` frees the ports) → `docker compose up -d --wait db` → `uv run alembic upgrade head` → `uv run python -m app.scripts.seed` (acts only when `SEED_ON_DEPLOY=true`, the `.env.example` default; idempotent) → API on :4000 (`uvicorn --reload`) and web on :3000 (`pnpm dev`) → wait until both answer → print the URLs. Logs: `logs/api.log`, `logs/web.log`; PIDs: `.run/`.
+What the scripts do, in order: check the tools (Docker + Compose v2, uv, Node 24+, pnpm, curl) → create `.env` if missing → install dependencies if missing → free ports 3000 and 4000 (`./stop.sh --keep-db --quiet` / `stop.bat --keep-db --quiet`: stale BayFlow processes and *any other* program listening there are stopped and named; Docker, VM and SSH port forwarders are never killed, so then the script names the holder and exits) → `docker compose up -d --wait db` → `uv run alembic upgrade head` → `uv run python -m app.scripts.seed` (acts only when `SEED_ON_DEPLOY=true`, the `.env.example` default; idempotent) → API on :4000 (`uvicorn --reload`) and web on :3000 (`pnpm dev`) → wait until both answer → print the URLs. Logs: `logs/api.log`, `logs/web.log`; PIDs: `.run/`.
 
 **Everything in Docker instead** (no Python/Node needed):
 
@@ -269,7 +269,7 @@ _To be completed._ Conventional Commits (`feat(bookings): …`), small commits, 
 
 ## 18. Troubleshooting
 
-- **"Port 3000 (or 4000) is still in use by …"** — another program holds the port. Stop it, or run `./stop.sh` / `stop.bat`, which stops whatever listens on 3000 and 4000.
+- **"Port 3000 (or 4000) is still in use by …"** — the start and stop scripts stop any program listening on 3000 or 4000, except other Docker containers, Docker/VM/SSH port forwarders and processes of another user. Stop the holder the message names (for a container it prints the `docker stop` command; for a hidden process, `sudo lsof -nP -iTCP:3000 -sTCP:LISTEN` shows it), then run the script again.
 - **Port 5434 is taken** — set `POSTGRES_HOST_PORT` in `.env` and change the port in `DATABASE_URL` to match.
 - **"Docker is installed but not running"** — start Docker Desktop (Linux: `sudo systemctl start docker`).
 - **The API or web app does not come up** — the start script prints the last 40 log lines; full logs are in `logs/api.log` and `logs/web.log` (`docker compose logs db` for PostgreSQL).
