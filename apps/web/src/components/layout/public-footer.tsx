@@ -178,8 +178,6 @@ export function PublicFooter() {
               ))}
             </ul>
           </div>
-
-
         </div>
       </div>
 

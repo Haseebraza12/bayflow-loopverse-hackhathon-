@@ -283,23 +283,20 @@ export function PublicHeader() {
             {resourcesOpen && (
               <div className="absolute top-full left-0 z-50 mt-3 w-64 rounded-2xl border border-border bg-card p-3 shadow-xl">
                 <div className="space-y-1">
-                  {['Customer Stories', 'Help Center', 'Blog & Updates'].map(
-                    (res) => (
-                      <Link
-                        key={res}
-                        href="#support"
-                        onClick={() => setResourcesOpen(false)}
-                        className="block rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-brand-blue-ink"
-                      >
-                        {res}
-                      </Link>
-                    ),
-                  )}
+                  {['Customer Stories', 'Help Center', 'Blog & Updates'].map((res) => (
+                    <Link
+                      key={res}
+                      href="#support"
+                      onClick={() => setResourcesOpen(false)}
+                      className="block rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-brand-blue-ink"
+                    >
+                      {res}
+                    </Link>
+                  ))}
                 </div>
               </div>
             )}
           </div>
-
         </nav>
 
         {/* Right Actions: emerald Sign In, or the bell and account menu once signed in */}
