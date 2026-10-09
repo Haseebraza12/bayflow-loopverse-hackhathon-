@@ -11,7 +11,7 @@ export function PublicFooter() {
         <div className="grid grid-cols-1 gap-12 lg:grid-cols-12">
           {/* Col 1: Brand & Need Help? */}
           <div className="space-y-6 lg:col-span-4">
-            <Link href="/" aria-label="GarageBox home">
+            <Link href="/" aria-label="BayFlow home">
               <Logo size="md" />
             </Link>
 
@@ -204,7 +204,7 @@ export function PublicFooter() {
 
           <div className="flex items-center gap-2">
             <Logo size="sm" showText={false} />
-            <p>© 2026 GarageBox. All rights reserved.</p>
+            <p>© 2026 BayFlow. All rights reserved.</p>
           </div>
         </div>
       </div>

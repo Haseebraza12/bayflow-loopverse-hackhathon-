@@ -144,7 +144,7 @@ export default function LandingPage() {
             </h1>
 
             <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed font-normal text-muted-foreground sm:text-lg">
-              Take control of your auto repair business with GarageBox, Pakistan&apos;s leading
+              Take control of your auto repair business with BayFlow, Pakistan&apos;s leading
               garage management software. Simplify job scheduling, invoicing, and inventory control
               for maximum efficiency.
             </p>
@@ -295,6 +295,66 @@ export default function LandingPage() {
       </section>
 
       {/* ========================================================
+          HERO CAROUSEL / IMAGE GALLERY SECTION
+          ======================================================== */}
+      <section className="relative w-full overflow-hidden border-t border-border/70 bg-muted/50 py-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-3xl text-center mb-12">
+            <h2 className="text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl md:text-5xl">
+              <span className="font-handwriting text-4xl font-normal text-brand-blue-ink italic sm:text-5xl md:text-6xl">
+                See BayFlow
+              </span>
+              {' '}in Action
+            </h2>
+            <p className="mt-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
+              Swipe through screenshots of the BayFlow dashboard, technician app, and customer portal.
+            </p>
+          </div>
+
+          {/* Carousel */}
+          <div className="relative overflow-hidden rounded-2xl border border-border bg-card">
+            <div className="aspect-[16/9] w-full">
+              <Image
+                src="/bayflow/carousel-1.webp"
+                alt="BayFlow Dashboard - Shop Overview"
+                fill
+                priority
+                sizes="(max-width: 768px) 100vw, (max-width: 1280px) 90vw, 1200px"
+                className="object-cover"
+              />
+            </div>
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-3">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <button
+                  key={i}
+                  className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
+                    i === 1 ? 'bg-brand-blue w-7' : 'bg-white/50 hover:bg-white'
+                  }`}
+                  aria-label={`View screenshot ${i}`}
+                />
+              ))}
+            </div>
+            <button
+              className="absolute left-4 top-1/2 -translate-y-1/2 size-10 rounded-full bg-white/90 text-foreground shadow-lg hover:bg-white transition-colors md:left-6"
+              aria-label="Previous screenshot"
+            >
+              <svg className="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <button
+              className="absolute right-4 top-1/2 -translate-y-1/2 size-10 rounded-full bg-white/90 text-foreground shadow-lg hover:bg-white transition-colors md:right-6"
+              aria-label="Next screenshot"
+            >
+              <svg className="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* ========================================================
           2. TESTIMONIALS SECTION — story cards (text + duotone portrait)
           ======================================================== */}
       <section className="relative w-full overflow-hidden border-t border-border/70 bg-muted/50 py-20">
@@ -436,7 +496,7 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Right Graphic: Exact SVG from GarageBox */}
+            {/* Right Graphic: Exact SVG from BayFlow */}
             <div className="flex justify-center lg:col-span-6">
               <div className="relative flex w-full max-w-[514px] justify-center">
                 <Image
@@ -458,7 +518,7 @@ export default function LandingPage() {
       <section className="relative w-full border-t border-border/60 bg-muted/50 py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-12 lg:gap-16">
-            {/* Left Graphic: Exact SVG from GarageBox */}
+            {/* Left Graphic: Exact SVG from BayFlow */}
             <div className="order-2 flex justify-center lg:order-1 lg:col-span-6">
               <div className="relative flex w-full max-w-[514px] justify-center">
                 <Image
@@ -602,7 +662,7 @@ export default function LandingPage() {
                       Bring Order to the Chaos
                     </h3>
                     <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                      Simplify how your team works. With GarageBox, manage tasks, track deadlines,
+                      Simplify how your team works. With BayFlow, manage tasks, track deadlines,
                       and stay on top of progress all from a single, easy-to-use dashboard.
                     </p>
                   </div>
@@ -620,7 +680,7 @@ export default function LandingPage() {
                       Power Your Team on the Go
                     </h3>
                     <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                      With the GarageBox for Techs mobile app (iOS & Android), your technicians stay
+                      With the BayFlow for Techs mobile app (iOS & Android), your technicians stay
                       connected, informed, and engaged wherever they are.
                     </p>
                   </div>
@@ -637,7 +697,7 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Right Graphic: Exact SVG from GarageBox */}
+            {/* Right Graphic: Exact SVG from BayFlow */}
             <div className="flex justify-center lg:col-span-6">
               <div className="relative flex w-full max-w-[514px] justify-center">
                 <Image
@@ -666,7 +726,7 @@ export default function LandingPage() {
               Garage Management Software
             </h2>
             <p className="mt-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
-              GarageBox helps you manage service bookings, estimates, job cards, payments,
+              BayFlow helps you manage service bookings, estimates, job cards, payments,
               inspections, inventory, customer communication, and labor tracking in an all-in-one
               garage management software.
             </p>
@@ -720,7 +780,7 @@ export default function LandingPage() {
             {/* Card 1: Data Migration */}
             <div className="flex flex-col overflow-hidden rounded-3xl border border-border bg-card pb-7 shadow-sm">
               <div className="relative flex aspect-[16/11] flex-col items-center justify-center overflow-hidden bg-secondary p-6">
-                <p className="text-2xl font-semibold tracking-tight text-foreground">GarageBox</p>
+                <p className="text-2xl font-semibold tracking-tight text-foreground">BayFlow</p>
                 {/* Connector tree */}
                 <svg
                   aria-hidden="true"
@@ -748,7 +808,7 @@ export default function LandingPage() {
               </div>
               <h3 className="mt-6 px-7 text-lg font-semibold text-foreground">Data Migration</h3>
               <p className="mt-2 px-7 text-sm leading-relaxed text-helper">
-                We move your customers, vehicles and invoices into GarageBox for you. Nothing left
+                We move your customers, vehicles and invoices into BayFlow for you. Nothing left
                 behind.
               </p>
               <button
@@ -889,7 +949,7 @@ export default function LandingPage() {
             <div className="relative flex h-[340px] justify-center lg:col-span-5 lg:h-auto">
               <Image
                 src="/garagebox/mobile-mockup.png"
-                alt="GarageBox mobile app"
+                alt="BayFlow mobile app"
                 width={350}
                 height={596}
                 sizes="(max-width: 1024px) 260px, 320px"
@@ -949,7 +1009,7 @@ export default function LandingPage() {
                   Book a Personalized Demo
                 </h3>
                 <p className="mt-1 text-xs text-helper">
-                  See how GarageBox helps auto garages schedule jobs, track parts, and increase
+                  See how BayFlow helps auto garages schedule jobs, track parts, and increase
                   profit by 40%.
                 </p>
 

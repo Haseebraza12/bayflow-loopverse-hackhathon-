@@ -30,12 +30,12 @@ const caveat = Caveat({
 
 export const metadata: Metadata = {
   title: {
-    default: 'GarageBox · Auto Repair Garage Management Software',
-    template: '%s · GarageBox',
+    default: 'BayFlow · Multi-Tenant Auto Repair Shop Management Platform',
+    template: '%s · BayFlow',
   },
   description:
-    'Take control of your auto repair business with GarageBox, the leading garage management software. Simplify job scheduling, invoicing, and inventory control.',
-  applicationName: 'GarageBox',
+    'Take control of your auto repair business with BayFlow, Pakistan\'s leading multi-tenant garage management platform. Simplify job scheduling, invoicing, inventory control, and team coordination.',
+  applicationName: 'BayFlow',
 }
 
 export const viewport: Viewport = {

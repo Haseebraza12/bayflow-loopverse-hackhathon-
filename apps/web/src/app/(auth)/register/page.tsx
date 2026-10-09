@@ -11,6 +11,10 @@ import {
   Mail,
   Phone,
   UserRound,
+  Shield,
+  Truck,
+  Users,
+  Wrench,
 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -32,6 +36,13 @@ import { cn } from '@/lib/utils'
 
 type FieldName = 'fullName' | 'email' | 'phone' | 'password'
 type Errors = Partial<Record<FieldName, string>>
+
+const features = [
+  { icon: Shield, title: 'Secure & Compliant', desc: 'Bank-grade encryption, GDPR-ready, data hosted in Pakistan' },
+  { icon: Users, title: 'Multi-Shop Ready', desc: 'Run multiple locations from one dashboard' },
+  { icon: Wrench, title: 'Built for Techs', desc: 'Technician mobile app for iOS & Android' },
+  { icon: Truck, title: 'Parts & Inventory', desc: 'Auto reorder, stock tracking, supplier management' },
+]
 
 /** Spec 10 P-05 field rules (D10 passwords, D62 `.test` e-mails accepted). */
 function validate(values: { fullName: string; email: string; phone: string; password: string }) {
@@ -160,171 +171,422 @@ export default function RegisterPage() {
     window.setTimeout(() => router.replace('/pos/shops/new'), 400)
   }
 
+  const features = [
+    { icon: Shield, title: 'Secure & Compliant', desc: 'Bank-grade encryption, GDPR-ready, data hosted in Pakistan' },
+    { icon: Users, title: 'Multi-Shop Ready', desc: 'Run multiple locations from one dashboard' },
+    { icon: Wrench, title: 'Built for Techs', desc: 'Technician mobile app for iOS & Android' },
+    { icon: Truck, title: 'Parts & Inventory', desc: 'Auto reorder, stock tracking, supplier management' },
+  ]
+
   return (
-    <div className="space-y-8">
-      <header className="space-y-5">
-        <OnboardingSteps current={0} />
-        <div className="space-y-2">
-          <h1 className="font-heading text-4xl leading-tight font-bold tracking-tight text-foreground">
-            Register your shop
-          </h1>
-          <p className="text-sm leading-relaxed text-muted-foreground">
-            Create your owner account. Next you&apos;ll set up your shop and add your team.
-          </p>
-        </div>
-      </header>
+    <div className="relative min-h-screen bg-background">
+      {/* Background decorative elements */}
+      <div className="pointer-events-none fixed inset-0 overflow-hidden" aria-hidden="true">
+        <div className="absolute top-1/4 left-1/2 w-[600px] h-[600px] -translate-x-1/2 rounded-full bg-brand-blue/10 blur-3xl" />
+        <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] rounded-full bg-brand-green/10 blur-3xl" />
+        <div className="absolute top-1/2 left-1/4 w-[300px] h-[300px] rounded-full bg-brand-orange/10 blur-3xl" />
+      </div>
 
-      <form onSubmit={handleSubmit} noValidate className="space-y-6">
-        <FieldGroup className="gap-5">
-          <FormField id="fullName" label="Full name" error={errors.fullName}>
-            <InputGroup className="h-11">
-              <InputGroupAddon>
-                <UserRound aria-hidden="true" />
-              </InputGroupAddon>
-              <InputGroupInput
-                id="fullName"
-                name="name"
-                autoComplete="name"
-                placeholder="Tariq Mehmood"
-                value={fullName}
-                onChange={(event) => setFullName(event.target.value)}
-                aria-invalid={Boolean(errors.fullName)}
-                aria-describedby={describe('fullName')}
-                maxLength={120}
-                required
-              />
-            </InputGroup>
-          </FormField>
+      <div className="relative flex min-h-screen items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
+        <div className="w-full max-w-[980px]">
+          {/* Split layout: Visual left, Form right on desktop */}
+          <div className="hidden lg:grid lg:grid-cols-12 lg:gap-8 lg:items-center">
+            {/* Left: Visual/Illustration */}
+            <div className="lg:col-span-6 order-2 lg:order-1">
+              <div className="relative aspect-[4/3] bg-gradient-to-br from-brand-blue/5 via-brand-blue/10 to-transparent rounded-3xl p-8">
+                <div className="absolute inset-0 bg-grid-pattern/[0.03] rounded-3xl" />
+                <div className="relative flex h-full items-center justify-center">
+                  {/* Illustration placeholder - you can replace with actual BayFlow illustration */}
+                  <div className="flex flex-col items-center justify-center gap-6 text-center">
+                    <div className="flex size-32 items-center justify-center rounded-2xl bg-brand-blue/10">
+                      <Shield className="size-16 text-brand-blue" />
+                    </div>
+                    <div>
+                      <h2 className="text-3xl font-bold text-foreground">
+                        Welcome to BayFlow
+                      </h2>
+                      <p className="mt-2 text-lg text-muted-foreground">
+                        Pakistan's leading garage management platform
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 mt-8 text-sm">
+                      <div className="rounded-xl bg-card p-4 text-left">
+                        <p className="font-semibold text-foreground">500+</p>
+                        <p className="text-helper">Garages onboarded</p>
+                      </div>
+                      <div className="rounded-xl bg-card p-4 text-left">
+                        <p className="font-semibold text-foreground">10K+</p>
+                        <p className="text-helper">Jobs completed monthly</p>
+                      </div>
+                      <div className="rounded-xl bg-card p-4 text-left">
+                        <p className="font-semibold text-foreground">99.9%</p>
+                        <p className="text-helper">Uptime guarantee</p>
+                      </div>
+                      <div className="rounded-xl bg-card p-4 text-left">
+                        <p className="font-semibold text-foreground">24/7</p>
+                        <p className="text-helper">Local support</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {/* Feature highlights */}
+              <div className="mt-8 grid grid-cols-2 gap-4">
+                {features.map((f, i) => (
+                  <div key={i} className="group flex items-start gap-4 rounded-xl border border-border bg-card p-5 transition-all hover:border-brand-blue/50 hover:shadow-lg">
+                    <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-brand-blue/10 text-brand-blue group-hover:bg-brand-blue group-hover:text-brand-blue-foreground transition-colors">
+                      <f.icon className="size-6" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-foreground">{f.title}</h3>
+                      <p className="mt-1 text-sm text-helper">{f.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
 
-          <FormField id="garageName" label="Shop or garage name" optional>
-            <InputGroup className="h-11">
-              <InputGroupAddon>
-                <Building2 aria-hidden="true" />
-              </InputGroupAddon>
-              <InputGroupInput
-                id="garageName"
-                name="organization"
-                autoComplete="organization"
-                placeholder="Falcon Auto Works"
-                value={garageName}
-                onChange={(event) => setGarageName(event.target.value)}
-                maxLength={120}
-              />
-            </InputGroup>
-          </FormField>
+            {/* Right: Form */}
+            <div className="lg:col-span-6 order-1 lg:order-2">
+              <div className="bg-card/50 backdrop-blur-sm rounded-3xl border border-border p-8 sm:p-10">
+                <form onSubmit={handleSubmit} noValidate className="space-y-8">
+                  <header className="space-y-3 text-center sm:text-left">
+                    <OnboardingSteps current={0} />
+                    <div className="space-y-2">
+                      <h1 className="font-heading text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
+                        Create your owner account
+                      </h1>
+                      <p className="text-base leading-relaxed text-muted-foreground">
+                        Set up your account, then create your shop and add your team.
+                      </p>
+                    </div>
+                  </header>
 
-          <div className="grid gap-5 sm:grid-cols-2">
-            <FormField id="email" label="E-mail" error={errors.email}>
-              <InputGroup className="h-11">
-                <InputGroupAddon>
-                  <Mail aria-hidden="true" />
-                </InputGroupAddon>
-                <InputGroupInput
-                  id="email"
-                  name="email"
-                  type="email"
-                  inputMode="email"
-                  autoComplete="email"
-                  placeholder="tariq@falconauto.pk"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  aria-invalid={Boolean(errors.email)}
-                  aria-describedby={describe('email')}
-                  maxLength={254}
-                  required
-                />
-              </InputGroup>
-            </FormField>
+                  <FieldGroup className="gap-5">
+                    <FormField id="fullName" label="Full name" error={errors.fullName}>
+                      <InputGroup className="h-11">
+                        <InputGroupAddon>
+                          <UserRound aria-hidden="true" />
+                        </InputGroupAddon>
+                        <InputGroupInput
+                          id="fullName"
+                          name="name"
+                          autoComplete="name"
+                          placeholder="Tariq Mehmood"
+                          value={fullName}
+                          onChange={(event) => setFullName(event.target.value)}
+                          aria-invalid={Boolean(errors.fullName)}
+                          aria-describedby={describe('fullName')}
+                          maxLength={120}
+                          required
+                        />
+                      </InputGroup>
+                    </FormField>
 
-            <FormField id="phone" label="Phone" optional error={errors.phone}>
-              <InputGroup className="h-11">
-                <InputGroupAddon>
-                  <Phone aria-hidden="true" />
-                </InputGroupAddon>
-                <InputGroupInput
-                  id="phone"
-                  name="tel"
-                  type="tel"
-                  inputMode="tel"
-                  autoComplete="tel"
-                  placeholder="+92 300 1234567"
-                  value={phone}
-                  onChange={(event) => setPhone(event.target.value)}
-                  aria-invalid={Boolean(errors.phone)}
-                  aria-describedby={describe('phone')}
-                  maxLength={21}
-                />
-              </InputGroup>
-            </FormField>
+                    <FormField id="garageName" label="Shop or garage name" optional>
+                      <InputGroup className="h-11">
+                        <InputGroupAddon>
+                          <Building2 aria-hidden="true" />
+                        </InputGroupAddon>
+                        <InputGroupInput
+                          id="garageName"
+                          name="organization"
+                          autoComplete="organization"
+                          placeholder="Falcon Auto Works"
+                          value={garageName}
+                          onChange={(event) => setGarageName(event.target.value)}
+                          maxLength={120}
+                        />
+                      </InputGroup>
+                    </FormField>
+
+                    <div className="grid gap-5 sm:grid-cols-2">
+                      <FormField id="email" label="E-mail" error={errors.email}>
+                        <InputGroup className="h-11">
+                          <InputGroupAddon>
+                            <Mail aria-hidden="true" />
+                          </InputGroupAddon>
+                          <InputGroupInput
+                            id="email"
+                            name="email"
+                            type="email"
+                            inputMode="email"
+                            autoComplete="email"
+                            placeholder="tariq@falconauto.pk"
+                            value={email}
+                            onChange={(event) => setEmail(event.target.value)}
+                            aria-invalid={Boolean(errors.email)}
+                            aria-describedby={describe('email')}
+                            maxLength={254}
+                            required
+                          />
+                        </InputGroup>
+                      </FormField>
+
+                      <FormField id="phone" label="Phone" optional error={errors.phone}>
+                        <InputGroup className="h-11">
+                          <InputGroupAddon>
+                            <Phone aria-hidden="true" />
+                          </InputGroupAddon>
+                          <InputGroupInput
+                            id="phone"
+                            name="tel"
+                            type="tel"
+                            inputMode="tel"
+                            autoComplete="tel"
+                            placeholder="+92 300 1234567"
+                            value={phone}
+                            onChange={(event) => setPhone(event.target.value)}
+                            aria-invalid={Boolean(errors.phone)}
+                            aria-describedby={describe('phone')}
+                            maxLength={21}
+                          />
+                        </InputGroup>
+                      </FormField>
+                    </div>
+
+                    <FormField id="password" label="Password" error={errors.password}>
+                      <InputGroup className="h-11">
+                        <InputGroupAddon>
+                          <Lock aria-hidden="true" />
+                        </InputGroupAddon>
+                        <InputGroupInput
+                          id="password"
+                          name="new-password"
+                          type={showPassword ? 'text' : 'password'}
+                          autoComplete="new-password"
+                          placeholder={`At least ${PASSWORD_MIN} characters`}
+                          value={password}
+                          onChange={(event) => setPassword(event.target.value)}
+                          aria-invalid={Boolean(errors.password)}
+                          aria-describedby={describe('password', 'password-strength')}
+                          maxLength={PASSWORD_MAX}
+                          required
+                        />
+                        <InputGroupAddon align="inline-end">
+                          <InputGroupButton
+                            size="icon-xs"
+                            aria-label={showPassword ? 'Hide password' : 'Show password'}
+                            aria-pressed={showPassword}
+                            onClick={() => setShowPassword((shown) => !shown)}
+                          >
+                            {showPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
+                          </InputGroupButton>
+                        </InputGroupAddon>
+                      </InputGroup>
+                      <PasswordStrength id="password-strength" password={password} />
+                    </FormField>
+                  </FieldGroup>
+
+                  <Alert variant="info">
+                    <Info aria-hidden="true" />
+                    <AlertDescription>
+                      Staff accounts are created by the shop owner. Work in a garage? Ask your owner for your
+                      login.
+                    </AlertDescription>
+                  </Alert>
+
+                  <Button
+                    type="submit"
+                    size="lg"
+                    disabled={loading}
+                    className="w-full bg-brand-blue text-brand-blue-foreground hover:bg-brand-blue-hover active:bg-brand-blue-hover"
+                  >
+                    {loading ? (
+                      <>
+                        <Spinner aria-hidden="true" />
+                        Creating your account…
+                      </>
+                    ) : (
+                      <>
+                        Create account
+                        <ArrowRight data-icon="inline-end" aria-hidden="true" />
+                      </>
+                    )}
+                  </Button>
+                </form>
+
+                <p className="text-center text-sm text-muted-foreground">
+                  Already have an account?{' '}
+                  <Link href="/login" className="font-semibold text-brand-blue-ink hover:underline">
+                    Log in
+                  </Link>
+                </p>
+              </div>
+            </div>
           </div>
 
-          <FormField id="password" label="Password" error={errors.password}>
-            <InputGroup className="h-11">
-              <InputGroupAddon>
-                <Lock aria-hidden="true" />
-              </InputGroupAddon>
-              <InputGroupInput
-                id="password"
-                name="new-password"
-                type={showPassword ? 'text' : 'password'}
-                autoComplete="new-password"
-                placeholder={`At least ${PASSWORD_MIN} characters`}
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                aria-invalid={Boolean(errors.password)}
-                aria-describedby={describe('password', 'password-strength')}
-                maxLength={PASSWORD_MAX}
-                required
-              />
-              <InputGroupAddon align="inline-end">
-                <InputGroupButton
-                  size="icon-xs"
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  aria-pressed={showPassword}
-                  onClick={() => setShowPassword((shown) => !shown)}
+          {/* Mobile form (visible on mobile, hidden on desktop) */}
+          <div className="lg:hidden">
+            <div className="bg-card/50 backdrop-blur-sm rounded-3xl border border-border p-6 sm:p-8">
+              <header className="space-y-3 text-center">
+                <OnboardingSteps current={0} />
+                <div className="space-y-2">
+                  <h1 className="font-heading text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+                    Create your owner account
+                  </h1>
+                  <p className="text-base leading-relaxed text-muted-foreground">
+                    Set up your account, then create your shop and add your team.
+                  </p>
+                </div>
+              </header>
+
+              <form onSubmit={handleSubmit} noValidate className="space-y-6">
+                <FieldGroup className="gap-4">
+                  <FormField id="fullName" label="Full name" error={errors.fullName}>
+                    <InputGroup className="h-11">
+                      <InputGroupAddon>
+                        <UserRound aria-hidden="true" />
+                      </InputGroupAddon>
+                      <InputGroupInput
+                        id="fullName"
+                        name="name"
+                        autoComplete="name"
+                        placeholder="Tariq Mehmood"
+                        value={fullName}
+                        onChange={(event) => setFullName(event.target.value)}
+                        aria-invalid={Boolean(errors.fullName)}
+                        aria-describedby={describe('fullName')}
+                        maxLength={120}
+                        required
+                      />
+                    </InputGroup>
+                  </FormField>
+
+                  <FormField id="garageName" label="Shop or garage name" optional>
+                    <InputGroup className="h-11">
+                      <InputGroupAddon>
+                        <Building2 aria-hidden="true" />
+                      </InputGroupAddon>
+                      <InputGroupInput
+                        id="garageName"
+                        name="organization"
+                        autoComplete="organization"
+                        placeholder="Falcon Auto Works"
+                        value={garageName}
+                        onChange={(event) => setGarageName(event.target.value)}
+                        maxLength={120}
+                      />
+                    </InputGroup>
+                  </FormField>
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <FormField id="email" label="E-mail" error={errors.email}>
+                      <InputGroup className="h-11">
+                        <InputGroupAddon>
+                          <Mail aria-hidden="true" />
+                        </InputGroupAddon>
+                        <InputGroupInput
+                          id="email"
+                          name="email"
+                          type="email"
+                          inputMode="email"
+                          autoComplete="email"
+                          placeholder="tariq@falconauto.pk"
+                          value={email}
+                          onChange={(event) => setEmail(event.target.value)}
+                          aria-invalid={Boolean(errors.email)}
+                          aria-describedby={describe('email')}
+                          maxLength={254}
+                          required
+                        />
+                      </InputGroup>
+                    </FormField>
+
+                    <FormField id="phone" label="Phone" optional error={errors.phone}>
+                      <InputGroup className="h-11">
+                        <InputGroupAddon>
+                          <Phone aria-hidden="true" />
+                        </InputGroupAddon>
+                        <InputGroupInput
+                          id="phone"
+                          name="tel"
+                          type="tel"
+                          inputMode="tel"
+                          autoComplete="tel"
+                          placeholder="+92 300 1234567"
+                          value={phone}
+                          onChange={(event) => setPhone(event.target.value)}
+                          aria-invalid={Boolean(errors.phone)}
+                          aria-describedby={describe('phone')}
+                          maxLength={21}
+                        />
+                      </InputGroup>
+                    </FormField>
+                  </div>
+
+                  <FormField id="password" label="Password" error={errors.password}>
+                    <InputGroup className="h-11">
+                      <InputGroupAddon>
+                        <Lock aria-hidden="true" />
+                      </InputGroupAddon>
+                      <InputGroupInput
+                        id="password"
+                        name="new-password"
+                        type={showPassword ? 'text' : 'password'}
+                        autoComplete="new-password"
+                        placeholder={`At least ${PASSWORD_MIN} characters`}
+                        value={password}
+                        onChange={(event) => setPassword(event.target.value)}
+                        aria-invalid={Boolean(errors.password)}
+                        aria-describedby={describe('password', 'password-strength')}
+                        maxLength={PASSWORD_MAX}
+                        required
+                      />
+                      <InputGroupAddon align="inline-end">
+                        <InputGroupButton
+                          size="icon-xs"
+                          aria-label={showPassword ? 'Hide password' : 'Show password'}
+                          aria-pressed={showPassword}
+                          onClick={() => setShowPassword((shown) => !shown)}
+                        >
+                          {showPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
+                        </InputGroupButton>
+                      </InputGroupAddon>
+                    </InputGroup>
+                    <PasswordStrength id="password-strength" password={password} />
+                  </FormField>
+                </FieldGroup>
+
+                <Alert variant="info">
+                  <Info aria-hidden="true" />
+                  <AlertDescription>
+                    Staff accounts are created by the shop owner. Work in a garage? Ask your owner for your
+                    login.
+                  </AlertDescription>
+                </Alert>
+
+                <Button
+                  type="submit"
+                  size="lg"
+                  disabled={loading}
+                  className="w-full bg-brand-blue text-brand-blue-foreground hover:bg-brand-blue-hover active:bg-brand-blue-hover"
                 >
-                  {showPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
-                </InputGroupButton>
-              </InputGroupAddon>
-            </InputGroup>
-            <PasswordStrength id="password-strength" password={password} />
-          </FormField>
-        </FieldGroup>
+                  {loading ? (
+                    <>
+                      <Spinner aria-hidden="true" />
+                      Creating your account…
+                    </>
+                  ) : (
+                    <>
+                      Create account
+                      <ArrowRight data-icon="inline-end" aria-hidden="true" />
+                    </>
+                  )}
+                </Button>
+              </form>
 
-        <Alert variant="info">
-          <Info aria-hidden="true" />
-          <AlertDescription>
-            Staff accounts are created by the shop owner. Work in a garage? Ask your owner for your
-            login.
-          </AlertDescription>
-        </Alert>
-
-        <Button
-          type="submit"
-          size="lg"
-          disabled={loading}
-          className="w-full bg-brand-blue text-brand-blue-foreground hover:bg-brand-blue-hover active:bg-brand-blue-hover"
-        >
-          {loading ? (
-            <>
-              <Spinner aria-hidden="true" />
-              Creating your account…
-            </>
-          ) : (
-            <>
-              Create account
-              <ArrowRight data-icon="inline-end" aria-hidden="true" />
-            </>
-          )}
-        </Button>
-      </form>
-
-      <p className="text-center text-sm text-muted-foreground">
-        Already have an account?{' '}
-        <Link href="/login" className="font-semibold text-brand-blue-ink hover:underline">
-          Log in
-        </Link>
-      </p>
+              <p className="text-center text-sm text-muted-foreground mt-4">
+                Already have an account?{' '}
+                <Link href="/login" className="font-semibold text-brand-blue-ink hover:underline">
+                  Log in
+                </Link>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
+

@@ -8,7 +8,7 @@ export interface LogoProps {
   size?: 'sm' | 'md' | 'lg'
 }
 
-/** GarageBox brand logo with gear-and-car mark and bold wordmark. */
+/** BayFlow brand logo with gear-and-car mark and bold wordmark. */
 export function Logo({ tone = 'light', className, showText = true, size = 'md' }: LogoProps) {
   const markSizes = {
     sm: 'h-7 w-8',
@@ -36,7 +36,7 @@ export function Logo({ tone = 'light', className, showText = true, size = 'md' }
         )}
       />
       {showText && (
-        <span className={cn('font-sans tracking-tight', textSizes[size])}>GarageBox</span>
+        <span className={cn('font-sans tracking-tight', textSizes[size])}>BayFlow</span>
       )}
     </span>
   )
