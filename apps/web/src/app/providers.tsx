@@ -21,8 +21,14 @@ export function Providers({ children }: ProvidersProps) {
   const isMobile = useIsMobile()
 
   return (
-    // Light / dark theme (D93): `.dark` on <html>, following the OS until the user picks one.
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+    // Light theme for now (D93): dark tokens are ready, but the owner asked for no theme switcher
+    // yet, so the theme is forced and a stored or OS dark preference never applies.
+    <ThemeProvider
+      attribute="class"
+      forcedTheme="light"
+      enableSystem={false}
+      disableTransitionOnChange
+    >
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           {children}

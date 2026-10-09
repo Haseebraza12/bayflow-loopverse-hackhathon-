@@ -11,6 +11,12 @@ const alertVariants = cva(
         default: 'bg-card text-card-foreground',
         destructive:
           'bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current',
+        // Carbon low-contrast notifications: tinted surface, bar and icon in the ink, body text plain.
+        info: 'bg-info-subtle text-info-ink *:data-[slot=alert-description]:text-foreground',
+        success:
+          'bg-success-subtle text-success-ink *:data-[slot=alert-description]:text-foreground',
+        warning:
+          'bg-warning-subtle text-warning-ink *:data-[slot=alert-description]:text-foreground',
       },
     },
     defaultVariants: {

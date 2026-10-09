@@ -1,6 +1,6 @@
 /**
- * Demo accounts shown as plain text on the login page (D52, glossary §14, spec 09 §4.12).
- * DATA ONLY: never used by application logic — no auto-fill, no "log in as", no bypass.
+ * Demo accounts shown on the login page (D52, glossary §14, spec 09 §4.12). Picking one only
+ * fills the login form; they are never used to log in automatically or to bypass auth.
  */
 
 export const DEMO_PASSWORD = 'BayFlow@2026'

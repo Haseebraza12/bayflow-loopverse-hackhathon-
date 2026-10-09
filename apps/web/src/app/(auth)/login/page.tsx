@@ -1,23 +1,34 @@
 'use client'
 
-import { AlertCircle, Eye, EyeOff, Info, Lock, Mail, Wrench } from 'lucide-react'
+import { ArrowRight, CircleAlert, Eye, EyeOff, Info, Lock, Mail } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Suspense, useState, type FormEvent } from 'react'
+import { Suspense, useRef, useState, type FormEvent } from 'react'
 
+import { DemoAccountsPanel } from '@/components/auth/demo-accounts-panel'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { DEMO_ACCOUNTS, DEMO_AHMED_NOTE, DEMO_PASSWORD } from '@/content/demo-accounts'
-import { setCurrentUser, type CurrentUserSession } from '@/lib/mock-data'
+import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from '@/components/ui/input-group'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Spinner } from '@/components/ui/spinner'
+import { DEMO_PASSWORD, type DemoAccount } from '@/content/demo-accounts'
+import { homePathFor, resolveMockSession } from '@/lib/mock-auth'
+import { setCurrentUser } from '@/lib/mock-data'
+import { safeNextPath } from '@/lib/safe-next'
 
+/** P-04 Login (spec 10): e-mail and password, the session-expired banner, and the demo accounts. */
 function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const reason = searchParams.get('reason')
-  const next = searchParams.get('next')
+  const expired = searchParams.get('reason') === 'expired'
+  const next = safeNextPath(searchParams.get('next'))
+  const submitRef = useRef<HTMLButtonElement>(null)
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -25,271 +36,173 @@ function LoginForm() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
-  const handleQuickFill = (accEmail: string) => {
-    setEmail(accEmail)
+  const pickDemoAccount = (account: DemoAccount) => {
+    setEmail(account.email)
     setPassword(DEMO_PASSWORD)
     setError(null)
+    submitRef.current?.focus()
   }
 
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = (event: FormEvent) => {
+    event.preventDefault()
+    if (loading) return
+    if (!email.trim() || !password) {
+      setError('Enter your e-mail address and password.')
+      return
+    }
     setError(null)
     setLoading(true)
 
-    if (!email.trim() || !password.trim()) {
-      setError('Please enter both your email address and password.')
-      setLoading(false)
-      return
-    }
-
-    // Match demo accounts or default based on email
-    let matchedRole: CurrentUserSession['role'] = 'OWNER'
-    let matchedName = 'Fatima Raza'
-    const matchedShop = 'shop-lahore-auto-care'
-    const matchedShopName = 'Lahore Auto Care'
-
-    const lowerEmail = email.toLowerCase().trim()
-    if (lowerEmail.includes('owner') || lowerEmail.includes('fatima')) {
-      matchedRole = 'OWNER'
-      matchedName = 'Fatima Raza'
-    } else if (
-      lowerEmail.includes('sa') ||
-      lowerEmail.includes('bilal') ||
-      lowerEmail.includes('advisor')
-    ) {
-      matchedRole = 'SERVICE_ADVISOR'
-      matchedName = 'Bilal'
-    } else if (lowerEmail.includes('tech') || lowerEmail.includes('imran')) {
-      matchedRole = 'TECHNICIAN'
-      matchedName = 'Imran'
-    } else if (lowerEmail.includes('hamza')) {
-      matchedRole = 'TECHNICIAN'
-      matchedName = 'Hamza'
-    } else if (lowerEmail.includes('parts') || lowerEmail.includes('usman')) {
-      matchedRole = 'PARTS_PERSON'
-      matchedName = 'Usman'
-    } else if (
-      lowerEmail.includes('qc') ||
-      lowerEmail.includes('sara') ||
-      lowerEmail.includes('hina')
-    ) {
-      matchedRole = 'QC_INSPECTOR'
-      matchedName = lowerEmail.includes('hina') ? 'Hina' : 'Sara'
-    } else if (
-      lowerEmail.includes('customer') ||
-      lowerEmail.includes('ayesha') ||
-      lowerEmail.includes('ahmed')
-    ) {
-      matchedRole = 'CUSTOMER'
-      matchedName = 'Ayesha Khan'
-    } else {
-      matchedRole = 'OWNER'
-      matchedName = email.split('@')[0] || 'User'
-    }
-
-    setCurrentUser({
-      name: matchedName,
-      email: lowerEmail,
-      role: matchedRole,
-      shopId: matchedShop,
-      shopName: matchedShopName,
-    })
-
-    // Set cookie for proxy auth
-    if (typeof document !== 'undefined') {
-      document.cookie = `bf_session=active_${Date.now()}; path=/; max-age=86400`
-    }
-
-    setTimeout(() => {
-      setLoading(false)
-      if (next) {
-        router.push(next)
-        return
-      }
-
-      switch (matchedRole) {
-        case 'OWNER':
-          router.push(`/pos/shops/${matchedShop}/overview`)
-          break
-        case 'SERVICE_ADVISOR':
-          router.push(`/pos/shops/${matchedShop}/bookings`)
-          break
-        case 'TECHNICIAN':
-          router.push(`/pos/shops/${matchedShop}/jobs`)
-          break
-        case 'PARTS_PERSON':
-          router.push(`/pos/shops/${matchedShop}/parts`)
-          break
-        case 'QC_INSPECTOR':
-          router.push(`/pos/shops/${matchedShop}/qc`)
-          break
-        case 'CUSTOMER':
-          router.push('/bookings')
-          break
-        default:
-          router.push(`/pos/shops/${matchedShop}/overview`)
-      }
-    }, 350)
+    const session = resolveMockSession(email)
+    setCurrentUser(session)
+    // The proxy only checks that a session cookie exists (spec 09 §2.8).
+    document.cookie = `bf_session=active_${Date.now()}; path=/; max-age=86400; SameSite=Lax`
+    window.setTimeout(() => router.push(next ?? homePathFor(session)), 350)
   }
 
   return (
-    <div className="space-y-6">
-      <Card className="border-border">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-foreground">Log in to BayFlow</CardTitle>
-          <CardDescription className="text-sm text-helper">
-            Garage owners, service advisors, technicians and customers all sign in here.
-          </CardDescription>
-        </CardHeader>
+    <div className="space-y-8">
+      <header className="space-y-2">
+        <h1 className="font-heading text-4xl leading-tight font-bold tracking-tight text-foreground">
+          Log in to BayFlow
+        </h1>
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          Garage owners, service advisors, technicians and customers all sign in here.
+        </p>
+      </header>
 
-        <CardContent className="space-y-4">
-          {reason === 'expired' && (
-            <Alert className="border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-100">
-              <Info className="size-4 text-amber-600 dark:text-amber-400" />
-              <AlertDescription className="text-xs">
-                Your session has expired. Please log in again to continue.
-              </AlertDescription>
-            </Alert>
-          )}
+      {expired && (
+        <Alert variant="info">
+          <Info aria-hidden="true" />
+          <AlertDescription>Your session has expired. Please log in again.</AlertDescription>
+        </Alert>
+      )}
 
-          {error && (
-            <Alert
-              variant="destructive"
-              className="border-red-200 bg-red-50 text-red-900 dark:border-red-800/60 dark:bg-red-950/40 dark:text-red-100"
-            >
-              <AlertCircle className="size-4 text-red-600 dark:text-red-400" />
-              <AlertDescription className="text-xs">{error}</AlertDescription>
-            </Alert>
-          )}
+      <form onSubmit={handleSubmit} noValidate className="space-y-6">
+        <FieldGroup className="gap-5">
+          <Field>
+            <FieldLabel htmlFor="email">E-mail</FieldLabel>
+            <InputGroup className="h-11">
+              <InputGroupAddon>
+                <Mail aria-hidden="true" />
+              </InputGroupAddon>
+              <InputGroupInput
+                id="email"
+                name="email"
+                type="email"
+                inputMode="email"
+                autoComplete="email"
+                placeholder="name@bayflow.test"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                aria-invalid={Boolean(error) && !email.trim()}
+                aria-describedby={error ? 'login-error' : undefined}
+                required
+              />
+            </InputGroup>
+          </Field>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-xs font-semibold text-muted-foreground">
-                Email address
-              </Label>
-              <div className="relative">
-                <Mail className="absolute top-2.5 left-3 size-4 text-subtle-foreground" />
-                <Input
-                  id="email"
-                  type="email"
-                  autoComplete="email"
-                  placeholder="name@bayflow.test"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="pl-9 text-sm"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password" className="text-xs font-semibold text-muted-foreground">
-                  Password
-                </Label>
-                <span className="font-mono text-[11px] text-subtle-foreground">
-                  Demo: BayFlow@2026
-                </span>
-              </div>
-              <div className="relative">
-                <Lock className="absolute top-2.5 left-3 size-4 text-subtle-foreground" />
-                <Input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  autoComplete="current-password"
-                  placeholder="••••••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="pr-9 pl-9 text-sm"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute top-2.5 right-3 text-subtle-foreground hover:text-muted-foreground"
+          <Field>
+            <FieldLabel htmlFor="password">Password</FieldLabel>
+            <InputGroup className="h-11">
+              <InputGroupAddon>
+                <Lock aria-hidden="true" />
+              </InputGroupAddon>
+              <InputGroupInput
+                id="password"
+                name="password"
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="current-password"
+                placeholder="Your password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                aria-invalid={Boolean(error) && !password}
+                aria-describedby={error ? 'login-error' : undefined}
+                maxLength={128}
+                required
+              />
+              <InputGroupAddon align="inline-end">
+                <InputGroupButton
+                  size="icon-xs"
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  aria-pressed={showPassword}
+                  onClick={() => setShowPassword((shown) => !shown)}
                 >
-                  {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                </button>
-              </div>
-            </div>
+                  {showPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
+                </InputGroupButton>
+              </InputGroupAddon>
+            </InputGroup>
+          </Field>
+        </FieldGroup>
 
-            <Button
-              type="submit"
-              disabled={loading}
-              className="h-10 w-full rounded-full bg-brand-blue font-semibold text-white hover:bg-blue-700"
-            >
-              {loading ? 'Logging in...' : 'Sign In'}
-            </Button>
-          </form>
+        {error && (
+          <Alert variant="destructive" id="login-error">
+            <CircleAlert aria-hidden="true" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
 
-          <div className="pt-2 text-center text-xs text-helper">
-            Don&apos;t have an account?{' '}
-            <Link href="/register" className="font-semibold text-brand-blue-ink hover:underline">
-              Register your shop
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
+        <Button
+          ref={submitRef}
+          type="submit"
+          size="lg"
+          disabled={loading}
+          className="w-full bg-brand-blue text-brand-blue-foreground hover:bg-brand-blue-hover active:bg-brand-blue-hover"
+        >
+          {loading ? (
+            <>
+              <Spinner aria-hidden="true" />
+              Logging in…
+            </>
+          ) : (
+            <>
+              Log in
+              <ArrowRight data-icon="inline-end" aria-hidden="true" />
+            </>
+          )}
+        </Button>
+      </form>
 
-      {/* Demo Credentials Quick-Select Panel */}
-      <Card className="border-blue-100 bg-blue-50/40 dark:border-blue-900/50 dark:bg-blue-950/30">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-1.5 text-sm font-bold text-foreground">
-              <Wrench className="size-4 text-brand-blue-ink" />
-              Demo Accounts & Quick Fill
-            </CardTitle>
-            <span className="rounded bg-blue-100 px-2 py-0.5 font-mono text-[11px] font-medium text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
-              1-Click Fill
-            </span>
-          </div>
-          <CardDescription className="text-xs text-muted-foreground">
-            Click any account to prefill credentials and sign in directly:
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-2 pt-0">
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {DEMO_ACCOUNTS.map((acc) => (
-              <button
-                key={acc.email}
-                type="button"
-                onClick={() => handleQuickFill(acc.email)}
-                className="group flex flex-col rounded-lg border border-border/80 bg-card p-2.5 text-left text-xs transition-all hover:border-blue-400 hover:bg-blue-50/60 dark:hover:border-blue-600 dark:hover:bg-blue-950/30"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold text-foreground group-hover:text-brand-blue-ink">
-                    {acc.name}
-                  </span>
-                  <span className="rounded bg-secondary px-1.5 py-0.5 text-[10px] font-medium tracking-[0.32px] text-helper">
-                    {acc.role}
-                  </span>
-                </div>
-                <span className="mt-0.5 truncate font-mono text-[11px] text-helper">
-                  {acc.email}
-                </span>
-                {acc.note && (
-                  <span className="mt-0.5 text-[10px] text-subtle-foreground italic">
-                    {acc.note}
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
-          <p className="pt-1 text-[11px] text-helper italic">{DEMO_AHMED_NOTE}</p>
-        </CardContent>
-      </Card>
+      <div className="space-y-1.5 text-center text-sm text-muted-foreground">
+        <p>
+          Own a garage?{' '}
+          <Link href="/register" className="font-semibold text-brand-blue-ink hover:underline">
+            Register your shop
+          </Link>
+        </p>
+        <p>
+          New customer?{' '}
+          <Link href="/book" className="font-semibold text-brand-blue-ink hover:underline">
+            Book a service
+          </Link>{' '}
+          — your account is created as you book.
+        </p>
+      </div>
+
+      <DemoAccountsPanel onPick={pickDemoAccount} selectedEmail={email.trim().toLowerCase()} />
+    </div>
+  )
+}
+
+function LoginSkeleton() {
+  return (
+    <div className="space-y-8" aria-busy="true" aria-label="Loading the login form">
+      <div className="space-y-3">
+        <Skeleton className="h-10 w-3/4" />
+        <Skeleton className="h-4 w-full" />
+      </div>
+      <div className="space-y-5">
+        <Skeleton className="h-11 w-full" />
+        <Skeleton className="h-11 w-full" />
+        <Skeleton className="h-12 w-full rounded-full" />
+      </div>
     </div>
   )
 }
 
 export default function LoginPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="p-8 text-center text-xs text-subtle-foreground">Loading login...</div>
-      }
-    >
+    <Suspense fallback={<LoginSkeleton />}>
       <LoginForm />
     </Suspense>
   )

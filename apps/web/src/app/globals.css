@@ -3,9 +3,9 @@
 @import 'shadcn/tailwind.css';
 
 /*
- * Light and dark themes (D93, spec 09 §3.11). next-themes puts `.dark` on <html> (system preference
- * by default, or the user's choice from ThemeToggle); every token below has a light value in
- * `:root` and a dark value in `.dark`, so components only ever use the tokens.
+ * Themes (D93, spec 09 §3.11): every token below has a light value in `:root` and a dark value in
+ * `.dark`, so components only ever use the tokens. The app is forced to light for now (no theme
+ * switcher yet); `.dark` also scopes always-dark surfaces such as the auth brand panel.
  */
 @custom-variant dark (&:where(.dark, .dark *));
 

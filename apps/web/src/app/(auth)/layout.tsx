@@ -1,35 +1,33 @@
+import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 
+import { AuthShowcase } from '@/components/auth/auth-showcase'
 import { Logo } from '@/components/layout/logo'
 
-/** `(auth)` shell (spec 09 §2.3, spec 10 P-04): navy brand panel on `lg`, centred card column. */
+/**
+ * `(auth)` shell (spec 09 §2.3, spec 10 P-04): the navy brand panel on `lg`, and the form column
+ * with a way back to the site.
+ */
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="grid flex-1 lg:grid-cols-2">
-      <aside className="hidden flex-col justify-between bg-brand-navy p-10 text-nav-foreground lg:flex">
-        <Link href="/" aria-label="BayFlow home" className="w-fit rounded-md">
-          <Logo tone="dark" />
-        </Link>
-        <div className="space-y-4">
-          <p className="text-3xl font-semibold">Every hand-off, on the record.</p>
-          <div aria-hidden="true" className="h-1 w-16 rounded-full bg-brand-orange" />
-          <p className="max-w-sm text-nav-muted">
-            Bookings, estimates, parts and quality checks for independent garages — in one place.
-          </p>
-        </div>
-        <p className="text-sm text-nav-muted">BayFlow</p>
-      </aside>
-      <main
-        id="main"
-        tabIndex={-1}
-        className="flex flex-col items-center px-4 py-10 outline-none sm:justify-center sm:px-6"
-      >
-        <div className="w-full max-w-md space-y-6">
-          <Link href="/" aria-label="BayFlow home" className="block w-fit rounded-md lg:hidden">
-            <Logo />
+    <div className="grid min-h-dvh flex-1 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]">
+      <AuthShowcase />
+      <main id="main" tabIndex={-1} className="flex min-w-0 flex-col bg-background outline-none">
+        <div className="flex h-16 items-center justify-between gap-4 px-4 sm:px-8">
+          <Link href="/" aria-label="Home" className="w-fit lg:hidden">
+            <Logo size="sm" />
           </Link>
-          {children}
+          <Link
+            href="/"
+            className="hidden items-center gap-1.5 text-sm text-muted-foreground transition-colors duration-[70ms] ease-productive hover:text-foreground lg:inline-flex"
+          >
+            <ArrowLeft className="size-4" aria-hidden="true" />
+            Back to website
+          </Link>
+        </div>
+        <div className="flex flex-1 justify-center px-4 pt-6 pb-16 sm:px-8 lg:items-center lg:pt-0">
+          <div className="w-full max-w-[460px]">{children}</div>
         </div>
       </main>
     </div>

@@ -53,8 +53,9 @@ Brand, status and CTA colours are unchanged (`--primary`, `--cta`, `--brand-*`, 
 
 ### Light and dark themes (D93)
 
-Every token has a light value in `:root` and a dark value in `.dark`; `next-themes` toggles `.dark` on
-`<html>` (system preference by default, `ThemeToggle` to choose). Rules:
+Every token has a light value in `:root` and a dark value in `.dark`. The app is forced to light for
+now (no theme switcher yet); `next-themes` and `ThemeToggle` are ready to switch dark mode on. A
+`dark` class on an element scopes the dark tokens to it (the auth brand panel). Rules:
 
 - Colour only through tokens: `text-foreground`, `text-muted-foreground`, `text-helper`, `bg-card`,
   `bg-muted`, `border-border`, the brand tokens above. No hex values and no `bg-white` / `neutral-*` in

@@ -12,11 +12,11 @@ import {
 
 // Follows the light / dark theme (D93); the colours themselves come from the tokens below.
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { resolvedTheme } = useTheme()
+  const { forcedTheme, resolvedTheme } = useTheme()
 
   return (
     <Sonner
-      theme={resolvedTheme === 'dark' ? 'dark' : 'light'}
+      theme={(forcedTheme ?? resolvedTheme) === 'dark' ? 'dark' : 'light'}
       className="toaster group"
       icons={{
         success: <CircleCheckIcon className="size-4" />,

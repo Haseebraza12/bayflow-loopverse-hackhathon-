@@ -18,7 +18,6 @@ import {
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 
-import { ThemeToggle } from '@/components/theme/theme-toggle'
 import { Button } from '@/components/ui/button'
 
 import { Logo } from './logo'
@@ -309,9 +308,8 @@ export function PublicHeader() {
           </Link>
         </nav>
 
-        {/* Right Actions: theme, Sign In */}
-        <div className="hidden items-center gap-3 lg:flex">
-          <ThemeToggle />
+        {/* Right Actions: Sign In */}
+        <div className="hidden items-center gap-4 lg:flex">
           {/* Emerald Sign In Button */}
           <Button
             asChild
@@ -323,7 +321,6 @@ export function PublicHeader() {
 
         {/* Mobile Hamburger Button */}
         <div className="flex items-center gap-2 lg:hidden">
-          <ThemeToggle />
           <Button
             asChild
             size="sm"

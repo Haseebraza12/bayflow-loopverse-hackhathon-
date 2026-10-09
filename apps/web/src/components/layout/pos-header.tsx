@@ -14,7 +14,6 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
-import { ThemeToggle } from '@/components/theme/theme-toggle'
 import { useMockStore } from '@/hooks/use-mock-store'
 import { getCurrentUser, getShops, setCurrentUser, type CurrentUserSession } from '@/lib/mock-data'
 
@@ -205,10 +204,6 @@ export function PosHeader() {
             <Globe className="size-4" aria-hidden="true" />
             <span>Website</span>
           </Link>
-
-          <div className="flex items-center px-1">
-            <ThemeToggle tone="nav" className="rounded-none" />
-          </div>
 
           <Link href="/login" className={item} title="Sign out">
             <LogOut className="size-4" aria-hidden="true" />
