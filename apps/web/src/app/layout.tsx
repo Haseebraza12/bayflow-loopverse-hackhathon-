@@ -54,7 +54,12 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
         caveat.variable,
       )}
     >
-      <body className="flex min-h-dvh flex-col bg-white text-[#171c26] antialiased">
+      {/* Browser extensions (e.g. Grammarly's data-gr-ext-installed) add attributes to <body> before
+          React hydrates; this accepts the DOM's attributes for this one element only. */}
+      <body
+        suppressHydrationWarning
+        className="flex min-h-dvh flex-col bg-white text-[#171c26] antialiased"
+      >
         <SkipLink />
         <Providers>{children}</Providers>
         {/* Design review helper, never shipped to production */}
