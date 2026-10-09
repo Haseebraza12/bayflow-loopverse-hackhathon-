@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next'
-import { Archivo, Caveat, JetBrains_Mono, Pragati_Narrow } from 'next/font/google'
+import { Edu_NSW_ACT_Foundation, Fira_Sans, JetBrains_Mono } from 'next/font/google'
 
 import { ScreenNavigator } from '@/components/dev/screen-navigator'
 import { SkipLink } from '@/components/layout/skip-link'
@@ -9,22 +9,24 @@ import './globals.css'
 import { Providers } from './providers'
 
 // Self-hosted by next/font: the browser never calls Google (spec 09 §3.6). The CSS variables are
-// mapped to `font-sans` / `font-heading` / `font-mono` in globals.css.
-const archivo = Archivo({ subsets: ['latin'], variable: '--font-archivo', display: 'swap' })
-const pragatiNarrow = Pragati_Narrow({
+// mapped to `font-sans` / `font-heading` / `font-handwriting` / `font-mono` in globals.css.
+// Fira Sans is body and headings (DESIGN.md "Type"): 400 body, 500/600 labels and card titles,
+// 700 sub-headings, 800 page titles, 900 the landing hero. Not variable, so each weight is listed.
+const firaSans = Fira_Sans({
   subsets: ['latin'],
-  weight: ['400', '700'],
-  variable: '--font-pragati-narrow',
+  weight: ['400', '500', '600', '700', '800', '900'],
+  variable: '--font-fira-sans',
+  display: 'swap',
+})
+// The handwritten accent word (at most one per page, in a hero or greeting). Variable 400–700.
+const eduNswActFoundation = Edu_NSW_ACT_Foundation({
+  subsets: ['latin'],
+  variable: '--font-edu-nsw-act',
   display: 'swap',
 })
 const jetBrainsMono = JetBrains_Mono({
   subsets: ['latin'],
   variable: '--font-jetbrains-mono',
-  display: 'swap',
-})
-const caveat = Caveat({
-  subsets: ['latin'],
-  variable: '--font-caveat',
   display: 'swap',
 })
 
@@ -40,8 +42,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#1047FA' },
-    { media: '(prefers-color-scheme: dark)', color: '#0a0f1c' },
+    { media: '(prefers-color-scheme: light)', color: '#002CF1' },
+    { media: '(prefers-color-scheme: dark)', color: '#0c0a09' },
   ],
   colorScheme: 'light dark',
 }
@@ -52,12 +54,7 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
     <html
       lang="en"
       suppressHydrationWarning
-      className={cn(
-        archivo.variable,
-        pragatiNarrow.variable,
-        jetBrainsMono.variable,
-        caveat.variable,
-      )}
+      className={cn(firaSans.variable, eduNswActFoundation.variable, jetBrainsMono.variable)}
     >
       {/* Browser extensions (e.g. Grammarly's data-gr-ext-installed) add attributes to <body> before
           React hydrates; this accepts the DOM's attributes for this one element only. */}

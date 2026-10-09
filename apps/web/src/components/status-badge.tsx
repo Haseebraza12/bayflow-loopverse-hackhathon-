@@ -65,10 +65,15 @@ export interface StatusBadgeProps {
   status: BookingStatus
   /** `staff` labels in the POS, `customer` labels in the customer portal (UX rule R5). */
   audience: StatusAudience
+  /** `sm` (24px) in lists and tables; `md` (28px, 14px label) beside a page title. */
   size?: 'sm' | 'md'
   className?: string
 }
 
+/**
+ * Booking status chip (DESIGN.md "Status chips"): a soft pill in the phase's hue with a 1px
+ * border, the status icon and the audience's label. Same hue and icon for every role.
+ */
 export function StatusBadge({ status, audience, size = 'sm', className }: StatusBadgeProps) {
   const Icon = STATUS_ICONS[status]
   // ESTIMATE_REJECTED keeps the estimate phase but uses the red override.
@@ -81,7 +86,11 @@ export function StatusBadge({ status, audience, size = 'sm', className }: Status
     <Badge
       variant={variant}
       data-status={status}
-      className={cn(size === 'md' && 'h-6 px-2.5', className)}
+      className={cn(
+        size === 'md' &&
+          'h-7 gap-1.5 px-3 text-sm has-data-[icon=inline-start]:pl-2.5 [&>svg]:size-4',
+        className,
+      )}
     >
       <Icon aria-hidden="true" data-icon="inline-start" />
       <span className="sr-only">Status: </span>

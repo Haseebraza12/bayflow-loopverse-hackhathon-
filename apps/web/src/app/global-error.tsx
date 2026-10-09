@@ -17,9 +17,9 @@ export default function GlobalError({
 }) {
   return (
     <html lang="en">
-      <body className="font-sans">
+      <body className="min-h-dvh bg-canvas font-sans text-foreground antialiased">
         <title>Something went wrong · BayFlow</title>
-        <main id="main" tabIndex={-1}>
+        <main id="main" tabIndex={-1} className="outline-none">
           <RouteError error={error} retry={retry} />
         </main>
       </body>

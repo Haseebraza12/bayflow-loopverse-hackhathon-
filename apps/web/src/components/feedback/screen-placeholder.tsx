@@ -1,8 +1,8 @@
 import { Construction } from 'lucide-react'
 import type { ReactNode } from 'react'
 
+import { EmptyState } from '@/components/layout/empty-state'
 import { PageHeader } from '@/components/layout/page-header'
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 
 export interface ScreenPlaceholderProps {
   /** Screen ID from spec 10 (e.g. `SA-01`). */
@@ -25,25 +25,21 @@ export function ScreenPlaceholder({
   screenId,
   title,
   description,
-  variant = 'portal',
   actions,
   children,
 }: ScreenPlaceholderProps) {
   return (
-    <div className={variant === 'portal' ? 'space-y-8' : 'space-y-6'}>
-      <PageHeader title={title} description={description} actions={actions} variant={variant} />
+    <div className="space-y-6">
+      <PageHeader title={title} description={description} actions={actions} />
       {children}
-      <Empty className="border border-dashed bg-background" data-screen={screenId}>
-        <EmptyHeader>
-          <EmptyMedia variant="icon">
-            <Construction aria-hidden="true" />
-          </EmptyMedia>
-          <EmptyTitle>Coming soon</EmptyTitle>
-          <EmptyDescription>
-            This screen ({screenId}) is part of the next build phase.
-          </EmptyDescription>
-        </EmptyHeader>
-      </Empty>
+      <div data-screen={screenId}>
+        <EmptyState
+          icon={Construction}
+          tone="neutral"
+          title="Coming soon"
+          description={`This screen (${screenId}) is part of the next build phase.`}
+        />
+      </div>
     </div>
   )
 }

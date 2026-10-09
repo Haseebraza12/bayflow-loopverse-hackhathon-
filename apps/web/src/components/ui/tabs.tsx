@@ -14,20 +14,21 @@ function Tabs({
     <TabsPrimitive.Root
       data-slot="tabs"
       data-orientation={orientation}
-      className={cn('group/tabs flex gap-0 data-horizontal:flex-col', className)}
+      className={cn('group/tabs flex gap-4 data-horizontal:flex-col', className)}
       {...props}
     />
   )
 }
 
 const tabsListVariants = cva(
-  // Carbon tabs: a row of 40px line tabs over a 1px subtle rule; the active tab gets a 2px bar.
-  'group/tabs-list inline-flex w-fit max-w-full items-end overflow-x-auto rounded-none p-0 text-muted-foreground shadow-[inset_0_-1px_0_var(--border-subtle)] group-data-horizontal/tabs:h-10 group-data-vertical/tabs:h-fit group-data-vertical/tabs:flex-col group-data-vertical/tabs:shadow-[inset_-1px_0_0_var(--border-subtle)]',
+  'group/tabs-list inline-flex w-fit max-w-full items-center overflow-x-auto text-muted-foreground group-data-vertical/tabs:h-fit group-data-vertical/tabs:flex-col group-data-vertical/tabs:items-stretch',
   {
     variants: {
       variant: {
-        default: 'bg-transparent',
-        line: 'bg-transparent',
+        // Segmented pill: views and filters inside a page (DESIGN.md "Tabs").
+        default: 'h-10.5 gap-1 rounded-full bg-secondary p-1 group-data-vertical/tabs:rounded-2xl',
+        // Underline tabs (GarageBox): sections of a record page; blue indicator, semibold labels.
+        line: 'h-12 gap-6 rounded-none border-b border-border-faint bg-transparent p-0 group-data-vertical/tabs:gap-1 group-data-vertical/tabs:border-r group-data-vertical/tabs:border-b-0',
       },
     },
     defaultVariants: {
@@ -56,7 +57,9 @@ function TabsTrigger({ className, ...props }: React.ComponentProps<typeof TabsPr
     <TabsPrimitive.Trigger
       data-slot="tabs-trigger"
       className={cn(
-        "relative inline-flex h-10 shrink-0 items-center justify-start gap-2 rounded-none px-4 text-sm tracking-[0.16px] whitespace-nowrap text-muted-foreground shadow-[inset_0_-2px_0_transparent] transition-[color,box-shadow] duration-[70ms] ease-productive outline-none group-data-vertical/tabs:w-full hover:text-foreground hover:shadow-[inset_0_-2px_0_var(--border-strong)] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:text-border-strong data-active:font-semibold data-active:text-foreground data-active:shadow-[inset_0_-2px_0_var(--primary)] group-data-vertical/tabs:data-active:shadow-[inset_3px_0_0_var(--primary)] [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "relative inline-flex h-full shrink-0 items-center justify-center gap-1.5 rounded-full px-4 text-sm font-medium whitespace-nowrap text-muted-foreground transition-[color,background-color,box-shadow] duration-150 outline-none group-data-vertical/tabs:min-h-9 group-data-vertical/tabs:w-full group-data-vertical/tabs:justify-start hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring focus-visible:outline-solid disabled:pointer-events-none disabled:opacity-50 data-active:bg-card data-active:text-foreground data-active:shadow-sm [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        // Underline variant
+        'group-data-[variant=line]/tabs-list:rounded-none group-data-[variant=line]/tabs-list:px-0.5 group-data-[variant=line]/tabs-list:font-semibold group-data-[variant=line]/tabs-list:data-active:bg-transparent group-data-[variant=line]/tabs-list:data-active:text-brand-blue-ink group-data-[variant=line]/tabs-list:data-active:shadow-[inset_0_-2px_0_var(--brand-blue)] group-data-vertical/tabs:group-data-[variant=line]/tabs-list:data-active:shadow-[inset_-2px_0_0_var(--brand-blue)]',
         className,
       )}
       {...props}
@@ -68,7 +71,7 @@ function TabsContent({ className, ...props }: React.ComponentProps<typeof TabsPr
   return (
     <TabsPrimitive.Content
       data-slot="tabs-content"
-      className={cn('flex-1 pt-4 text-sm outline-none', className)}
+      className={cn('flex-1 text-sm outline-none', className)}
       {...props}
     />
   )

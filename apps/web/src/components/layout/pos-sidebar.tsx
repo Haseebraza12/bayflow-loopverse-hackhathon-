@@ -22,13 +22,17 @@ import {
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
+  SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarRail,
 } from '@/components/ui/sidebar'
 import { useMockStore } from '@/hooks/use-mock-store'
-import { getCurrentUser, type CurrentUserSession } from '@/lib/mock-data'
+import { getCurrentUser, getShopById, type CurrentUserSession } from '@/lib/mock-data'
 import { sectionAccess } from '@/lib/pos-access'
+
+import { Logo } from './logo'
 
 interface NavItem {
   segment: string
@@ -94,13 +98,19 @@ export interface PosSidebarProps {
 export function PosSidebar({ shopId }: PosSidebarProps) {
   const pathname = usePathname()
   const user = useMockStore(getCurrentUser)
+  const shop = useMockStore(() => getShopById(shopId))
   const groups = navGroups(user.role)
   const base = `/pos/shops/${encodeURIComponent(shopId)}`
 
   return (
-    // Carbon UI shell side nav, 256px, below the 48 px sticky PosHeader (shadcn "sticky site header" sidebar pattern).
-    <Sidebar className="top-12 h-[calc(100svh-3rem)]! border-r border-border-subtle [&_[data-slot=sidebar-inner]]:bg-layer">
-      <SidebarContent>
+    // App sidebar (DESIGN.md "App shell"): white, 256px, under the 64px sticky PosHeader; collapses
+    // to a 64px icon rail on desktop (header toggle, ⌘B, or the rail) and is a sheet on phones.
+    <Sidebar collapsible="icon" className="top-16 h-[calc(100svh-4rem)]!">
+      <SidebarHeader className="border-b border-sidebar-border pt-4 pb-3 md:hidden">
+        <Logo size="sm" />
+        <p className="truncate text-sm font-semibold text-foreground">{shop?.name ?? 'Shop'}</p>
+      </SidebarHeader>
+      <SidebarContent className="py-2">
         <nav aria-label="Shop navigation">
           {groups.map((group) => (
             <SidebarGroup key={group.label}>
@@ -112,13 +122,7 @@ export function PosSidebar({ shopId }: PosSidebarProps) {
                     const active = pathname === href || pathname.startsWith(`${href}/`)
                     return (
                       <SidebarMenuItem key={item.segment}>
-                        <SidebarMenuButton
-                          asChild
-                          isActive={active}
-                          tooltip={item.label}
-                          // Active item: selected layer plus a 3 px brand-orange bar (spec 09 §4.1, Carbon side nav).
-                          className="data-[active=true]:shadow-[inset_3px_0_0_var(--brand-orange)]"
-                        >
+                        <SidebarMenuButton asChild isActive={active} tooltip={item.label}>
                           <Link href={href} aria-current={active ? 'page' : undefined}>
                             <item.icon aria-hidden="true" />
                             <span>{item.label}</span>
@@ -133,6 +137,7 @@ export function PosSidebar({ shopId }: PosSidebarProps) {
           ))}
         </nav>
       </SidebarContent>
+      <SidebarRail />
     </Sidebar>
   )
 }

@@ -3,15 +3,15 @@
 import * as React from 'react'
 import { cn } from 'cn'
 
+// Data table (DESIGN.md "Data tables"): sits flush inside a rounded card (`DataTableCard`);
+// a light header band with 14px helper-colour labels, 48px rows with hairline dividers, a blue
+// hover tint, no zebra. The first and last columns get a little more inset to match the card.
 function Table({ className, ...props }: React.ComponentProps<'table'>) {
   return (
     <div data-slot="table-container" className="relative w-full overflow-x-auto">
       <table
         data-slot="table"
-        className={cn(
-          'w-full caption-bottom border-collapse bg-layer text-sm tracking-[0.16px]',
-          className,
-        )}
+        className={cn('w-full caption-bottom border-collapse text-sm', className)}
         {...props}
       />
     </div>
@@ -22,7 +22,10 @@ function TableHeader({ className, ...props }: React.ComponentProps<'thead'>) {
   return (
     <thead
       data-slot="table-header"
-      className={cn('bg-layer-accent [&_tr]:border-0 [&_tr]:hover:bg-transparent', className)}
+      className={cn(
+        'bg-layer/60 [&_tr]:border-b [&_tr]:border-border-faint [&_tr]:hover:bg-transparent',
+        className,
+      )}
       {...props}
     />
   )
@@ -43,7 +46,7 @@ function TableFooter({ className, ...props }: React.ComponentProps<'tfoot'>) {
     <tfoot
       data-slot="table-footer"
       className={cn(
-        'border-t border-border-subtle bg-layer-accent font-semibold [&>tr]:last:border-b-0',
+        'border-t border-border-faint bg-muted font-semibold [&>tr]:last:border-b-0',
         className,
       )}
       {...props}
@@ -56,7 +59,7 @@ function TableRow({ className, ...props }: React.ComponentProps<'tr'>) {
     <tr
       data-slot="table-row"
       className={cn(
-        'border-b border-border-subtle transition-colors duration-[70ms] ease-productive hover:bg-layer-hover has-aria-expanded:bg-layer-hover data-[state=selected]:bg-layer-selected',
+        'border-b border-border-faint transition-colors duration-100 hover:bg-brand-blue-subtle/40 has-aria-expanded:bg-brand-blue-subtle/40 data-[state=selected]:bg-brand-blue-subtle/70',
         className,
       )}
       {...props}
@@ -69,7 +72,7 @@ function TableHead({ className, ...props }: React.ComponentProps<'th'>) {
     <th
       data-slot="table-head"
       className={cn(
-        'h-12 px-4 text-left align-middle font-semibold whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0',
+        'h-11 px-4 text-left align-middle text-sm font-medium whitespace-nowrap text-helper first:pl-5 last:pr-5 [&:has([role=checkbox])]:pr-0',
         className,
       )}
       {...props}
@@ -82,7 +85,7 @@ function TableCell({ className, ...props }: React.ComponentProps<'td'>) {
     <td
       data-slot="table-cell"
       className={cn(
-        'h-12 px-4 py-2 align-middle whitespace-nowrap text-muted-foreground [&:has([role=checkbox])]:pr-0',
+        'h-12 px-4 py-2 align-middle whitespace-nowrap text-foreground first:pl-5 last:pr-5 [&:has([role=checkbox])]:pr-0',
         className,
       )}
       {...props}
@@ -94,7 +97,7 @@ function TableCaption({ className, ...props }: React.ComponentProps<'caption'>) 
   return (
     <caption
       data-slot="table-caption"
-      className={cn('mt-4 type-helper-01', className)}
+      className={cn('mt-4 text-sm text-helper', className)}
       {...props}
     />
   )

@@ -75,13 +75,13 @@ const TYPE_STYLE: Record<NotificationType, { icon: LucideIcon; tone: string }> =
 }
 
 export interface NotificationBellProps {
-  /** `nav` sits on the dark POS header; `default` on page surfaces. */
+  /** Kept for older call sites: the app bars are light now, so both tones look the same. */
   tone?: 'default' | 'nav'
   className?: string
 }
 
 /** X-01 notifications (spec 10, spec 09 §4.10): popover on desktop, side sheet on mobile. */
-export function NotificationBell({ tone = 'default', className }: NotificationBellProps) {
+export function NotificationBell({ className }: NotificationBellProps) {
   const isMobile = useIsMobile()
   const ready = useMockStoreReady()
   const user = useMockStore(getCurrentUser)
@@ -101,18 +101,15 @@ export function NotificationBell({ tone = 'default', className }: NotificationBe
       size="icon"
       aria-label={unread ? `Notifications, ${unread} unread` : 'Notifications'}
       className={cn(
-        'relative',
-        tone === 'nav'
-          ? 'text-nav-muted hover:bg-white/10 hover:text-nav-foreground aria-expanded:bg-white/10 aria-expanded:text-nav-foreground'
-          : 'text-foreground',
+        'relative text-muted-foreground hover:text-foreground aria-expanded:text-foreground',
         className,
       )}
     >
-      <Bell className="size-[18px]" aria-hidden="true" />
+      <Bell className="size-5" aria-hidden="true" />
       {unread > 0 && (
         <span
           aria-hidden="true"
-          className="absolute top-1.5 right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-orange px-1 text-[10px] leading-none font-semibold text-white"
+          className="absolute -top-0.5 -right-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-cta px-1 text-xs leading-none font-semibold text-cta-foreground ring-2 ring-card"
         >
           {unread > 9 ? '9+' : unread}
         </span>
@@ -180,8 +177,8 @@ function NotificationPanel({
 
   return (
     <div className={cn('flex min-h-0 flex-col', fill && 'h-full')}>
-      <div className="flex items-center justify-between gap-3 border-b border-border-subtle px-4 py-3">
-        <h2 className="text-sm font-semibold text-foreground">Notifications</h2>
+      <div className="flex items-center justify-between gap-3 border-b border-border-faint px-4 py-3">
+        <h2 className="text-base font-semibold text-foreground">Notifications</h2>
         <Button
           variant="ghost"
           size="sm"
@@ -224,8 +221,8 @@ function NotificationPanel({
                     type="button"
                     onClick={() => open(n)}
                     className={cn(
-                      'flex w-full gap-3 px-4 py-3 text-left transition-colors duration-[70ms] ease-productive hover:bg-layer-hover focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring',
-                      unread && 'bg-brand-blue-subtle/40',
+                      'flex w-full gap-3 px-4 py-3 text-left transition-colors duration-100 hover:bg-secondary focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring focus-visible:outline-solid',
+                      unread && 'bg-brand-blue-subtle/50 hover:bg-brand-blue-subtle',
                     )}
                   >
                     <span
@@ -247,15 +244,15 @@ function NotificationPanel({
                           {n.title}
                         </span>
                         {unread && (
-                          <span className="mt-1.5 size-2 shrink-0 rounded-full bg-brand-orange">
+                          <span className="mt-1.5 size-2 shrink-0 rounded-full bg-brand-blue">
                             <span className="sr-only">Unread</span>
                           </span>
                         )}
                       </span>
-                      <span className="mt-0.5 line-clamp-2 block text-xs leading-relaxed text-muted-foreground">
+                      <span className="mt-0.5 line-clamp-2 block text-sm leading-snug text-muted-foreground">
                         {n.body}
                       </span>
-                      <span className="mt-1 block font-mono text-[11px] text-helper">
+                      <span className="mt-1 block text-xs text-helper">
                         {n.reference} · {n.shopName}
                         {now ? ` · ${formatRelative(n.createdAt, new Date(now))}` : ''}
                       </span>

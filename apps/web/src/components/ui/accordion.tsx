@@ -22,7 +22,7 @@ function AccordionItem({
   return (
     <AccordionPrimitive.Item
       data-slot="accordion-item"
-      className={cn('not-last:border-b', className)}
+      className={cn('not-last:border-b not-last:border-border-faint', className)}
       {...props}
     />
   )
@@ -38,7 +38,7 @@ function AccordionTrigger({
       <AccordionPrimitive.Trigger
         data-slot="accordion-trigger"
         className={cn(
-          'group/accordion-trigger relative flex min-h-10 flex-1 items-center justify-between rounded-none border border-transparent px-4 py-2.5 text-left text-sm font-normal tracking-[0.16px] transition-colors duration-[110ms] ease-productive outline-none hover:bg-layer-hover focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring focus-visible:after:border-ring disabled:pointer-events-none disabled:opacity-50 **:data-[slot=accordion-trigger-icon]:ml-auto **:data-[slot=accordion-trigger-icon]:size-4 **:data-[slot=accordion-trigger-icon]:text-muted-foreground',
+          'group/accordion-trigger relative flex min-h-11 flex-1 items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-colors duration-150 outline-none hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring focus-visible:outline-solid disabled:pointer-events-none disabled:opacity-50 **:data-[slot=accordion-trigger-icon]:ml-auto **:data-[slot=accordion-trigger-icon]:size-4 **:data-[slot=accordion-trigger-icon]:text-muted-foreground',
           className,
         )}
         {...props}
@@ -70,7 +70,7 @@ function AccordionContent({
     >
       <div
         className={cn(
-          'h-(--radix-accordion-content-height) pt-0 pb-4 [&_a]:underline [&_a]:underline-offset-3 [&_a]:hover:text-foreground [&_p:not(:last-child)]:mb-4',
+          'h-(--radix-accordion-content-height) px-3 pt-1 pb-4 text-muted-foreground [&_a]:underline [&_a]:underline-offset-3 [&_a]:hover:text-foreground [&_p:not(:last-child)]:mb-4',
           className,
         )}
       >

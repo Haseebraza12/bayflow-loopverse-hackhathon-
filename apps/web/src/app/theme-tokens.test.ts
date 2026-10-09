@@ -11,8 +11,8 @@ import { describe, expect, it } from 'vitest'
 /** `src/` (this file lives in `src/app`). */
 const SRC = path.resolve(import.meta.dirname, '..')
 
-/** Surfaces that are dark in both themes keep fixed colours. */
-const FIXED_SURFACES = new Set(['components/layout/pos-header.tsx'])
+/** Surfaces that are dark in both themes keep fixed colours (none since the app bars went light). */
+const FIXED_SURFACES = new Set<string>([])
 
 function screenFiles(dir = SRC): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {

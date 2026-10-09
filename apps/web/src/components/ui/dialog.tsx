@@ -31,7 +31,7 @@ function DialogOverlay({
     <DialogPrimitive.Overlay
       data-slot="dialog-overlay"
       className={cn(
-        'fixed inset-0 isolate z-50 bg-overlay duration-[240ms] ease-entrance data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0',
+        'fixed inset-0 isolate z-50 bg-overlay backdrop-blur-sm duration-200 ease-entrance data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0',
         className,
       )}
       {...props}
@@ -53,7 +53,8 @@ function DialogContent({
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          'fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-6 rounded-none bg-layer p-6 text-sm text-popover-foreground shadow-float duration-100 outline-none sm:max-w-md data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95',
+          // Modal (DESIGN.md "Dialogs"): white, 24px radius, GarageBox's dialog shadow.
+          'fixed top-1/2 left-1/2 z-50 grid max-h-[calc(100dvh-2rem)] w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-5 overflow-y-auto rounded-3xl border border-border bg-card p-6 text-sm text-card-foreground shadow-dialog duration-150 outline-none sm:max-w-lg data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95',
           className,
         )}
         {...props}
@@ -61,7 +62,11 @@ function DialogContent({
         {children}
         {showCloseButton && (
           <DialogPrimitive.Close data-slot="dialog-close" asChild>
-            <Button variant="ghost" className="absolute top-4 right-4" size="icon-sm">
+            <Button
+              variant="ghost"
+              className="absolute top-4 right-4 text-muted-foreground"
+              size="icon-sm"
+            >
               <XIcon />
               <span className="sr-only">Close</span>
             </Button>
@@ -74,7 +79,11 @@ function DialogContent({
 
 function DialogHeader({ className, ...props }: React.ComponentProps<'div'>) {
   return (
-    <div data-slot="dialog-header" className={cn('flex flex-col gap-2', className)} {...props} />
+    <div
+      data-slot="dialog-header"
+      className={cn('flex flex-col gap-1.5 pr-8', className)}
+      {...props}
+    />
   )
 }
 
@@ -106,7 +115,7 @@ function DialogTitle({ className, ...props }: React.ComponentProps<typeof Dialog
   return (
     <DialogPrimitive.Title
       data-slot="dialog-title"
-      className={cn('type-heading-03 text-foreground', className)}
+      className={cn('text-xl leading-7 font-bold text-foreground', className)}
       {...props}
     />
   )

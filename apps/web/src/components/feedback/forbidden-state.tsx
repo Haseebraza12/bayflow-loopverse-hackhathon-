@@ -20,21 +20,18 @@ export interface ForbiddenStateProps {
 /** X-03 Forbidden (spec 10): shown in place of a section the user's role cannot open. */
 export function ForbiddenState({ message, homeHref }: ForbiddenStateProps) {
   return (
-    <Empty className="border border-border-subtle bg-layer py-16">
+    <Empty className="border bg-card py-16 sm:py-20">
       <EmptyHeader>
-        <EmptyMedia variant="icon">
+        <EmptyMedia variant="icon" className="bg-warning-subtle text-warning-ink">
           <ShieldAlert aria-hidden="true" />
         </EmptyMedia>
-        <h1 className="text-lg font-semibold tracking-tight text-foreground">
+        <h1 className="text-2xl font-extrabold tracking-tight text-foreground">
           You don&apos;t have access to this page
         </h1>
-        <EmptyDescription>{message}</EmptyDescription>
+        <EmptyDescription className="text-base">{message}</EmptyDescription>
       </EmptyHeader>
       <EmptyContent>
-        <Button
-          asChild
-          className="bg-brand-blue text-brand-blue-foreground hover:bg-brand-blue-hover"
-        >
+        <Button asChild>
           <Link href={homeHref}>Go to my home</Link>
         </Button>
       </EmptyContent>

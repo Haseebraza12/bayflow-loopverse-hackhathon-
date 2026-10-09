@@ -4,19 +4,25 @@ import { cn } from 'cn'
 import { Slot } from 'radix-ui'
 
 const badgeVariants = cva(
-  // Carbon tag: 24px pill, label-01 type.
-  'group/badge inline-flex h-6 w-fit shrink-0 items-center justify-center gap-1 overflow-hidden rounded-full border border-transparent px-2 text-xs leading-4 font-normal tracking-[0.32px] whitespace-nowrap transition-all focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&>svg]:pointer-events-none [&>svg]:size-3!',
+  // Pill chip (DESIGN.md "Chips"): 24px, 12px medium label, soft fill + hairline border + ink.
+  'group/badge inline-flex h-6 w-fit shrink-0 items-center justify-center gap-1 overflow-hidden rounded-full border border-transparent px-2.5 text-xs leading-none font-medium whitespace-nowrap transition-[color,background-color,box-shadow] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring focus-visible:outline-solid has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2 aria-invalid:border-destructive [&>svg]:pointer-events-none [&>svg]:size-3.5',
   {
     variants: {
       variant: {
-        default: 'bg-primary text-primary-foreground [a]:hover:bg-primary/80',
-        secondary: 'bg-secondary text-secondary-foreground [a]:hover:bg-secondary/80',
+        default: 'bg-primary text-primary-foreground [a]:hover:bg-primary-hover',
+        secondary: 'bg-secondary text-secondary-foreground [a]:hover:bg-layer-selected',
         destructive:
-          'bg-destructive/10 text-destructive focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:focus-visible:ring-destructive/40 [a]:hover:bg-destructive/20',
-        outline: 'border-border text-foreground [a]:hover:bg-muted [a]:hover:text-muted-foreground',
-        ghost: 'hover:bg-muted hover:text-muted-foreground dark:hover:bg-muted/50',
-        link: 'text-primary underline-offset-4 hover:underline',
-        // BayFlow: booking status phases (spec 09 §3.3) — tinted background, dark ink, 1 px border.
+          'border-status-estimate-rejected-border bg-danger-subtle text-danger-ink [a]:hover:bg-danger-subtle/70',
+        outline: 'border-border bg-card text-foreground [a]:hover:bg-secondary',
+        ghost: 'text-muted-foreground hover:bg-secondary hover:text-foreground',
+        link: 'text-brand-blue-ink underline-offset-4 hover:underline',
+        // Soft semantic chips (same recipe as the status chips)
+        success: 'border-status-handover-border bg-success-subtle text-success-ink',
+        warning: 'border-status-estimate-border bg-warning-subtle text-warning-ink',
+        info: 'border-status-intake-border bg-info-subtle text-info-ink',
+        neutral: 'border-status-closed-border bg-status-closed-bg text-status-closed-fg',
+        brand: 'border-brand-blue/20 bg-brand-blue-subtle text-brand-blue-ink',
+        // BayFlow: booking status phases (spec 09 §3.3) — soft fill, 1 px border, dark ink.
         intake: 'border-status-intake-border bg-status-intake-bg text-status-intake-fg',
         inspection:
           'border-status-inspection-border bg-status-inspection-bg text-status-inspection-fg',

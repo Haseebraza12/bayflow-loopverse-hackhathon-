@@ -1,15 +1,16 @@
 'use client'
 
 import { ChevronLeft, ChevronRight, type LucideIcon } from 'lucide-react'
-import Link from 'next/link'
 import { useState, type ReactNode } from 'react'
 
+import { PageHeader } from '@/components/layout/page-header'
+import { StatCard } from '@/components/layout/stat-card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import type { AdminShop, AdminUser, AdminUserKind, StaffRole } from '@/lib/mock-admin'
 import { cn } from '@/lib/utils'
 
-/** Page title row of the console (Carbon `heading-04`, spec 19 §5). */
+/** Page title row of the console (spec 19 §5): the shared `PageHeader`. */
 export function AdminPageHeader({
   title,
   description,
@@ -24,33 +25,17 @@ export function AdminPageHeader({
   badges?: ReactNode
 }) {
   return (
-    <div className="space-y-3 pb-6">
-      {back && (
-        <Link
-          href={back.href}
-          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ChevronLeft className="size-4" aria-hidden="true" />
-          {back.label}
-        </Link>
-      )}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="min-w-0 space-y-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="type-heading-04 text-foreground">{title}</h1>
-            {badges}
-          </div>
-          {description && (
-            <p className="max-w-prose type-body-01 text-muted-foreground">{description}</p>
-          )}
-        </div>
-        {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
-      </div>
-    </div>
+    <PageHeader
+      title={title}
+      description={description}
+      back={back}
+      actions={actions}
+      badges={badges}
+    />
   )
 }
 
-/** A Carbon tile with a title row. */
+/** A white card with a title row (DESIGN.md "Cards"). */
 export function Tile({
   title,
   description,
@@ -68,26 +53,32 @@ export function Tile({
   flush?: boolean
 }) {
   return (
-    <section className={cn('bg-layer', className)}>
+    <section
+      className={cn(
+        'overflow-clip rounded-2xl border border-border bg-card text-sm shadow-xs',
+        className,
+      )}
+    >
       {title && (
-        <div className="flex items-start justify-between gap-3 px-4 pt-4 pb-3">
-          <div>
-            <h2 className="type-heading-compact-02 text-foreground">{title}</h2>
-            {description && <p className="mt-0.5 type-helper-01">{description}</p>}
+        <div className="flex items-start justify-between gap-3 px-5 pt-5 pb-4">
+          <div className="min-w-0">
+            <h2 className="text-lg leading-7 font-semibold text-foreground">{title}</h2>
+            {description && <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>}
           </div>
           {actions}
         </div>
       )}
-      <div className={flush ? undefined : 'px-4 pb-4'}>{children}</div>
+      <div className={flush ? undefined : cn('px-5 pb-5', !title && 'pt-5')}>{children}</div>
     </section>
   )
 }
 
+/** KPI card of the console: the shared `StatCard` ("attention" maps to its warning tone). */
 export function StatTile({
   label,
   value,
   hint,
-  icon: Icon,
+  icon,
   tone = 'default',
 }: {
   label: string
@@ -97,23 +88,13 @@ export function StatTile({
   tone?: 'default' | 'attention' | 'danger'
 }) {
   return (
-    <div className="bg-layer p-4">
-      <div className="flex items-center justify-between text-sm text-muted-foreground">
-        {label}
-        <Icon className="size-4" aria-hidden="true" />
-      </div>
-      <p
-        className={cn(
-          'mt-3 font-heading text-4xl leading-none font-bold tabular-nums',
-          tone === 'attention' && 'text-cta',
-          tone === 'danger' && 'text-danger-ink',
-          tone === 'default' && 'text-foreground',
-        )}
-      >
-        {value}
-      </p>
-      {hint && <p className="mt-2 text-xs text-helper">{hint}</p>}
-    </div>
+    <StatCard
+      label={label}
+      value={value}
+      hint={hint}
+      icon={icon}
+      tone={tone === 'attention' ? 'warning' : tone === 'danger' ? 'danger' : 'brand'}
+    />
   )
 }
 
@@ -156,14 +137,14 @@ function Pager({
   return (
     <nav
       aria-label="Pagination"
-      className="flex items-center justify-between gap-3 border-t border-border-subtle px-4 py-2 text-sm text-muted-foreground"
+      className="flex items-center justify-between gap-3 border-t border-border-faint px-5 py-3 text-sm text-muted-foreground"
     >
       <span className="tabular-nums">
         {from}–{to} of {total}
       </span>
       <span className="flex items-center gap-1">
         <Button
-          variant="ghost"
+          variant="outline"
           size="icon-sm"
           aria-label="Previous page"
           disabled={page === 0}
@@ -171,11 +152,11 @@ function Pager({
         >
           <ChevronLeft aria-hidden="true" />
         </Button>
-        <span className="tabular-nums">
+        <span className="px-2 tabular-nums">
           {page + 1} / {pages}
         </span>
         <Button
-          variant="ghost"
+          variant="outline"
           size="icon-sm"
           aria-label="Next page"
           disabled={page >= pages - 1}
@@ -192,22 +173,20 @@ export function ShopStatusBadges({ tenant }: { tenant: AdminShop }) {
   return (
     <>
       {tenant.suspension ? (
-        <Badge className="border-danger-ink/30 bg-danger-subtle text-danger-ink">Suspended</Badge>
+        <Badge variant="destructive">Suspended</Badge>
       ) : (
-        <Badge className="border-success-ink/30 bg-success-subtle text-success-ink">Active</Badge>
+        <Badge variant="success">Active</Badge>
       )}
-      {!tenant.shop.is_listed && (
-        <Badge className="border-border bg-secondary text-muted-foreground">Unlisted</Badge>
-      )}
+      {!tenant.shop.is_listed && <Badge variant="neutral">Unlisted</Badge>}
     </>
   )
 }
 
 export function UserStatusBadge({ user }: { user: Pick<AdminUser, 'isActive'> }) {
   return user.isActive ? (
-    <Badge className="border-success-ink/30 bg-success-subtle text-success-ink">Active</Badge>
+    <Badge variant="success">Active</Badge>
   ) : (
-    <Badge className="border-danger-ink/30 bg-danger-subtle text-danger-ink">Deactivated</Badge>
+    <Badge variant="destructive">Deactivated</Badge>
   )
 }
 
@@ -217,18 +196,14 @@ const KIND_LABEL: Record<AdminUserKind, string> = {
   PLATFORM_ADMIN: 'Platform admin',
 }
 
+const KIND_VARIANT = {
+  PLATFORM_ADMIN: 'attention',
+  STAFF: 'brand',
+  CUSTOMER: 'neutral',
+} as const satisfies Record<AdminUserKind, string>
+
 export function KindBadge({ kind }: { kind: AdminUserKind }) {
-  return (
-    <Badge
-      className={cn(
-        kind === 'PLATFORM_ADMIN' && 'border-brand-orange/40 bg-attention text-cta',
-        kind === 'STAFF' && 'border-brand-blue/30 bg-brand-blue-subtle text-brand-blue-ink',
-        kind === 'CUSTOMER' && 'border-border bg-secondary text-muted-foreground',
-      )}
-    >
-      {KIND_LABEL[kind]}
-    </Badge>
-  )
+  return <Badge variant={KIND_VARIANT[kind]}>{KIND_LABEL[kind]}</Badge>
 }
 
 export const ROLE_LABEL: Record<StaffRole, string> = {

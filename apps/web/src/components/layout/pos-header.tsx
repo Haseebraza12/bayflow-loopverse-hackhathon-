@@ -1,22 +1,20 @@
 'use client'
 
-import {
-  Building2,
-  CalendarCheck,
-  Check,
-  ChevronDown,
-  Globe,
-  LayoutGrid,
-  LogOut,
-  Plus,
-  ShieldCheck,
-} from 'lucide-react'
+import { Check, ChevronDown, LayoutGrid, Plus, ShieldCheck, Store } from 'lucide-react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
 
 import { NotificationBell } from '@/components/notifications/notification-bell'
-import { endMockSession } from '@/hooks/use-mock-session'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { SidebarTrigger } from '@/components/ui/sidebar'
 import { useMockStore } from '@/hooks/use-mock-store'
 import {
   getCurrentUser,
@@ -26,6 +24,7 @@ import {
   type CurrentUserSession,
 } from '@/lib/mock-data'
 
+import { AccountMenu, ROLE_NAME } from './account-menu'
 import { Logo } from './logo'
 
 const ROLES: { role: CurrentUserSession['role']; label: string; path: string }[] = [
@@ -36,8 +35,23 @@ const ROLES: { role: CurrentUserSession['role']; label: string; path: string }[]
   { role: 'QC_INSPECTOR', label: 'QC Inspector (Sara)', path: 'qc' },
 ]
 
+/** A shop's own pages (where the shop sidebar is shown), not `/pos/shops/new`. */
+function inShopScope(pathname: string) {
+  const [, pos, shops, shopId] = pathname.split('/')
+  return pos === 'pos' && shops === 'shops' && Boolean(shopId) && shopId !== 'new'
+}
+
+const PILL =
+  'inline-flex h-9 min-w-0 items-center gap-2 rounded-full border text-sm font-medium transition-colors duration-150 outline-none focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-ring [&_svg]:shrink-0'
+
+/**
+ * POS app bar (spec 09 §4.1, spec 10 S-01; DESIGN.md "App shell"): a light, translucent 64px bar
+ * like the landing header. Left: sidebar toggle (shop pages), logo, shop switcher pill.
+ * Right: role pill (switches the demo role), notifications, account menu.
+ */
 export function PosHeader() {
   const router = useRouter()
+  const pathname = usePathname()
   const user = useMockStore(() => getCurrentUser())
   const shops = useMockStore(() => getShops())
   const team = useMockStore(() => getTeamMembers())
@@ -46,10 +60,8 @@ export function PosHeader() {
     (m) => m.role === 'OWNER' && m.is_active && m.email === user.email,
   ).length
 
-  const [shopMenuOpen, setShopMenuOpen] = useState(false)
-  const [roleMenuOpen, setRoleMenuOpen] = useState(false)
-
   const activeShop = shops.find((s) => s.id === user.shopId) || shops[0]
+  const showSidebarToggle = inShopScope(pathname)
 
   const handleSwitchShop = (shopId: string, shopName: string) => {
     setCurrentUser({
@@ -57,7 +69,6 @@ export function PosHeader() {
       shopId,
       shopName,
     })
-    setShopMenuOpen(false)
     router.push(`/pos/shops/${shopId}/overview`)
   }
 
@@ -88,162 +99,106 @@ export function PosHeader() {
       name,
       email,
     })
-    setRoleMenuOpen(false)
     router.push(`/pos/shops/${user.shopId || 'shop-lahore-auto-care'}/${path}`)
   }
 
-  // Carbon UI shell header (DESIGN.md §Shell): 48px bar, product name, full-height square header
-  // items, and square header panels that drop flush from the bar.
-  const item =
-    'flex h-12 items-center gap-2 px-4 text-sm tracking-[0.16px] text-neutral-300 transition-colors duration-[110ms] ease-productive hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-white aria-expanded:bg-white/10 aria-expanded:text-white'
-  const panel =
-    'absolute top-full z-50 w-64 border-t border-white/10 bg-[#1e293b] py-2 shadow-float'
-  const panelLabel = 'px-4 pt-2 pb-1 text-xs tracking-[0.32px] text-neutral-400'
-  const panelItem =
-    'flex min-h-10 w-full items-center justify-between gap-3 px-4 py-2 text-left text-sm tracking-[0.16px] text-neutral-200 transition-colors duration-[70ms] ease-productive hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-white'
-
   return (
-    <header className="sticky top-0 z-40 h-12 border-b border-white/10 bg-[#111827] text-white">
-      <div className="flex h-full items-stretch justify-between">
-        {/* Left: product name & shop switcher */}
-        <div className="flex items-stretch">
-          <Link
-            href="/pos"
-            aria-label="BayFlow Shop POS home"
-            className="flex items-center gap-2 pr-4 pl-4 text-sm tracking-[0.16px] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-white"
+    <header className="sticky top-0 z-40 h-16 shrink-0 border-b border-border-faint bg-card/90 backdrop-blur-md">
+      <div className="flex h-full items-center gap-1.5 px-3 sm:gap-3 sm:px-4 lg:px-6">
+        {showSidebarToggle && (
+          <SidebarTrigger
+            aria-label="Toggle shop navigation"
+            className="size-10 shrink-0 rounded-full text-muted-foreground hover:text-foreground"
+          />
+        )}
+
+        <Link
+          href="/pos"
+          aria-label="BayFlow Shop POS home"
+          className="flex shrink-0 items-center gap-2 rounded-full outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring focus-visible:outline-solid"
+        >
+          <Logo size="sm" showText={false} className="sm:hidden" />
+          <Logo size="sm" className="hidden sm:inline-flex" />
+          <span className="hidden rounded-md bg-secondary px-1.5 py-0.5 text-xs font-semibold text-muted-foreground lg:inline">
+            POS
+          </span>
+        </Link>
+
+        <span aria-hidden="true" className="mx-1 hidden h-6 w-px bg-border sm:block" />
+
+        {/* Shop switcher: All shops first, the shops, Create shop last (spec 10 S-01) */}
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            className={`${PILL} border-border-medium bg-card py-1 pr-2.5 pl-3 text-foreground shadow-xs hover:bg-secondary aria-expanded:bg-secondary sm:pl-1`}
           >
-            <Logo tone="dark" size="sm" />
-            <span className="hidden font-semibold text-neutral-300 sm:inline">POS</span>
-          </Link>
-
-          <div className="my-3 hidden w-px bg-white/15 sm:block" />
-
-          {/* Shop switcher */}
-          <div className="relative flex">
-            <button
-              type="button"
-              aria-expanded={shopMenuOpen}
-              aria-haspopup="menu"
-              onClick={() => {
-                setShopMenuOpen(!shopMenuOpen)
-                setRoleMenuOpen(false)
-              }}
-              className={item}
-            >
-              <Building2 className="size-4 text-neutral-400" aria-hidden="true" />
-              <span className="max-w-[130px] truncate sm:max-w-none">
-                {activeShop?.name ?? 'Select Shop'}
-              </span>
-              <ChevronDown className="size-4 text-neutral-400" aria-hidden="true" />
-            </button>
-
-            {shopMenuOpen && (
-              <div className={`${panel} left-0`} role="menu">
-                <div className={panelLabel}>Switch shop</div>
-                {shops.map((s) => (
-                  <button
-                    key={s.id}
-                    type="button"
-                    role="menuitem"
-                    onClick={() => handleSwitchShop(s.id, s.name)}
-                    className={panelItem}
-                  >
-                    <span className="truncate">{s.name}</span>
-                    {s.id === user.shopId && (
-                      <Check className="size-4 text-white" aria-hidden="true" />
-                    )}
-                  </button>
-                ))}
-                <div className="my-2 border-t border-white/10" />
-                {user.role === 'OWNER' && ownedShops >= 2 && (
-                  <Link
-                    href="/pos/summary"
-                    role="menuitem"
-                    onClick={() => setShopMenuOpen(false)}
-                    className={panelItem}
-                  >
-                    <span>All shops summary</span>
-                    <LayoutGrid className="size-4" aria-hidden="true" />
+            <span className="hidden size-7 items-center justify-center rounded-full bg-brand-blue text-brand-blue-foreground sm:flex">
+              <Store className="size-3.5" aria-hidden="true" />
+            </span>
+            <span className="max-w-[6.5rem] truncate min-[400px]:max-w-[8rem] sm:max-w-[16rem]">
+              {activeShop?.name ?? 'Select shop'}
+            </span>
+            <ChevronDown className="size-4 text-muted-foreground" aria-hidden="true" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-72">
+            {user.role === 'OWNER' && ownedShops >= 2 && (
+              <>
+                <DropdownMenuItem asChild>
+                  <Link href="/pos/summary">
+                    <LayoutGrid aria-hidden="true" />
+                    All shops summary
                   </Link>
-                )}
-                <Link
-                  href="/pos/shops/new"
-                  role="menuitem"
-                  onClick={() => setShopMenuOpen(false)}
-                  className={panelItem}
-                >
-                  <span>Create new shop</span>
-                  <Plus className="size-4" aria-hidden="true" />
-                </Link>
-              </div>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
             )}
-          </div>
-        </div>
+            <DropdownMenuLabel>Switch shop</DropdownMenuLabel>
+            <DropdownMenuGroup>
+              {shops.map((s) => (
+                <DropdownMenuItem key={s.id} onSelect={() => handleSwitchShop(s.id, s.name)}>
+                  <Store aria-hidden="true" />
+                  <span className="min-w-0 flex-1 truncate">{s.name}</span>
+                  {s.id === user.shopId && (
+                    <Check className="text-brand-blue-ink" aria-label="Current shop" />
+                  )}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link href="/pos/shops/new">
+                <Plus aria-hidden="true" />
+                Create new shop
+              </Link>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
-        {/* Right: role switcher & global actions */}
-        <div className="flex items-stretch">
-          {/* Role switcher for rapid testing */}
-          <div className="relative flex">
-            <button
-              type="button"
-              aria-expanded={roleMenuOpen}
-              aria-haspopup="menu"
-              onClick={() => {
-                setRoleMenuOpen(!roleMenuOpen)
-                setShopMenuOpen(false)
-              }}
-              className={item}
+        <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
+          {/* Role switcher for rapid testing of the role views */}
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              className={`${PILL} w-9 shrink-0 justify-center border-brand-blue/20 bg-brand-blue-subtle text-brand-blue-ink hover:border-brand-blue/40 aria-expanded:border-brand-blue/40 sm:w-auto sm:px-3`}
             >
-              <ShieldCheck className="size-4 text-neutral-400" aria-hidden="true" />
-              <span className="capitalize">{user.role.replace('_', ' ').toLowerCase()}</span>
-              <ChevronDown className="size-4 text-neutral-400" aria-hidden="true" />
-            </button>
+              <ShieldCheck className="size-4" aria-hidden="true" />
+              <span className="hidden sm:inline">{ROLE_NAME[user.role]}</span>
+              <span className="sr-only sm:hidden">Role: {ROLE_NAME[user.role]}</span>
+              <ChevronDown className="hidden size-4 sm:block" aria-hidden="true" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-64">
+              <DropdownMenuLabel>Switch active role</DropdownMenuLabel>
+              {ROLES.map((r) => (
+                <DropdownMenuItem key={r.role} onSelect={() => handleSwitchRole(r.role, r.path)}>
+                  <span className="min-w-0 flex-1">{r.label}</span>
+                  {r.role === user.role && (
+                    <Check className="text-brand-blue-ink" aria-label="Current role" />
+                  )}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-            {roleMenuOpen && (
-              <div className={`${panel} right-0`} role="menu">
-                <div className={panelLabel}>Switch active role</div>
-                {ROLES.map((r) => (
-                  <button
-                    key={r.role}
-                    type="button"
-                    role="menuitem"
-                    onClick={() => handleSwitchRole(r.role, r.path)}
-                    className={panelItem}
-                  >
-                    <span>{r.label}</span>
-                    {r.role === user.role && (
-                      <Check className="size-4 text-white" aria-hidden="true" />
-                    )}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <Link href="/bookings" className={`${item} hidden md:flex`} title="Customer view">
-            <CalendarCheck className="size-4" aria-hidden="true" />
-            <span>My bookings</span>
-          </Link>
-
-          <Link href="/" className={`${item} hidden md:flex`} title="Visit public website">
-            <Globe className="size-4" aria-hidden="true" />
-            <span>Website</span>
-          </Link>
-
-          <NotificationBell tone="nav" className="h-12 w-12 rounded-none" />
-
-          <button
-            type="button"
-            className={item}
-            title="Sign out"
-            onClick={() => {
-              endMockSession()
-              router.push('/login')
-            }}
-          >
-            <LogOut className="size-4" aria-hidden="true" />
-            <span className="hidden sm:inline">Sign out</span>
-          </button>
+          <NotificationBell />
+          <AccountMenu context="pos" />
         </div>
       </div>
     </header>

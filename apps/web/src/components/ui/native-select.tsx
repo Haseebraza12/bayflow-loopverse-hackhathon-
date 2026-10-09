@@ -10,7 +10,7 @@ function NativeSelect({ className, size = 'default', ...props }: NativeSelectPro
   return (
     <div
       className={cn(
-        'group/native-select relative w-fit has-[select:disabled]:opacity-50',
+        'group/native-select relative w-fit has-[select:disabled]:opacity-60',
         className,
       )}
       data-slot="native-select-wrapper"
@@ -19,11 +19,11 @@ function NativeSelect({ className, size = 'default', ...props }: NativeSelectPro
       <select
         data-slot="native-select"
         data-size={size}
-        className="h-10 w-full min-w-0 appearance-none rounded-none border-0 border-b border-border-strong bg-field pr-10 pl-4 text-sm tracking-[0.16px] text-foreground transition-[background-color,outline-color] duration-[70ms] ease-productive outline-none select-none placeholder:text-helper hover:bg-field-hover focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:border-transparent disabled:text-border-strong disabled:hover:bg-field aria-invalid:outline-2 aria-invalid:-outline-offset-2 aria-invalid:outline-destructive data-[size=sm]:h-8"
+        className="h-10.5 w-full min-w-0 cursor-pointer appearance-none rounded-lg border border-input bg-card pr-10 pl-3.5 text-base text-foreground shadow-xs transition-[border-color,box-shadow,background-color] duration-150 ease-out outline-none select-none placeholder:text-helper focus-visible:border-brand-blue focus-visible:ring-4 focus-visible:ring-brand-blue/15 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground disabled:shadow-none aria-invalid:border-destructive aria-invalid:ring-4 aria-invalid:ring-destructive/15 data-[size=sm]:h-9 data-[size=sm]:rounded-md sm:text-sm"
         {...props}
       />
       <ChevronDownIcon
-        className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground select-none"
+        className="pointer-events-none absolute top-1/2 right-3.5 size-4 -translate-y-1/2 text-muted-foreground select-none"
         aria-hidden="true"
         data-slot="native-select-icon"
       />

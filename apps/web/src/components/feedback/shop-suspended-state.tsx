@@ -13,15 +13,15 @@ import {
 /** 403 `SHOP_SUSPENDED` (D96): the shop is suspended by BayFlow, for every member alike. */
 export function ShopSuspendedState() {
   return (
-    <Empty className="border border-border-subtle bg-layer py-16">
+    <Empty className="border bg-card py-16 sm:py-20">
       <EmptyHeader>
-        <EmptyMedia variant="icon">
+        <EmptyMedia variant="icon" className="bg-danger-subtle text-danger-ink">
           <Ban aria-hidden="true" />
         </EmptyMedia>
-        <h1 className="text-lg font-semibold tracking-tight text-foreground">
+        <h1 className="text-2xl font-extrabold tracking-tight text-foreground">
           This shop is suspended
         </h1>
-        <EmptyDescription>
+        <EmptyDescription className="text-base">
           BayFlow has suspended this shop, so its workspace is closed for now. Your records are
           kept. Contact BayFlow support to have it reactivated.
         </EmptyDescription>
