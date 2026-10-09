@@ -3,10 +3,4210 @@
  * Do not make direct changes to the file.
  */
 
-export type paths = Record<string, never>;
+export interface paths {
+    "/api/v1/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Log in
+         * @description Returns the session token and the user (no memberships, D81) and sets the `bf_session` cookie. Call `GET /api/v1/me` next for memberships and capabilities. Five failed password checks per e-mail within 15 minutes block the account for the rest of the window (429), even with the right password (D69).
+         */
+        post: operations["identity_login"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Log out
+         * @description Expires the `bf_session` cookie. Idempotent and needs no authentication. The JWT is stateless, so a copied Bearer token stays valid until it expires (spec 04).
+         */
+        post: operations["identity_logout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/register-owner": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Register an owner account
+         * @description Creates a user with no membership (D17) and logs it in: the token is returned in the body and set as the `bf_session` cookie. Create a shop next with `POST /api/v1/shops`.
+         */
+        post: operations["identity_register_owner"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/bookings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Book a service (the booking wizard)
+         * @description Creates a `PENDING` booking (T01) and always logs the customer in: the response sets the `bf_session` cookie and carries `access_token`, `expires_in` and `account_created` (D32). Without a session, `customer.full_name`, `customer.email` and `customer.password` are required: a new e-mail creates the account, an existing one must come with its password (else 409 `EMAIL_ALREADY_REGISTERED`, nothing created). With a session only `customer.phone` is used. 404 when the shop is unknown, unlisted or has no active service; 422 `INVALID_SLOT` off the grid; 409 `SLOT_FULL` when the slot is taken.
+         */
+        post: operations["bookings_create_booking"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the current user with memberships and capabilities
+         * @description The account and its active memberships, sorted by shop name, each with the server-computed `capabilities` of its role (D66). Call it right after login.
+         */
+        get: operations["shops_get_me"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/bookings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My bookings
+         * @description The caller's own bookings at every shop. `active=true` lists the non-terminal ones, `active=false` the completed and cancelled ones; default sort `slot_start` for active bookings, else `-slot_start`. A booking that waits for the customer is recognisable from its `allowed_actions`.
+         */
+        get: operations["bookings_list_my_bookings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/bookings/{booking_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One of my bookings
+         * @description 404 unless it is the caller's own booking, even for staff of that shop.
+         */
+        get: operations["bookings_get_my_booking"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/bookings/{booking_id}/actions/approve-estimate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * My booking action `approve-estimate`
+         * @description From `AWAITING_CUSTOMER`; → `ESTIMATE_APPROVED`. Actors: CUSTOMER. Guard: `BOOKING_CUSTOMER`. The body may carry `expected_version` (409 `CONCURRENT_UPDATE` on mismatch). Responds with the booking and the caller's fresh `allowed_actions`.
+         */
+        post: operations["bookings_my_approve_estimate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/bookings/{booking_id}/actions/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * My booking action `cancel`
+         * @description From `ASSIGNED`, `AWAITING_CUSTOMER`, `CONFIRMED`, `ESTIMATE_APPROVED`, `ESTIMATE_REJECTED`, `ESTIMATE_REVIEW`, `INSPECTING`, `PARTS_ORDERED`, `PARTS_PENDING`, `PARTS_READY`, `PENDING`; → `CANCELLED`. Actors: CUSTOMER, OWNER, SERVICE_ADVISOR. Guard: `BOOKING_CUSTOMER`. The body may carry `expected_version` (409 `CONCURRENT_UPDATE` on mismatch). Responds with the booking and the caller's fresh `allowed_actions`.
+         */
+        post: operations["bookings_my_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/bookings/{booking_id}/actions/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * My booking action `complete`
+         * @description From `READY_FOR_PICKUP`; → `COMPLETED`. Actors: CUSTOMER, OWNER, SERVICE_ADVISOR. Guard: `BOOKING_CUSTOMER`. The body may carry `expected_version` (409 `CONCURRENT_UPDATE` on mismatch). Responds with the booking and the caller's fresh `allowed_actions`.
+         */
+        post: operations["bookings_my_complete"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/bookings/{booking_id}/actions/reject-estimate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * My booking action `reject-estimate`
+         * @description From `AWAITING_CUSTOMER`; → `ESTIMATE_REJECTED`. Actors: CUSTOMER. Guard: `BOOKING_CUSTOMER`. The body may carry `expected_version` (409 `CONCURRENT_UPDATE` on mismatch). Responds with the booking and the caller's fresh `allowed_actions`.
+         */
+        post: operations["bookings_my_reject_estimate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/bookings/{booking_id}/estimates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My booking's estimate versions
+         * @description Only `SENT`, `APPROVED` and `REJECTED` versions, ascending by version (D39).
+         */
+        get: operations["bookings_list_my_booking_estimates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/bookings/{booking_id}/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My booking's timeline
+         * @description Oldest first. Estimate edits and reassignments are left out; a note appears only for a decline, cancel or reject reason; no staff names, roles or metadata.
+         */
+        get: operations["bookings_list_my_booking_events"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List my notifications
+         * @description The caller's notifications across all shops and roles, newest first, paginated. `unread_only=true` keeps the unread ones. Each item carries the server-computed `link` to open for its `recipient_role` (D67).
+         */
+        get: operations["notifications_list_my_notifications"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/notifications/read-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mark all my notifications read
+         * @description Marks every unread notification of the caller read. Idempotent.
+         */
+        post: operations["notifications_mark_all_notifications_read"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/notifications/unread-count": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Count my unread notifications
+         * @description The bell badge, polled every 15 s on every logged-in page (D14).
+         */
+        get: operations["notifications_get_unread_count"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/notifications/{notification_id}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mark one of my notifications read
+         * @description Idempotent: a notification that is already read keeps its `read_at`. An unknown id and another user's notification both answer 404.
+         */
+        post: operations["notifications_mark_notification_read"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/owner-summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the multi-shop summary of the shops I own
+         * @description One row per shop where the caller is the `OWNER`, ordered by shop name: today's bookings, bookings needing the Service Advisor, jobs in progress, ready for pick-up and low-stock parts. `items` is empty for anyone who owns no shop.
+         */
+        get: operations["reporting_get_owner_summary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/vehicles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My vehicles
+         * @description The caller's vehicles, most recently updated first. Re-booking one sends its fields again; the wizard matches it on the normalised registration (D35).
+         */
+        get: operations["bookings_list_my_vehicles"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/cities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the cities of the directory
+         * @description One entry per city of the directory's shops, alphabetical.
+         */
+        get: operations["shops_list_public_cities"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/shops": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the public shop directory
+         * @description Listed shops with at least one active service (D64), ordered by name. `q` matches the shop name, city or an active service name; `city` is an exact, case-insensitive match.
+         */
+        get: operations["shops_list_public_shops"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/shops/{shop_slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a shop's public page
+         * @description 404 for an unknown or unlisted slug. A listed shop without an active service answers with `services: []` and `is_bookable: false` (D64).
+         */
+        get: operations["shops_get_public_shop"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/shops/{shop_slug}/availability": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List a shop's free slots on a date
+         * @description The grid slots of the date (a date in the shop's timezone) that start after now, lie within 30 days and still have `remaining` places (D37, D68); full slots are omitted. Past dates, dates beyond the horizon and closed days answer `slots: []`. Unknown or unlisted slug → 404.
+         */
+        get: operations["scheduling_get_availability"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/realtime/ticket": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a WebSocket ticket
+         * @description A 60-second JWT with `typ` = `ws`, good only for opening `wss://<api-host>/api/v1/ws?ticket=…` (D70); fetch a new one for every connect attempt. It is refused as a session token. A 401 here means the session has expired.
+         */
+        get: operations["notifications_get_realtime_ticket"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shops": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create a shop
+         * @description Any logged-in user may create a shop and becomes its `OWNER` (D17). The shop, its 7 working-hours rows and the `OWNER` membership are created in one transaction; the slug comes from the name (`-2`, `-3` … on a clash) and never changes.
+         */
+        post: operations["shops_create_shop"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shops/{shop_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a shop (staff view) */
+        get: operations["shops_get_shop"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update a shop's settings
+         * @description Owner only. Changing `slot_duration_minutes` or `timezone` is refused with 409 while the shop has future bookings, and a new duration must keep the working hours on its grid (422 `hours_not_on_grid`). Capacity and listing changes are always allowed (D37).
+         */
+        patch: operations["shops_update_shop"];
+        trace?: never;
+    };
+    "/api/v1/shops/{shop_id}/bookings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The shop's bookings the caller can see
+         * @description Owner and Service Advisors see every booking of the shop, a technician or parts person the bookings assigned to them, QC inspectors the QC queue plus bookings they inspected (D21). Filters narrow that set. The QC queue is `?status=QC_PENDING&status=QC_IN_PROGRESS&sort=status_changed_at`.
+         */
+        get: operations["bookings_list_shop_bookings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shops/{shop_id}/bookings/status-counts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Booking counts by status
+         * @description All 17 statuses in glossary order, zeros included, over the caller's D21 scope.
+         */
+        get: operations["bookings_get_status_counts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shops/{shop_id}/bookings/{booking_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One booking
+         * @description 404 when the caller cannot see it (D21). The customer's e-mail and phone are shown to the Owner and Service Advisors only.
+         */
+        get: operations["bookings_get_shop_booking"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shops/{shop_id}/bookings/{booking_id}/actions/allocate-parts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Booking action `allocate-parts`
+         * @description From `PARTS_READY`; → `IN_REPAIR`. Actors: PARTS_PERSON. Guard: `ASSIGNED_PARTS_PERSON`. The body may carry `expected_version` (409 `CONCURRENT_UPDATE` on mismatch). Responds with the booking and the caller's fresh `allowed_actions`.
+         */
+        post: operations["bookings_allocate_parts"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shops/{shop_id}/bookings/{booking_id}/actions/assign-parts-person": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Booking action `assign-parts-person`
+         * @description From `ESTIMATE_APPROVED`; → `PARTS_PENDING`. Actors: OWNER, SERVICE_ADVISOR. The body may carry `expected_version` (409 `CONCURRENT_UPDATE` on mismatch). Responds with the booking and the caller's fresh `allowed_actions`.
+         */
+        post: operations["bookings_assign_parts_person"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shops/{shop_id}/bookings/{booking_id}/actions/assign-technician": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Booking action `assign-technician`
+         * @description From `CONFIRMED`; → `ASSIGNED`. Actors: OWNER, SERVICE_ADVISOR. The body may carry `expected_version` (409 `CONCURRENT_UPDATE` on mismatch). Responds with the booking and the caller's fresh `allowed_actions`.
+         */
+        post: operations["bookings_assign_technician"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shops/{shop_id}/bookings/{booking_id}/actions/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Booking action `cancel`
+         * @description From `ASSIGNED`, `AWAITING_CUSTOMER`, `CONFIRMED`, `ESTIMATE_APPROVED`, `ESTIMATE_REJECTED`, `ESTIMATE_REVIEW`, `INSPECTING`, `PARTS_ORDERED`, `PARTS_PENDING`, `PARTS_READY`, `PENDING`; → `CANCELLED`. Actors: CUSTOMER, OWNER, SERVICE_ADVISOR. Guard: `BOOKING_CUSTOMER`. The body may carry `expected_version` (409 `CONCURRENT_UPDATE` on mismatch). Responds with the booking and the caller's fresh `allowed_actions`.
+         */
+        post: operations["bookings_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shops/{shop_id}/bookings/{booking_id}/actions/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Booking action `complete`
+         * @description From `READY_FOR_PICKUP`; → `COMPLETED`. Actors: CUSTOMER, OWNER, SERVICE_ADVISOR. Guard: `BOOKING_CUSTOMER`. The body may carry `expected_version` (409 `CONCURRENT_UPDATE` on mismatch). Responds with the booking and the caller's fresh `allowed_actions`.
+         */
+        post: operations["bookings_complete"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shops/{shop_id}/bookings/{booking_id}/actions/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Booking action `confirm`
+         * @description From `PENDING`; → `CONFIRMED`. Actors: OWNER, SERVICE_ADVISOR. The body may carry `expected_version` (409 `CONCURRENT_UPDATE` on mismatch). Responds with the booking and the caller's fresh `allowed_actions`.
+         */
+        post: operations["bookings_confirm"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shops/{shop_id}/bookings/{booking_id}/actions/decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Booking action `decline`
+         * @description From `PENDING`; → `CANCELLED`. Actors: OWNER, SERVICE_ADVISOR. The body may carry `expected_version` (409 `CONCURRENT_UPDATE` on mismatch). Responds with the booking and the caller's fresh `allowed_actions`.
+         */
+        post: operations["bookings_decline"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shops/{shop_id}/bookings/{booking_id}/actions/fail-qc": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Booking action `fail-qc`
+         * @description From `QC_IN_PROGRESS`; → `IN_REPAIR`. Actors: QC_INSPECTOR. Guard: `QC_PICKER`. The body may carry `expected_version` (409 `CONCURRENT_UPDATE` on mismatch). Responds with the booking and the caller's fresh `allowed_actions`.
+         */
+        post: operations["bookings_fail_qc"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shops/{shop_id}/bookings/{booking_id}/actions/mark-parts-ready": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Booking action `mark-parts-ready`
+         * @description From `PARTS_ORDERED`, `PARTS_PENDING`; → `PARTS_READY`. Actors: PARTS_PERSON. Guard: `ASSIGNED_PARTS_PERSON`. The body may carry `expected_version` (409 `CONCURRENT_UPDATE` on mismatch). Responds with the booking and the caller's fresh `allowed_actions`.
+         */
+        post: operations["bookings_mark_parts_ready"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shops/{shop_id}/bookings/{booking_id}/actions/notify-ready": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Booking action `notify-ready`
+         * @description From `READY_FOR_PICKUP`; an operation (the status stays). Actors: OWNER, SERVICE_ADVISOR. The body may carry `expected_version` (409 `CONCURRENT_UPDATE` on mismatch). Responds with the booking and the caller's fresh `allowed_actions`.
+         */
+        post: operations["bookings_notify_ready"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shops/{shop_id}/bookings/{booking_id}/actions/order-parts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Booking action `order-parts`
+         * @description From `PARTS_PENDING`; → `PARTS_ORDERED`. Actors: PARTS_PERSON. Guard: `ASSIGNED_PARTS_PERSON`. The body may carry `expected_version` (409 `CONCURRENT_UPDATE` on mismatch). Responds with the booking and the caller's fresh `allowed_actions`.
+         */
+        post: operations["bookings_order_parts"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shops/{shop_id}/bookings/{booking_id}/actions/pass-qc": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Booking action `pass-qc`
+         * @description From `QC_IN_PROGRESS`; → `READY_FOR_PICKUP`. Actors: QC_INSPECTOR. Guard: `QC_PICKER`. The body may carry `expected_version` (409 `CONCURRENT_UPDATE` on mismatch). Responds with the booking and the caller's fresh `allowed_actions`.
+         */
+        post: operations["bookings_pass_qc"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shops/{shop_id}/bookings/{booking_id}/actions/pick-qc": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Booking action `pick-qc`
+         * @description From `QC_PENDING`; → `QC_IN_PROGRESS`. Actors: QC_INSPECTOR. The body may carry `expected_version` (409 `CONCURRENT_UPDATE` on mismatch). Responds with the booking and the caller's fresh `allowed_actions`.
+         */
+        post: operations["bookings_pick_qc"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shops/{shop_id}/bookings/{booking_id}/actions/reassign-parts-person": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Booking action `reassign-parts-person`
+         * @description From `PARTS_ORDERED`, `PARTS_PENDING`, `PARTS_READY`; an operation (the status stays). Actors: OWNER, SERVICE_ADVISOR. The body may carry `expected_version` (409 `CONCURRENT_UPDATE` on mismatch). Responds with the booking and the caller's fresh `allowed_actions`.
+         */
+        post: operations["bookings_reassign_parts_person"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shops/{shop_id}/bookings/{booking_id}/actions/reassign-technician": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Booking action `reassign-technician`
+         * @description From `ASSIGNED`, `INSPECTING`, `IN_REPAIR`; an operation (the status stays). Actors: OWNER, SERVICE_ADVISOR. The body may carry `expected_version` (409 `CONCURRENT_UPDATE` on mismatch). Responds with the booking and the caller's fresh `allowed_actions`.
+         */
+        post: operations["bookings_reassign_technician"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shops/{shop_id}/bookings/{booking_id}/actions/return-to-technician": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Booking action `return-to-technician`
+         * @description From `ESTIMATE_REJECTED`; → `INSPECTING`. Actors: OWNER, SERVICE_ADVISOR. The body may carry `expected_version` (409 `CONCURRENT_UPDATE` on mismatch). Responds with the booking and the caller's fresh `allowed_actions`.
+         */
+        post: operations["bookings_return_to_technician"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shops/{shop_id}/bookings/{booking_id}/actions/revise-estimate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Booking action `revise-estimate`
+         * @description From `ESTIMATE_REJECTED`; → `ESTIMATE_REVIEW`. Actors: OWNER, SERVICE_ADVISOR. The body may carry `expected_version` (409 `CONCURRENT_UPDATE` on mismatch). Responds with the booking and the caller's fresh `allowed_actions`.
+         */
+        post: operations["bookings_revise_estimate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shops/{shop_id}/bookings/{booking_id}/actions/send-estimate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Booking action `send-estimate`
+         * @description From `ESTIMATE_REVIEW`; → `AWAITING_CUSTOMER`. Actors: OWNER, SERVICE_ADVISOR. The body may carry `expected_version` (409 `CONCURRENT_UPDATE` on mismatch). Responds with the booking and the caller's fresh `allowed_actions`.
+         */
+        post: operations["bookings_send_estimate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shops/{shop_id}/bookings/{booking_id}/actions/send-to-qc": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Booking action `send-to-qc`
+         * @description From `IN_REPAIR`; → `QC_PENDING`. Actors: TECHNICIAN. Guard: `ASSIGNED_TECHNICIAN`. The body may carry `expected_version` (409 `CONCURRENT_UPDATE` on mismatch). Responds with the booking and the caller's fresh `allowed_actions`.
+         */
+        post: operations["bookings_send_to_qc"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shops/{shop_id}/bookings/{booking_id}/actions/start-inspection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Booking action `start-inspection`
+         * @description From `ASSIGNED`; → `INSPECTING`. Actors: TECHNICIAN. Guard: `ASSIGNED_TECHNICIAN`. The body may carry `expected_version` (409 `CONCURRENT_UPDATE` on mismatch). Responds with the booking and the caller's fresh `allowed_actions`.
+         */
+        post: operations["bookings_start_inspection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shops/{shop_id}/bookings/{booking_id}/actions/start-repair": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Booking action `start-repair`
+         * @description From `IN_REPAIR`; an operation (the status stays). Actors: TECHNICIAN. Guard: `ASSIGNED_TECHNICIAN`. The body may carry `expected_version` (409 `CONCURRENT_UPDATE` on mismatch). Responds with the booking and the caller's fresh `allowed_actions`.
+         */
+        post: operations["bookings_start_repair"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shops/{shop_id}/bookings/{booking_id}/actions/submit-estimate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Booking action `submit-estimate`
+         * @description From `INSPECTING`; → `ESTIMATE_REVIEW`. Actors: TECHNICIAN. Guard: `ASSIGNED_TECHNICIAN`. The body may carry `expected_version` (409 `CONCURRENT_UPDATE` on mismatch). Responds with the booking and the caller's fresh `allowed_actions`.
+         */
+        post: operations["bookings_submit_estimate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shops/{shop_id}/bookings/{booking_id}/estimate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Edit the estimate (`edit-estimate`)
+         * @description Replaces the lines of the editable version (O1): the assigned technician while `INSPECTING` (also `inspection_notes`), the Service Advisor or Owner while `ESTIMATE_REVIEW`. Any other status → 409 `ESTIMATE_LOCKED`. The first desk edit of a submitted version creates a new version and one `EDIT_ESTIMATE` event; draft saves write no event and keep the booking `version`.
+         */
+        put: operations["bookings_edit_estimate"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shops/{shop_id}/bookings/{booking_id}/estimates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A booking's estimate versions
+         * @description Every version, ascending; part lines carry live stock, except for QC inspectors.
+         */
+        get: operations["bookings_list_booking_estimates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shops/{shop_id}/bookings/{booking_id}/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A booking's audit log
+         * @description Every event, oldest first, with actor, role, note and metadata.
+         */
+        get: operations["bookings_list_booking_events"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shops/{shop_id}/bookings/{booking_id}/parts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A booking's parts: required, reserved and available
+         * @description 404 when not visible; 403 for QC inspectors (stock data).
+         */
+        get: operations["bookings_get_booking_parts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shops/{shop_id}/bookings/{booking_id}/qc-inspections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A booking's QC rounds
+         * @description Every round with its checklist, notes and issues, oldest first.
+         */
+        get: operations["bookings_list_booking_qc_inspections"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shops/{shop_id}/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the team
+         * @description Owner: every membership, inactive ones and the `OWNER` row included. Service Advisor: active technicians and parts persons only (the assign pickers). Ordered by role, then name.
+         */
+        get: operations["shops_list_members"];
+        put?: never;
+        /**
+         * Add a team member
+         * @description Owner only (D18). A new e-mail creates the account with the given initial `password`; an existing e-mail only gets the membership and keeps its password, name and phone (`account_created: false`). Already a member here, active or not → 409.
+         */
+        post: operations["shops_add_member"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shops/{shop_id}/members/{membership_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Change a member's role, deactivate or reactivate
+         * @description Owner only (D19). The `OWNER` membership can never be changed (403). Takes effect on the member's next request; their bookings stay assigned.
+         */
+        patch: operations["shops_update_member"];
+        trace?: never;
+    };
+    "/api/v1/shops/{shop_id}/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the shop overview (Owner)
+         * @description Brief §7.4 Owner: bookings by status (all 17, zeros included), today's figures in the shop's time zone, the team with open jobs (inactive members and the Owner included), the inventory summary over active parts, up to 5 low-stock parts and the setup checklist. Owner only (403 for every other role); 404 for anyone who is not an active member. The five most recent bookings come from `GET …/bookings?sort=-updated_at&limit=5`.
+         */
+        get: operations["reporting_get_overview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shops/{shop_id}/parts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Parts
+         * @description Parts with on hand, reserved, available, stock state and quantity on order (brief §7.4).
+         *
+         *     Owner, Service Advisor and Technician read it (part picker); QC inspectors get 403.
+         */
+        get: operations["inventory_list_parts"];
+        put?: never;
+        /**
+         * Create Part
+         * @description Add a part to the catalogue (Owner, Parts Person). It starts at `on_hand = 0` (D44).
+         */
+        post: operations["inventory_create_part"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shops/{shop_id}/parts/{part_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Part
+         * @description Edit catalogue fields (never stock quantities); deactivate with `is_active: false`.
+         */
+        patch: operations["inventory_update_part"];
+        trace?: never;
+    };
+    "/api/v1/shops/{shop_id}/parts/{part_id}/adjustments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Adjust Stock
+         * @description Opening stock or a count correction: one `ADJUST` movement (Parts Person only, D82).
+         *
+         *     409 `INSUFFICIENT_STOCK` when on hand would drop below what is reserved, or below zero.
+         */
+        post: operations["inventory_adjust_stock"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shops/{shop_id}/parts/{part_id}/movements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Part Movements
+         * @description The part's stock ledger, newest first (Owner, Parts Person).
+         */
+        get: operations["inventory_list_part_movements"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shops/{shop_id}/purchase-orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Purchase Orders
+         * @description Purchase orders, open ones first, then newest (Owner reads, Parts Person).
+         */
+        get: operations["inventory_list_purchase_orders"];
+        put?: never;
+        /**
+         * Create Purchase Order
+         * @description A general restock order (Parts Person). Booking-linked POs come from `order-parts`.
+         */
+        post: operations["inventory_create_purchase_order"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shops/{shop_id}/purchase-orders/{po_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Purchase Order
+         * @description One purchase order with its items (Owner reads, Parts Person).
+         */
+        get: operations["inventory_get_purchase_order"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shops/{shop_id}/purchase-orders/{po_id}/receive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Receive Purchase Order
+         * @description Receive delivered quantities (any Parts Person). Stock goes up; for a linked booking in
+         *     `PARTS_ORDERED` it is reserved first and may fire `RECEIVE_PARTS` (spec 03 §5.3).
+         */
+        post: operations["inventory_receive_purchase_order"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shops/{shop_id}/qc/checklist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The default QC checklist
+         * @description The five D46 checklist items in fixed order, with their labels. Any active member of the shop may read it; the QC Inspector's pass/fail form (QI-02) is built from it.
+         */
+        get: operations["qc_get_checklist"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shops/{shop_id}/services": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the service catalogue */
+        get: operations["shops_list_services"];
+        put?: never;
+        /**
+         * Add a service to the catalogue
+         * @description Owner only. A duplicate active name (case-insensitive) → 409.
+         */
+        post: operations["shops_create_service"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shops/{shop_id}/services/{service_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update or deactivate a service
+         * @description Owner only. Deactivating hides the service from the directory and the wizard; existing bookings keep their snapshots (D34).
+         */
+        patch: operations["shops_update_service"];
+        trace?: never;
+    };
+    "/api/v1/shops/{shop_id}/working-hours": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Replace the working hours
+         * @description Owner only. Exactly 7 entries, one per weekday; open days need both times on the slot grid (minutes since midnight divisible by the slot duration). Always allowed: existing bookings are kept (D37).
+         */
+        put: operations["shops_replace_working_hours"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Liveness and database check */
+        get: operations["system_health"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+}
 export type webhooks = Record<string, never>;
 export interface components {
-    schemas: never;
+    schemas: {
+        /**
+         * ActorRole
+         * @description Who performed an action (`booking_events.actor_role`, `notifications.recipient_role`).
+         * @enum {string}
+         */
+        ActorRole: "CUSTOMER" | "OWNER" | "SERVICE_ADVISOR" | "TECHNICIAN" | "PARTS_PERSON" | "QC_INSPECTOR" | "SYSTEM";
+        /**
+         * AllocatePartsRequest
+         * @description `allocate-parts` (T16).
+         */
+        AllocatePartsRequest: {
+            /**
+             * Expected Version
+             * @description The booking `version` the client rendered (D30).
+             */
+            expected_version?: number | null;
+        };
+        /**
+         * ApproveEstimateRequest
+         * @description `approve-estimate` (T08, customer route): the current `SENT` version.
+         */
+        ApproveEstimateRequest: {
+            /**
+             * Estimate Id
+             * Format: uuid
+             */
+            estimate_id: string;
+            /**
+             * Expected Version
+             * @description The booking `version` the client rendered (D30).
+             */
+            expected_version?: number | null;
+        };
+        /**
+         * AssignPartsPersonRequest
+         * @description `assign-parts-person` (T12): an active `PARTS_PERSON` member of this shop.
+         */
+        AssignPartsPersonRequest: {
+            /**
+             * Expected Version
+             * @description The booking `version` the client rendered (D30).
+             */
+            expected_version?: number | null;
+            /**
+             * Parts Person User Id
+             * Format: uuid
+             */
+            parts_person_user_id: string;
+        };
+        /**
+         * AssignTechnicianRequest
+         * @description `assign-technician` (T04): an active `TECHNICIAN` member of this shop.
+         */
+        AssignTechnicianRequest: {
+            /**
+             * Expected Version
+             * @description The booking `version` the client rendered (D30).
+             */
+            expected_version?: number | null;
+            /**
+             * Technician User Id
+             * Format: uuid
+             */
+            technician_user_id: string;
+        };
+        /**
+         * AvailabilityRead
+         * @description The free slots of one shop-local date, ordered by `slot_start` (D37).
+         */
+        AvailabilityRead: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /**
+             * Shop Id
+             * Format: uuid
+             */
+            shop_id: string;
+            /** Slot Duration Minutes */
+            slot_duration_minutes: number;
+            /** Slots */
+            slots: components["schemas"]["SlotRead"][];
+            /** Timezone */
+            timezone: string;
+        };
+        /**
+         * BookingAction
+         * @description Transitions (change status) and operations (no status change) on a booking.
+         * @enum {string}
+         */
+        BookingAction: "CREATE" | "CONFIRM" | "DECLINE" | "ASSIGN_TECHNICIAN" | "START_INSPECTION" | "EDIT_ESTIMATE" | "SUBMIT_ESTIMATE" | "SEND_ESTIMATE" | "APPROVE_ESTIMATE" | "REJECT_ESTIMATE" | "REVISE_ESTIMATE" | "RETURN_TO_TECHNICIAN" | "ASSIGN_PARTS_PERSON" | "ORDER_PARTS" | "MARK_PARTS_READY" | "RECEIVE_PARTS" | "ALLOCATE_PARTS" | "START_REPAIR" | "SEND_TO_QC" | "PICK_QC" | "PASS_QC" | "FAIL_QC" | "NOTIFY_READY" | "COMPLETE" | "CANCEL" | "REASSIGN_TECHNICIAN" | "REASSIGN_PARTS_PERSON";
+        /**
+         * BookingActionSlug
+         * @description The 25 lower-kebab action slugs of glossary §4 (spec 03 §3.9): the item type of
+         *     `allowed_actions`. `CREATE` and `RECEIVE_PARTS` have no slug (their own endpoints).
+         * @enum {string}
+         */
+        BookingActionSlug: "confirm" | "decline" | "assign-technician" | "start-inspection" | "edit-estimate" | "submit-estimate" | "send-estimate" | "approve-estimate" | "reject-estimate" | "revise-estimate" | "return-to-technician" | "assign-parts-person" | "order-parts" | "mark-parts-ready" | "allocate-parts" | "start-repair" | "send-to-qc" | "pick-qc" | "pass-qc" | "fail-qc" | "notify-ready" | "complete" | "cancel" | "reassign-technician" | "reassign-parts-person";
+        /**
+         * BookingCreate
+         * @description `POST /api/v1/bookings` (T01). `shop_id` only selects where to book (D20).
+         */
+        BookingCreate: {
+            customer?: components["schemas"]["CustomerWrite"] | null;
+            /** Customer Notes */
+            customer_notes?: string | null;
+            /** Service Ids */
+            service_ids: string[];
+            /**
+             * Shop Id
+             * Format: uuid
+             */
+            shop_id: string;
+            /**
+             * Slot Start
+             * Format: date-time
+             * @description A slot start of the shop's grid (UTC, `Z`).
+             */
+            slot_start: string;
+            vehicle: components["schemas"]["VehicleWrite"];
+        };
+        /**
+         * BookingCreatedRead
+         * @description `POST /api/v1/bookings` → 201 (D32): the session token (also set as the cookie), whether an
+         *     account was created, and the new booking.
+         */
+        BookingCreatedRead: {
+            /** Access Token */
+            access_token: string;
+            /** Account Created */
+            account_created: boolean;
+            booking: components["schemas"]["CustomerBookingDetail"];
+            /**
+             * Expires In
+             * @description Token lifetime in seconds (`JWT_EXPIRES_IN`).
+             */
+            expires_in: number;
+            /**
+             * Token Type
+             * @constant
+             */
+            token_type: "bearer";
+        };
+        /**
+         * BookingCustomer
+         * @description The customer on the staff detail: `email` and `phone` are `null` unless the caller is the
+         *     shop's `OWNER` or a `SERVICE_ADVISOR` (spec 04 §C).
+         */
+        BookingCustomer: {
+            /** Email */
+            email: string | null;
+            /** Full Name */
+            full_name: string;
+            /** Phone */
+            phone: string | null;
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+        };
+        /**
+         * BookingDetail
+         * @description The staff detail and every staff action response (spec 03 §3.3).
+         */
+        BookingDetail: {
+            /** Allowed Actions */
+            allowed_actions: components["schemas"]["BookingActionSlug"][];
+            /** Cancel Reason */
+            cancel_reason: string | null;
+            /** Cancelled At */
+            cancelled_at: string | null;
+            cancelled_by: components["schemas"]["UserRef"] | null;
+            /** Completed At */
+            completed_at: string | null;
+            /** Created At */
+            created_at: string;
+            customer: components["schemas"]["BookingCustomer"];
+            /** Customer Notes */
+            customer_notes: string | null;
+            estimate_summary: components["schemas"]["EstimateSummary"] | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Inspection Notes */
+            inspection_notes: string | null;
+            last_event: components["schemas"]["BookingEventRead"] | null;
+            /**
+             * Mileage Km
+             * @description The mileage given at booking time (D65).
+             */
+            mileage_km: number | null;
+            /** Open Qc Issues Count */
+            open_qc_issues_count: number;
+            parts_person: components["schemas"]["MemberRef"] | null;
+            parts_summary: components["schemas"]["PartsSummary"] | null;
+            qc_inspector: components["schemas"]["MemberRef"] | null;
+            /** Qc Round */
+            qc_round: number;
+            /** Ready Notified At */
+            ready_notified_at: string | null;
+            /** Reference */
+            reference: string;
+            /** Repair Started At */
+            repair_started_at: string | null;
+            /** Services */
+            services: components["schemas"]["BookingServiceRead"][];
+            /**
+             * Shop Id
+             * Format: uuid
+             */
+            shop_id: string;
+            /** Slot End */
+            slot_end: string;
+            /** Slot Start */
+            slot_start: string;
+            status: components["schemas"]["BookingStatus"];
+            /** Status Changed At */
+            status_changed_at: string;
+            technician: components["schemas"]["MemberRef"] | null;
+            /** Updated At */
+            updated_at: string;
+            vehicle: components["schemas"]["VehicleRead"];
+            /** Version */
+            version: number;
+        };
+        /**
+         * BookingEventRead
+         * @description One audit-log row as staff see it: actor, role, note and metadata (spec 08).
+         */
+        BookingEventRead: {
+            action: components["schemas"]["BookingAction"];
+            actor: components["schemas"]["UserRef"] | null;
+            actor_role: components["schemas"]["ActorRole"];
+            /** Created At */
+            created_at: string;
+            from_status: components["schemas"]["BookingStatus"] | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Metadata */
+            metadata: {
+                [key: string]: unknown;
+            };
+            /** Note */
+            note: string | null;
+            to_status: components["schemas"]["BookingStatus"];
+        };
+        /** BookingPartRead */
+        BookingPartRead: {
+            /** Consumed Qty */
+            consumed_qty: number;
+            /** Outstanding Qty */
+            outstanding_qty: number;
+            part: components["schemas"]["PartStockRef"];
+            /** Required Qty */
+            required_qty: number;
+            /** Reserved Qty */
+            reserved_qty: number;
+            /** Shortage Qty */
+            shortage_qty: number;
+        };
+        /**
+         * BookingPartsRead
+         * @description Required vs reserved vs available for one booking, plus its linked POs (brief §7.6).
+         */
+        BookingPartsRead: {
+            /** All Available */
+            all_available: boolean;
+            /** Available Count */
+            available_count: number;
+            /**
+             * Booking Id
+             * Format: uuid
+             */
+            booking_id: string;
+            /** Items */
+            items: components["schemas"]["BookingPartRead"][];
+            /** Purchase Orders */
+            purchase_orders: components["schemas"]["PurchaseOrderRef"][];
+            /** Required Count */
+            required_count: number;
+        };
+        /**
+         * BookingRef
+         * @description A booking as a purchase order shows it (spec 03 §3.1; data from the D86 read port).
+         */
+        BookingRef: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Reference */
+            reference: string;
+            status: components["schemas"]["BookingStatus"];
+            /** Version */
+            version: number;
+        };
+        /**
+         * BookingServiceRead
+         * @description A service as snapshotted at booking time (D34).
+         */
+        BookingServiceRead: {
+            /** Base Price */
+            base_price: string | null;
+            /** Name */
+            name: string;
+            /**
+             * Service Id
+             * Format: uuid
+             */
+            service_id: string;
+        };
+        /**
+         * BookingShopRead
+         * @description The shop on a customer's booking detail.
+         */
+        BookingShopRead: {
+            /** Address */
+            address: string;
+            /** City */
+            city: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Phone */
+            phone: string;
+            /** Slug */
+            slug: string;
+            /** Timezone */
+            timezone: string;
+        };
+        /**
+         * BookingShopRef
+         * @description The shop on a customer's list item.
+         */
+        BookingShopRef: {
+            /** City */
+            city: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Phone */
+            phone: string;
+            /** Slug */
+            slug: string;
+            /** Timezone */
+            timezone: string;
+        };
+        /**
+         * BookingStatus
+         * @enum {string}
+         */
+        BookingStatus: "PENDING" | "CONFIRMED" | "ASSIGNED" | "INSPECTING" | "ESTIMATE_REVIEW" | "AWAITING_CUSTOMER" | "ESTIMATE_APPROVED" | "ESTIMATE_REJECTED" | "PARTS_PENDING" | "PARTS_ORDERED" | "PARTS_READY" | "IN_REPAIR" | "QC_PENDING" | "QC_IN_PROGRESS" | "READY_FOR_PICKUP" | "COMPLETED" | "CANCELLED";
+        /**
+         * BookingSummary
+         * @description A staff list item (spec 03 §3.3).
+         */
+        BookingSummary: {
+            /** Allowed Actions */
+            allowed_actions: components["schemas"]["BookingActionSlug"][];
+            /** Created At */
+            created_at: string;
+            customer: components["schemas"]["UserRef"];
+            estimate_summary: components["schemas"]["EstimateSummary"] | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Open Qc Issues Count */
+            open_qc_issues_count: number;
+            parts_person: components["schemas"]["MemberRef"] | null;
+            parts_summary: components["schemas"]["PartsSummary"] | null;
+            qc_inspector: components["schemas"]["MemberRef"] | null;
+            /** Qc Round */
+            qc_round: number;
+            /** Reference */
+            reference: string;
+            /** Repair Started At */
+            repair_started_at: string | null;
+            /** Service Names */
+            service_names: string[];
+            /**
+             * Shop Id
+             * Format: uuid
+             */
+            shop_id: string;
+            /** Slot End */
+            slot_end: string;
+            /** Slot Start */
+            slot_start: string;
+            status: components["schemas"]["BookingStatus"];
+            /** Status Changed At */
+            status_changed_at: string;
+            technician: components["schemas"]["MemberRef"] | null;
+            /** Updated At */
+            updated_at: string;
+            vehicle: components["schemas"]["VehicleBrief"];
+            /** Version */
+            version: number;
+        };
+        /**
+         * CancelRequest
+         * @description Staff `cancel` (T22): the reason is required and shown to the customer.
+         */
+        CancelRequest: {
+            /**
+             * Expected Version
+             * @description The booking `version` the client rendered (D30).
+             */
+            expected_version?: number | null;
+            /** Reason */
+            reason: string;
+        };
+        /**
+         * Capability
+         * @description Glossary §2.4, in glossary order; the wire values are dotted.
+         * @enum {string}
+         */
+        Capability: "shop.manage" | "team.manage" | "services.manage" | "parts.manage" | "stock.manage" | "tasks.manage";
+        /**
+         * CompleteRequest
+         * @description `complete` (T21), staff and customer routes.
+         */
+        CompleteRequest: {
+            /**
+             * Expected Version
+             * @description The booking `version` the client rendered (D30).
+             */
+            expected_version?: number | null;
+        };
+        /**
+         * ConfirmRequest
+         * @description `confirm` (T02); `note` is a staff-only event note.
+         */
+        ConfirmRequest: {
+            /**
+             * Expected Version
+             * @description The booking `version` the client rendered (D30).
+             */
+            expected_version?: number | null;
+            /** Note */
+            note?: string | null;
+        };
+        /**
+         * CustomerBookingDetail
+         * @description The customer detail and every customer action response (spec 03 §3.3): no staff names,
+         *     internal notes, stock or event metadata (spec 04 §C).
+         */
+        CustomerBookingDetail: {
+            /** Allowed Actions */
+            allowed_actions: components["schemas"]["BookingActionSlug"][];
+            /** Cancel Reason */
+            cancel_reason: string | null;
+            /** Cancelled At */
+            cancelled_at: string | null;
+            /** Cancelled By Customer */
+            cancelled_by_customer: boolean | null;
+            /** Completed At */
+            completed_at: string | null;
+            /** Created At */
+            created_at: string;
+            /** Customer Notes */
+            customer_notes: string | null;
+            estimate: components["schemas"]["CustomerEstimateRead"] | null;
+            /** Estimate Revision In Progress */
+            estimate_revision_in_progress: boolean;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Mileage Km */
+            mileage_km: number | null;
+            /** Ready Notified At */
+            ready_notified_at: string | null;
+            /** Reference */
+            reference: string;
+            /** Services */
+            services: components["schemas"]["BookingServiceRead"][];
+            shop: components["schemas"]["BookingShopRead"];
+            /** Slot End */
+            slot_end: string;
+            /** Slot Start */
+            slot_start: string;
+            status: components["schemas"]["BookingStatus"];
+            /** Status Changed At */
+            status_changed_at: string;
+            /** Updated At */
+            updated_at: string;
+            vehicle: components["schemas"]["VehicleRead"];
+            /** Version */
+            version: number;
+        };
+        /**
+         * CustomerBookingEventRead
+         * @description One timeline row as the customer sees it (spec 03 §3.3 projection): no actor, role or
+         *     metadata; a note only for a decline, cancel or reject reason.
+         */
+        CustomerBookingEventRead: {
+            action: components["schemas"]["BookingAction"];
+            /** By Customer */
+            by_customer: boolean;
+            /** Created At */
+            created_at: string;
+            from_status: components["schemas"]["BookingStatus"] | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Note */
+            note: string | null;
+            to_status: components["schemas"]["BookingStatus"];
+        };
+        /**
+         * CustomerBookingSummary
+         * @description A customer's list item (spec 03 §3.3).
+         */
+        CustomerBookingSummary: {
+            /** Allowed Actions */
+            allowed_actions: components["schemas"]["BookingActionSlug"][];
+            /** Created At */
+            created_at: string;
+            estimate_summary: components["schemas"]["EstimateSummary"] | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Reference */
+            reference: string;
+            /** Service Names */
+            service_names: string[];
+            shop: components["schemas"]["BookingShopRef"];
+            /** Slot End */
+            slot_end: string;
+            /** Slot Start */
+            slot_start: string;
+            status: components["schemas"]["BookingStatus"];
+            /** Status Changed At */
+            status_changed_at: string;
+            /** Updated At */
+            updated_at: string;
+            vehicle: components["schemas"]["VehicleBrief"];
+            /** Version */
+            version: number;
+        };
+        /**
+         * CustomerCancelRequest
+         * @description Customer `cancel` (T22): the reason is optional.
+         */
+        CustomerCancelRequest: {
+            /**
+             * Expected Version
+             * @description The booking `version` the client rendered (D30).
+             */
+            expected_version?: number | null;
+            /** Reason */
+            reason?: string | null;
+        };
+        /**
+         * CustomerEstimateLineRead
+         * @description A line as the customer sees it: no SKU, no stock (spec 04 §C).
+         */
+        CustomerEstimateLineRead: {
+            /** Description */
+            description: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Line Total
+             * @example 16100.00
+             */
+            line_total: string;
+            line_type: components["schemas"]["EstimateLineType"];
+            /** Position */
+            position: number;
+            /**
+             * Quantity
+             * @example 1.00
+             */
+            quantity: string;
+            /**
+             * Unit Price
+             * @example 16100.00
+             */
+            unit_price: string;
+        };
+        /**
+         * CustomerEstimateRead
+         * @description A customer-visible version (`SENT`, `APPROVED` or `REJECTED` only; D39).
+         */
+        CustomerEstimateRead: {
+            /** Customer Note */
+            customer_note: string | null;
+            /** Decided At */
+            decided_at: string | null;
+            /**
+             * Grand Total
+             * @example 16100.00
+             */
+            grand_total: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Labour Total
+             * @example 16100.00
+             */
+            labour_total: string;
+            /** Lines */
+            lines: components["schemas"]["CustomerEstimateLineRead"][];
+            /**
+             * Parts Total
+             * @example 16100.00
+             */
+            parts_total: string;
+            /** Sent At */
+            sent_at: string;
+            status: components["schemas"]["EstimateStatus"];
+            /** Version */
+            version: number;
+        };
+        /**
+         * CustomerWrite
+         * @description The wizard's account fields. Optional in the schema: anonymous callers must send
+         *     `full_name`, `email` and `password` (422 `customer.<field>` `missing`, checked by the
+         *     service); with a session only `phone` is used, to fill an empty `users.phone` (D33).
+         */
+        CustomerWrite: {
+            /** Email */
+            email?: string | null;
+            /** Full Name */
+            full_name?: string | null;
+            /** Password */
+            password?: string | null;
+            /** Phone */
+            phone?: string | null;
+        };
+        /**
+         * DeclineRequest
+         * @description `decline` (T03): the reason is required and shown to the customer.
+         */
+        DeclineRequest: {
+            /**
+             * Expected Version
+             * @description The booking `version` the client rendered (D30).
+             */
+            expected_version?: number | null;
+            /** Reason */
+            reason: string;
+        };
+        /**
+         * ErrorCode
+         * @description Every `code` an error response can carry (glossary §10). Values equal the names.
+         * @enum {string}
+         */
+        ErrorCode: "VALIDATION_ERROR" | "INVALID_SLOT" | "ESTIMATE_EMPTY" | "MEMBER_NOT_ELIGIBLE" | "UNAUTHENTICATED" | "INVALID_CREDENTIALS" | "FORBIDDEN" | "NOT_ASSIGNED" | "IDENTITY_NOT_VERIFIED" | "NOT_FOUND" | "METHOD_NOT_ALLOWED" | "EMAIL_ALREADY_REGISTERED" | "INVALID_TRANSITION" | "CONCURRENT_UPDATE" | "SLOT_FULL" | "ALREADY_PICKED" | "STALE_ESTIMATE" | "ESTIMATE_LOCKED" | "INSUFFICIENT_STOCK" | "CALL_BUSY" | "CALL_ALREADY_ANSWERED" | "CALL_NOT_ACTIVE" | "CONFLICT" | "PAYLOAD_TOO_LARGE" | "RATE_LIMITED" | "INTERNAL_ERROR" | "CALLING_DISABLED";
+        /**
+         * EstimateEditRead
+         * @description `PUT …/estimate` response (spec 03 §5.3): the editable version with live part stock, the
+         *     booking's `version` after the save (for the next `expected_version`) and
+         *     `created_new_version`.
+         */
+        EstimateEditRead: {
+            /**
+             * Booking Id
+             * Format: uuid
+             */
+            booking_id: string;
+            /** Booking Version */
+            booking_version: number;
+            /** Created At */
+            created_at: string;
+            created_by: components["schemas"]["UserRef"];
+            /** Created New Version */
+            created_new_version: boolean;
+            /** Customer Note */
+            customer_note: string | null;
+            /** Decided At */
+            decided_at: string | null;
+            decided_by: components["schemas"]["UserRef"] | null;
+            /**
+             * Grand Total
+             * @example 16100.00
+             */
+            grand_total: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Labour Total
+             * @example 16100.00
+             */
+            labour_total: string;
+            /** Lines */
+            lines: components["schemas"]["EstimateLineRead"][];
+            /**
+             * Parts Total
+             * @example 16100.00
+             */
+            parts_total: string;
+            /** Sent At */
+            sent_at: string | null;
+            sent_by: components["schemas"]["UserRef"] | null;
+            status: components["schemas"]["EstimateStatus"];
+            /** Submitted At */
+            submitted_at: string | null;
+            /** Version */
+            version: number;
+        };
+        /**
+         * EstimateLineRead
+         * @description A line as staff see it. `part` is the catalogue part with **live** stock, read when the
+         *     response is built (D40, EST-18): its stock fields are null for QC inspectors (spec 04 §B) and
+         *     `part` is null on `LABOUR` lines. On `PART` lines `description` is the catalogue name copied
+         *     when the line was saved, so a frozen version never changes when the catalogue does (EST-23).
+         */
+        EstimateLineRead: {
+            /** Description */
+            description: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Line Total
+             * @example 16100.00
+             */
+            line_total: string;
+            line_type: components["schemas"]["EstimateLineType"];
+            part: components["schemas"]["PartStockRef"] | null;
+            /** Position */
+            position: number;
+            /**
+             * Quantity
+             * @example 1.00
+             */
+            quantity: string;
+            /**
+             * Unit Price
+             * @example 16100.00
+             */
+            unit_price: string;
+        };
+        /**
+         * EstimateLineType
+         * @enum {string}
+         */
+        EstimateLineType: "PART" | "LABOUR";
+        /**
+         * EstimateLineWrite
+         * @description One line of `PUT …/estimate`: a catalogue `PART` or a free-text `LABOUR` line (D40).
+         *
+         *     `PART`: `part_id` (an active part of this shop, checked by the service), whole `quantity`
+         *     1-9 999, optional whole-rupee `unit_price` (defaults to the part's `unit_cost`); no
+         *     `description` (the server stores the catalogue name). `LABOUR`: `description` 1-255 (trimmed),
+         *     `quantity` 0.01-999.99, required `unit_price`; no `part_id`. Client totals are refused
+         *     (`extra_forbidden`). Every broken rule of the line is reported on its own field with the
+         *     spec 03 §2.3 code (`missing`, `not_allowed`, `not_whole_rupees`, `value_error`, …).
+         */
+        EstimateLineWrite: {
+            /** Description */
+            description?: string | null;
+            line_type: components["schemas"]["EstimateLineType"];
+            /** Part Id */
+            part_id?: string | null;
+            /**
+             * Quantity
+             * @example 1.00
+             */
+            quantity: number | string;
+            /** Unit Price */
+            unit_price?: (number | string) | null;
+        };
+        /**
+         * EstimateRead
+         * @description One estimate version, staff view (`GET …/estimates`; spec 03 §3.4).
+         */
+        EstimateRead: {
+            /**
+             * Booking Id
+             * Format: uuid
+             */
+            booking_id: string;
+            /** Created At */
+            created_at: string;
+            created_by: components["schemas"]["UserRef"];
+            /** Customer Note */
+            customer_note: string | null;
+            /** Decided At */
+            decided_at: string | null;
+            decided_by: components["schemas"]["UserRef"] | null;
+            /**
+             * Grand Total
+             * @example 16100.00
+             */
+            grand_total: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Labour Total
+             * @example 16100.00
+             */
+            labour_total: string;
+            /** Lines */
+            lines: components["schemas"]["EstimateLineRead"][];
+            /**
+             * Parts Total
+             * @example 16100.00
+             */
+            parts_total: string;
+            /** Sent At */
+            sent_at: string | null;
+            sent_by: components["schemas"]["UserRef"] | null;
+            status: components["schemas"]["EstimateStatus"];
+            /** Submitted At */
+            submitted_at: string | null;
+            /** Version */
+            version: number;
+        };
+        /**
+         * EstimateStatus
+         * @enum {string}
+         */
+        EstimateStatus: "DRAFT" | "SUBMITTED" | "SENT" | "APPROVED" | "REJECTED" | "SUPERSEDED";
+        /**
+         * EstimateSummary
+         * @description `estimate_summary` of booking lists and details: staff get the latest version, customers
+         *     the latest `SENT`, `APPROVED` or `REJECTED` one (D39).
+         */
+        EstimateSummary: {
+            /**
+             * Estimate Id
+             * Format: uuid
+             */
+            estimate_id: string;
+            /**
+             * Grand Total
+             * @example 16100.00
+             */
+            grand_total: string;
+            /** Line Count */
+            line_count: number;
+            status: components["schemas"]["EstimateStatus"];
+            /** Version */
+            version: number;
+        };
+        /**
+         * EstimateUpdate
+         * @description Body of `PUT /api/v1/shops/{shop_id}/bookings/{booking_id}/estimate` (O1).
+         *
+         *     `lines` is the full new list in display order (1-50). `inspection_notes` (≤ 4000, trimmed,
+         *     blank -> `None`) and `expected_version` are consumed by bookings: the notes are the
+         *     technician's, saved on the booking while `INSPECTING` (D40); the version check is D30's.
+         */
+        EstimateUpdate: {
+            /** Expected Version */
+            expected_version?: number | null;
+            /** Inspection Notes */
+            inspection_notes?: string | null;
+            /** Lines */
+            lines: components["schemas"]["EstimateLineWrite"][];
+        };
+        /**
+         * FailQcRequest
+         * @description `fail-qc` (T20): the issue; a checklist, when sent, carries each key once.
+         */
+        FailQcRequest: {
+            /** Checklist */
+            checklist?: components["schemas"]["QcChecklistItemWrite"][] | null;
+            /**
+             * Expected Version
+             * @description The booking `version` the client rendered (D30).
+             */
+            expected_version?: number | null;
+            /** Issue Description */
+            issue_description: string;
+            /** Issue Title */
+            issue_title: string;
+            /** Notes */
+            notes?: string | null;
+        };
+        /**
+         * FieldError
+         * @description One invalid input field of a 422 response (`errors[]`).
+         */
+        FieldError: {
+            /** Code */
+            code: string;
+            /** Field */
+            field: string;
+            /** Message */
+            message: string;
+        };
+        /** HealthRead */
+        HealthRead: {
+            /**
+             * Database
+             * @enum {string}
+             */
+            database: "ok" | "error";
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ok" | "degraded";
+        };
+        /** ItemList[BookingEventRead] */
+        ItemList_BookingEventRead_: {
+            /** Items */
+            items: components["schemas"]["BookingEventRead"][];
+        };
+        /** ItemList[CustomerBookingEventRead] */
+        ItemList_CustomerBookingEventRead_: {
+            /** Items */
+            items: components["schemas"]["CustomerBookingEventRead"][];
+        };
+        /** ItemList[CustomerEstimateRead] */
+        ItemList_CustomerEstimateRead_: {
+            /** Items */
+            items: components["schemas"]["CustomerEstimateRead"][];
+        };
+        /** ItemList[EstimateRead] */
+        ItemList_EstimateRead_: {
+            /** Items */
+            items: components["schemas"]["EstimateRead"][];
+        };
+        /** ItemList[QcChecklistTemplateItem] */
+        ItemList_QcChecklistTemplateItem_: {
+            /** Items */
+            items: components["schemas"]["QcChecklistTemplateItem"][];
+        };
+        /** ItemList[QcInspectionRead] */
+        ItemList_QcInspectionRead_: {
+            /** Items */
+            items: components["schemas"]["QcInspectionRead"][];
+        };
+        /** ItemList[VehicleRead] */
+        ItemList_VehicleRead_: {
+            /** Items */
+            items: components["schemas"]["VehicleRead"][];
+        };
+        /** ItemList[str] */
+        ItemList_str_: {
+            /** Items */
+            items: string[];
+        };
+        /**
+         * MarkPartsReadyRequest
+         * @description `mark-parts-ready` (T14).
+         */
+        MarkPartsReadyRequest: {
+            /**
+             * Expected Version
+             * @description The booking `version` the client rendered (D30).
+             */
+            expected_version?: number | null;
+        };
+        /**
+         * MeRead
+         * @description `GET /api/v1/me`: the account and its **active** memberships, sorted by shop name (D66).
+         */
+        MeRead: {
+            /** Email */
+            email: string;
+            /** Full Name */
+            full_name: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Memberships */
+            memberships: components["schemas"]["MembershipRead"][];
+            /** Phone */
+            phone: string | null;
+        };
+        /**
+         * MemberCreate
+         * @description `POST /api/v1/shops/{shop_id}/members` (D18). New e-mail: `password` is required and the
+         *     account is created. Existing e-mail: only the membership is created; the password, name and
+         *     phone in the body are ignored and the account is never modified.
+         */
+        MemberCreate: {
+            /**
+             * Email
+             * Format: email
+             * @example fatima.owner@bayflow.test
+             */
+            email: string;
+            /** Full Name */
+            full_name: string;
+            /** Password */
+            password?: string | null;
+            /** Phone */
+            phone?: string | null;
+            role: components["schemas"]["StaffRole"];
+        };
+        /**
+         * MemberCreatedRead
+         * @description `account_created: false` = an existing account was attached; only the membership was
+         *     created and the person signs in with their existing password (D18).
+         */
+        MemberCreatedRead: {
+            /** Account Created */
+            account_created: boolean;
+            /** Created At */
+            created_at: string;
+            /** Is Active */
+            is_active: boolean;
+            /**
+             * Membership Id
+             * Format: uuid
+             */
+            membership_id: string;
+            /** Open Jobs */
+            open_jobs: number;
+            role: components["schemas"]["MembershipRole"];
+            /** Updated At */
+            updated_at: string;
+            user: components["schemas"]["UserRead"];
+        };
+        /**
+         * MemberRead
+         * @description A membership with its account (spec 03 §3.2). `open_jobs` = bookings not ready, completed
+         *     or cancelled where the member is the technician, the parts person or the current QC picker.
+         */
+        MemberRead: {
+            /** Created At */
+            created_at: string;
+            /** Is Active */
+            is_active: boolean;
+            /**
+             * Membership Id
+             * Format: uuid
+             */
+            membership_id: string;
+            /** Open Jobs */
+            open_jobs: number;
+            role: components["schemas"]["MembershipRole"];
+            /** Updated At */
+            updated_at: string;
+            user: components["schemas"]["UserRead"];
+        };
+        /**
+         * MemberRef
+         * @description An assignee (spec 03 §3.1); `is_active` is the membership in this shop (D19).
+         */
+        MemberRef: {
+            /** Full Name */
+            full_name: string;
+            /** Is Active */
+            is_active: boolean;
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+        };
+        /**
+         * MemberUpdate
+         * @description `PATCH /api/v1/shops/{shop_id}/members/{membership_id}` (D19, at least one field).
+         */
+        MemberUpdate: {
+            /** Is Active */
+            is_active?: boolean | null;
+            role?: components["schemas"]["StaffRole"] | null;
+        };
+        /**
+         * MembershipRead
+         * @description One active membership of the caller (spec 04 `/me`, D66).
+         */
+        MembershipRead: {
+            /** Capabilities */
+            capabilities: components["schemas"]["Capability"][];
+            /**
+             * Membership Id
+             * Format: uuid
+             */
+            membership_id: string;
+            role: components["schemas"]["MembershipRole"];
+            /**
+             * Shop Id
+             * Format: uuid
+             */
+            shop_id: string;
+            /** Shop Name */
+            shop_name: string;
+            /** Shop Slug */
+            shop_slug: string;
+        };
+        /**
+         * MembershipRole
+         * @description Role of a user inside one shop (`shop_memberships.role`).
+         * @enum {string}
+         */
+        MembershipRole: "OWNER" | "SERVICE_ADVISOR" | "TECHNICIAN" | "PARTS_PERSON" | "QC_INSPECTOR";
+        /**
+         * NotificationRead
+         * @description One notification of the caller (spec 03 §3.7). Title and body are composed by the server
+         *     in English; clients follow `link` and never derive a route themselves (D67).
+         */
+        NotificationRead: {
+            /** Body */
+            body: string;
+            /** Booking Id */
+            booking_id: string | null;
+            /** Booking Reference */
+            booking_reference: string | null;
+            /** Created At */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Link
+             * @description Relative web path to open for this recipient (D67).
+             */
+            link: string;
+            /** Read At */
+            read_at: string | null;
+            /** @description The role the recipient is notified as (e.g. `CUSTOMER`, `TECHNICIAN`). */
+            recipient_role: components["schemas"]["ActorRole"];
+            /** Shop Id */
+            shop_id: string | null;
+            /** Shop Name */
+            shop_name: string | null;
+            /** Title */
+            title: string;
+            type: components["schemas"]["NotificationType"];
+        };
+        /**
+         * NotificationType
+         * @enum {string}
+         */
+        NotificationType: "BOOKING_CREATED" | "BOOKING_CONFIRMED" | "TECHNICIAN_ASSIGNED" | "ESTIMATE_SUBMITTED" | "ESTIMATE_SENT" | "ESTIMATE_APPROVED" | "ESTIMATE_REJECTED" | "ESTIMATE_RETURNED" | "PARTS_NEEDED" | "PARTS_READY" | "QC_REQUESTED" | "QC_FAILED" | "QC_PASSED" | "VEHICLE_READY" | "BOOKING_CANCELLED" | "CALL_MISSED" | "AI_TASK_CREATED";
+        /**
+         * NotifyReadyRequest
+         * @description `notify-ready` (O3); repeatable (send `expected_version` to avoid duplicates).
+         */
+        NotifyReadyRequest: {
+            /**
+             * Expected Version
+             * @description The booking `version` the client rendered (D30).
+             */
+            expected_version?: number | null;
+        };
+        /**
+         * OrderPartsItem
+         * @description One purchase-order line of `order-parts`.
+         */
+        OrderPartsItem: {
+            /**
+             * Part Id
+             * Format: uuid
+             */
+            part_id: string;
+            /** Quantity */
+            quantity: number;
+        };
+        /**
+         * OrderPartsRequest
+         * @description `order-parts` (T13): `items` omitted → exactly the shortages; given → every short part,
+         *     each once, at least its shortage (422 `missing_shortage` / `below_shortage` / `not_short`).
+         */
+        OrderPartsRequest: {
+            /**
+             * Expected Version
+             * @description The booking `version` the client rendered (D30).
+             */
+            expected_version?: number | null;
+            /** Items */
+            items?: components["schemas"]["OrderPartsItem"][] | null;
+            /** Supplier Name */
+            supplier_name?: string | null;
+        };
+        /**
+         * OverviewInventory
+         * @description Stock figures over the shop's active parts (D45).
+         */
+        OverviewInventory: {
+            /**
+             * Low Stock Count
+             * @description Active parts that are LOW or OUT.
+             */
+            low_stock_count: number;
+            /**
+             * Open Purchase Orders
+             * @description Purchase orders ORDERED or PARTIALLY_RECEIVED.
+             */
+            open_purchase_orders: number;
+            /**
+             * Out Of Stock Count
+             * @description Active parts with nothing available.
+             */
+            out_of_stock_count: number;
+            /**
+             * Parts Count
+             * @description Active parts.
+             */
+            parts_count: number;
+            /**
+             * Stock Value
+             * @description Sum of on hand * unit cost over active parts.
+             * @example 286400.00
+             */
+            stock_value: string;
+        };
+        /**
+         * OverviewRead
+         * @description `GET /api/v1/shops/{shop_id}/overview`: brief §7.4 Owner — bookings by status, team list,
+         *     inventory summary — plus today's figures and the setup checklist.
+         */
+        OverviewRead: {
+            inventory: components["schemas"]["OverviewInventory"];
+            /**
+             * Low Stock
+             * @description Up to 5 active LOW or OUT parts: OUT first, then by available, then by SKU.
+             */
+            low_stock: components["schemas"]["PartRead"][];
+            setup: components["schemas"]["OverviewSetup"];
+            shop: components["schemas"]["OverviewShop"];
+            /**
+             * Status Counts
+             * @description Every booking status in glossary §3 order, zeros included.
+             */
+            status_counts: components["schemas"]["OverviewStatusCount"][];
+            /**
+             * Team
+             * @description Every membership, ordered by role (glossary §2.1), then name.
+             */
+            team: components["schemas"]["OverviewTeamMember"][];
+            today: components["schemas"]["OverviewToday"];
+        };
+        /**
+         * OverviewSetup
+         * @description The setup checklist of a new shop (O-01).
+         */
+        OverviewSetup: {
+            /**
+             * Has Parts
+             * @description At least one active part.
+             */
+            has_parts: boolean;
+            /**
+             * Has Services
+             * @description At least one active service.
+             */
+            has_services: boolean;
+            /**
+             * Has Team
+             * @description At least one active non-owner member.
+             */
+            has_team: boolean;
+            /**
+             * Is Listed
+             * @description The shop is listed in the public directory.
+             */
+            is_listed: boolean;
+        };
+        /**
+         * OverviewShop
+         * @description The shop the overview describes.
+         */
+        OverviewShop: {
+            /** City */
+            city: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Listed */
+            is_listed: boolean;
+            /** Name */
+            name: string;
+            /** Slug */
+            slug: string;
+        };
+        /**
+         * OverviewStatusCount
+         * @description How many of the shop's bookings are in one status now.
+         */
+        OverviewStatusCount: {
+            /** Count */
+            count: number;
+            status: components["schemas"]["BookingStatus"];
+        };
+        /**
+         * OverviewTeamMember
+         * @description One membership of the shop (the `OWNER` row and inactive members included).
+         */
+        OverviewTeamMember: {
+            /** Full Name */
+            full_name: string;
+            /** Is Active */
+            is_active: boolean;
+            /**
+             * Membership Id
+             * Format: uuid
+             */
+            membership_id: string;
+            /**
+             * Open Jobs
+             * @description Bookings not ready for pick-up, completed or cancelled where the member is the technician, the parts person or the current QC picker.
+             */
+            open_jobs: number;
+            role: components["schemas"]["MembershipRole"];
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+        };
+        /**
+         * OverviewToday
+         * @description The shop-local day of the request, in the shop's time zone (D38).
+         */
+        OverviewToday: {
+            /**
+             * Bookings
+             * @description Bookings not cancelled whose slot starts today.
+             */
+            bookings: number;
+            /**
+             * Completed
+             * @description Bookings completed today.
+             */
+            completed: number;
+            /**
+             * Date
+             * Format: date
+             * @description The shop-local date (YYYY-MM-DD).
+             */
+            date: string;
+            /**
+             * Ready For Pickup
+             * @description Bookings currently ready for pick-up, whatever their date.
+             */
+            ready_for_pickup: number;
+        };
+        /**
+         * OwnerRegistrationCreate
+         * @description `POST /api/v1/auth/register-owner` (D17): creates a bare user, never a membership.
+         */
+        OwnerRegistrationCreate: {
+            /**
+             * Email
+             * Format: email
+             * @example fatima.owner@bayflow.test
+             */
+            email: string;
+            /** Full Name */
+            full_name: string;
+            /**
+             * Password
+             * Format: password
+             */
+            password: string;
+            /** Phone */
+            phone?: string | null;
+        };
+        /**
+         * OwnerShopRef
+         * @description A shop the caller owns.
+         */
+        OwnerShopRef: {
+            /** City */
+            city: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Slug */
+            slug: string;
+        };
+        /**
+         * OwnerShopSummary
+         * @description One owned shop at a glance (O-07).
+         */
+        OwnerShopSummary: {
+            /**
+             * In Progress
+             * @description Bookings in every other status that is not final.
+             */
+            in_progress: number;
+            /**
+             * Low Stock Count
+             * @description Active parts that are LOW or OUT.
+             */
+            low_stock_count: number;
+            /**
+             * Needs Sa Action
+             * @description Bookings in PENDING, CONFIRMED, ESTIMATE_REVIEW, ESTIMATE_APPROVED, ESTIMATE_REJECTED or READY_FOR_PICKUP.
+             */
+            needs_sa_action: number;
+            /**
+             * Ready For Pickup
+             * @description Bookings currently READY_FOR_PICKUP (also in needs_sa_action).
+             */
+            ready_for_pickup: number;
+            shop: components["schemas"]["OwnerShopRef"];
+            /**
+             * Today Bookings
+             * @description Bookings not cancelled whose slot starts today in the shop's time zone.
+             */
+            today_bookings: number;
+        };
+        /**
+         * OwnerSummaryRead
+         * @description `GET /api/v1/me/owner-summary`: one row per shop the caller owns, by shop name; `items: []`
+         *     for anyone who owns no shop.
+         */
+        OwnerSummaryRead: {
+            /** Items */
+            items: components["schemas"]["OwnerShopSummary"][];
+        };
+        /** Page[BookingSummary] */
+        Page_BookingSummary_: {
+            /** Items */
+            items: components["schemas"]["BookingSummary"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /**
+             * Total
+             * @description Number of items matching the filters, on all pages.
+             */
+            total: number;
+        };
+        /** Page[CustomerBookingSummary] */
+        Page_CustomerBookingSummary_: {
+            /** Items */
+            items: components["schemas"]["CustomerBookingSummary"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /**
+             * Total
+             * @description Number of items matching the filters, on all pages.
+             */
+            total: number;
+        };
+        /** Page[MemberRead] */
+        Page_MemberRead_: {
+            /** Items */
+            items: components["schemas"]["MemberRead"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /**
+             * Total
+             * @description Number of items matching the filters, on all pages.
+             */
+            total: number;
+        };
+        /** Page[NotificationRead] */
+        Page_NotificationRead_: {
+            /** Items */
+            items: components["schemas"]["NotificationRead"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /**
+             * Total
+             * @description Number of items matching the filters, on all pages.
+             */
+            total: number;
+        };
+        /** Page[PartRead] */
+        Page_PartRead_: {
+            /** Items */
+            items: components["schemas"]["PartRead"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /**
+             * Total
+             * @description Number of items matching the filters, on all pages.
+             */
+            total: number;
+        };
+        /** Page[PurchaseOrderSummary] */
+        Page_PurchaseOrderSummary_: {
+            /** Items */
+            items: components["schemas"]["PurchaseOrderSummary"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /**
+             * Total
+             * @description Number of items matching the filters, on all pages.
+             */
+            total: number;
+        };
+        /** Page[ServiceRead] */
+        Page_ServiceRead_: {
+            /** Items */
+            items: components["schemas"]["ServiceRead"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /**
+             * Total
+             * @description Number of items matching the filters, on all pages.
+             */
+            total: number;
+        };
+        /** Page[ShopPublicSummary] */
+        Page_ShopPublicSummary_: {
+            /** Items */
+            items: components["schemas"]["ShopPublicSummary"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /**
+             * Total
+             * @description Number of items matching the filters, on all pages.
+             */
+            total: number;
+        };
+        /** Page[StockMovementRead] */
+        Page_StockMovementRead_: {
+            /** Items */
+            items: components["schemas"]["StockMovementRead"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /**
+             * Total
+             * @description Number of items matching the filters, on all pages.
+             */
+            total: number;
+        };
+        /**
+         * PartCreate
+         * @description `POST …/parts`. No stock field: a new part starts at `on_hand = 0` (D44).
+         */
+        PartCreate: {
+            /**
+             * Is Active
+             * @default true
+             */
+            is_active: boolean;
+            /** Name */
+            name: string;
+            /**
+             * Reorder Level
+             * @default 0
+             */
+            reorder_level: number;
+            /**
+             * Sku
+             * @example IGN-COIL-01
+             */
+            sku: string;
+            /**
+             * Unit Cost
+             * @example 16100.00
+             */
+            unit_cost: number | string;
+        };
+        /**
+         * PartRead
+         * @description A catalogue part with its computed stock figures (spec 03 §3.5).
+         */
+        PartRead: {
+            /** Available */
+            available: number;
+            /** Created At */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Active */
+            is_active: boolean;
+            /** Name */
+            name: string;
+            /** On Hand */
+            on_hand: number;
+            /**
+             * On Order
+             * @description Outstanding quantity on open purchase orders.
+             */
+            on_order: number;
+            /** Reorder Level */
+            reorder_level: number;
+            /** Reserved */
+            reserved: number;
+            /** Sku */
+            sku: string;
+            stock_state: components["schemas"]["StockState"];
+            /**
+             * Unit Cost
+             * @example 16100.00
+             */
+            unit_cost: string;
+            /** Updated At */
+            updated_at: string;
+        };
+        /** PartRef */
+        PartRef: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Sku */
+            sku: string;
+        };
+        /**
+         * PartStockRef
+         * @description A part with live stock (D40); the stock fields are null for QC callers (spec 04 §B).
+         */
+        PartStockRef: {
+            /** Available */
+            available: number | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Active */
+            is_active: boolean;
+            /** Name */
+            name: string;
+            /** On Hand */
+            on_hand: number | null;
+            /** Reorder Level */
+            reorder_level: number | null;
+            /** Reserved */
+            reserved: number | null;
+            /** Sku */
+            sku: string;
+            stock_state: components["schemas"]["StockState"] | null;
+            /**
+             * Unit Cost
+             * @example 16100.00
+             */
+            unit_cost: string;
+        };
+        /**
+         * PartUpdate
+         * @description `PATCH …/parts/{part_id}`: at least one field; omitted = unchanged. No stock fields.
+         */
+        PartUpdate: {
+            /** Is Active */
+            is_active?: boolean | null;
+            /** Name */
+            name?: string | null;
+            /** Reorder Level */
+            reorder_level?: number | null;
+            /** Sku */
+            sku?: string | null;
+            /** Unit Cost */
+            unit_cost?: (number | string) | null;
+        };
+        /**
+         * PartsSummary
+         * @description `parts_summary` of booking lists and details; `{0, 0, 0, true}` for zero rows (D31).
+         */
+        PartsSummary: {
+            /** All Available */
+            all_available: boolean;
+            /** Available Count */
+            available_count: number;
+            /** Required Count */
+            required_count: number;
+            /** Shortage Count */
+            shortage_count: number;
+        };
+        /**
+         * PassQcRequest
+         * @description `pass-qc` (T19): the D46 checklist, every item passed.
+         */
+        PassQcRequest: {
+            /**
+             * Checklist
+             * @description The default checklist (D46): each of the five keys exactly once, in any order. A missing or repeated key is 422 `checklist_incomplete` (field `checklist`).
+             */
+            checklist: components["schemas"]["QcChecklistItemWrite"][];
+            /**
+             * Expected Version
+             * @description The booking `version` the client rendered (D30).
+             */
+            expected_version?: number | null;
+            /** Notes */
+            notes?: string | null;
+        };
+        /**
+         * PickQcRequest
+         * @description `pick-qc` (T18).
+         */
+        PickQcRequest: {
+            /**
+             * Expected Version
+             * @description The booking `version` the client rendered (D30).
+             */
+            expected_version?: number | null;
+        };
+        /**
+         * Problem
+         * @description RFC 9457 problem details (media type `application/problem+json`, spec 03 §2.1).
+         */
+        Problem: {
+            code: components["schemas"]["ErrorCode"];
+            /** Detail */
+            detail: string;
+            /** Instance */
+            instance: string;
+            /** Status */
+            status: number;
+            /** Title */
+            title: string;
+            /**
+             * Type
+             * @default about:blank
+             */
+            type: string;
+        };
+        /**
+         * PurchaseOrderCreate
+         * @description `POST …/purchase-orders`: a general restock (no booking, D43).
+         */
+        PurchaseOrderCreate: {
+            /** Items */
+            items: components["schemas"]["PurchaseOrderItemCreate"][];
+            /** Supplier Name */
+            supplier_name?: string | null;
+        };
+        /** PurchaseOrderItemCreate */
+        PurchaseOrderItemCreate: {
+            /**
+             * Part Id
+             * Format: uuid
+             */
+            part_id: string;
+            /** Quantity */
+            quantity: number;
+            /** Unit Cost */
+            unit_cost?: (number | string) | null;
+        };
+        /** PurchaseOrderItemRead */
+        PurchaseOrderItemRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Line Cost
+             * @example 16100.00
+             */
+            line_cost: string;
+            /** Ordered Qty */
+            ordered_qty: number;
+            /** Outstanding Qty */
+            outstanding_qty: number;
+            part: components["schemas"]["PartRef"];
+            /** Received Qty */
+            received_qty: number;
+            /**
+             * Unit Cost
+             * @example 16100.00
+             */
+            unit_cost: string;
+        };
+        /** PurchaseOrderRead */
+        PurchaseOrderRead: {
+            booking: components["schemas"]["BookingRef"] | null;
+            /** Created At */
+            created_at: string;
+            created_by: components["schemas"]["UserRef"];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Item Count */
+            item_count: number;
+            /** Items */
+            items: components["schemas"]["PurchaseOrderItemRead"][];
+            /** Ordered Qty Total */
+            ordered_qty_total: number;
+            /** Po Number */
+            po_number: string;
+            /** Received At */
+            received_at: string | null;
+            /** Received Qty Total */
+            received_qty_total: number;
+            status: components["schemas"]["PurchaseOrderStatus"];
+            /** Supplier Name */
+            supplier_name: string | null;
+            /**
+             * Total Cost
+             * @example 16100.00
+             */
+            total_cost: string;
+            /** Updated At */
+            updated_at: string;
+        };
+        /**
+         * PurchaseOrderReceive
+         * @description `POST …/purchase-orders/{po_id}/receive` (spec 03 §5.3).
+         */
+        PurchaseOrderReceive: {
+            /** Items */
+            items: components["schemas"]["PurchaseOrderReceiveItem"][];
+        };
+        /** PurchaseOrderReceiveItem */
+        PurchaseOrderReceiveItem: {
+            /**
+             * Expected Received Qty
+             * @description The item's `received_qty` the client rendered; a mismatch is 409 CONCURRENT_UPDATE.
+             */
+            expected_received_qty?: number | null;
+            /**
+             * Item Id
+             * Format: uuid
+             */
+            item_id: string;
+            /** Quantity */
+            quantity: number;
+        };
+        /**
+         * PurchaseOrderReceiveRead
+         * @description `receive_parts_applied` is true when this receipt moved the booking to `PARTS_READY`.
+         */
+        PurchaseOrderReceiveRead: {
+            purchase_order: components["schemas"]["PurchaseOrderRead"];
+            /** Receive Parts Applied */
+            receive_parts_applied: boolean;
+        };
+        /** PurchaseOrderRef */
+        PurchaseOrderRef: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Ordered Qty Total */
+            ordered_qty_total: number;
+            /** Po Number */
+            po_number: string;
+            /** Received Qty Total */
+            received_qty_total: number;
+            status: components["schemas"]["PurchaseOrderStatus"];
+        };
+        /**
+         * PurchaseOrderStatus
+         * @enum {string}
+         */
+        PurchaseOrderStatus: "ORDERED" | "PARTIALLY_RECEIVED" | "RECEIVED";
+        /**
+         * PurchaseOrderSummary
+         * @description A PO in lists; `booking` null = general restock (spec 03 §3.5).
+         */
+        PurchaseOrderSummary: {
+            booking: components["schemas"]["BookingRef"] | null;
+            /** Created At */
+            created_at: string;
+            created_by: components["schemas"]["UserRef"];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Item Count */
+            item_count: number;
+            /** Ordered Qty Total */
+            ordered_qty_total: number;
+            /** Po Number */
+            po_number: string;
+            /** Received At */
+            received_at: string | null;
+            /** Received Qty Total */
+            received_qty_total: number;
+            status: components["schemas"]["PurchaseOrderStatus"];
+            /** Supplier Name */
+            supplier_name: string | null;
+            /**
+             * Total Cost
+             * @example 16100.00
+             */
+            total_cost: string;
+        };
+        /**
+         * QcChecklistItemRead
+         * @description A stored checklist item: the label as it was when the round was recorded (D46).
+         */
+        QcChecklistItemRead: {
+            key: components["schemas"]["QcChecklistKey"];
+            /** Label */
+            label: string;
+            /** Note */
+            note: string | null;
+            /** Passed */
+            passed: boolean;
+        };
+        /**
+         * QcChecklistItemWrite
+         * @description One checklist item sent with `pass-qc` / `fail-qc` (request, spec 03 §3.6).
+         *
+         *     `key` is typed `QcChecklistKey`, so an unknown key is a 422 `enum` at `checklist.N.key`
+         *     before any service runs. `passed` must be a JSON boolean: the record says the inspector
+         *     ticked (or did not tick) the item, so `1` or `"yes"` is refused (`bool_type`).
+         */
+        QcChecklistItemWrite: {
+            key: components["schemas"]["QcChecklistKey"];
+            /** Note */
+            note?: string | null;
+            /** Passed */
+            passed: boolean;
+        };
+        /**
+         * QcChecklistKey
+         * @description Keys of the default QC checklist (D46); stored as JSON keys, values are lower-case.
+         * @enum {string}
+         */
+        QcChecklistKey: "road_test" | "no_warning_lights" | "no_leaks" | "fluid_levels" | "complaint_resolved";
+        /**
+         * QcChecklistTemplateItem
+         * @description One item of the default checklist, in D46 order (spec 03 §3.6).
+         */
+        QcChecklistTemplateItem: {
+            key: components["schemas"]["QcChecklistKey"];
+            /** Label */
+            label: string;
+        };
+        /**
+         * QcInspectionRead
+         * @description One QC round of a booking (spec 03 §3.6); `result` is `null` while in progress.
+         */
+        QcInspectionRead: {
+            /** Checklist */
+            checklist: components["schemas"]["QcChecklistItemRead"][] | null;
+            /** Completed At */
+            completed_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            inspector: components["schemas"]["UserRef"];
+            /** Issues */
+            issues: components["schemas"]["QcIssueRead"][];
+            /** Notes */
+            notes: string | null;
+            /** Picked At */
+            picked_at: string;
+            result: components["schemas"]["QcResult"] | null;
+            /**
+             * Round
+             * @description 1-based position of the round, by (picked_at, id).
+             */
+            round: number;
+        };
+        /**
+         * QcIssueRead
+         * @description An issue raised by a failed round; `RESOLVED` by the next `send-to-qc` (D47).
+         */
+        QcIssueRead: {
+            /** Created At */
+            created_at: string;
+            created_by: components["schemas"]["UserRef"];
+            /** Description */
+            description: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Qc Inspection Id
+             * Format: uuid
+             */
+            qc_inspection_id: string;
+            /** Resolved At */
+            resolved_at: string | null;
+            resolved_by: components["schemas"]["UserRef"] | null;
+            status: components["schemas"]["QcIssueStatus"];
+            /** Title */
+            title: string;
+        };
+        /**
+         * QcIssueStatus
+         * @enum {string}
+         */
+        QcIssueStatus: "OPEN" | "RESOLVED";
+        /**
+         * QcResult
+         * @enum {string}
+         */
+        QcResult: "PASS" | "FAIL";
+        /**
+         * RealtimeTicketRead
+         * @description `GET /api/v1/realtime/ticket` (D70): a 60-second, handshake-only WebSocket ticket.
+         */
+        RealtimeTicketRead: {
+            /**
+             * Expires In
+             * @description Seconds the ticket stays valid for a handshake (60).
+             */
+            expires_in: number;
+            /**
+             * Ticket
+             * @description A JWT with `typ` = `ws`; pass it as `?ticket=` to the socket.
+             */
+            ticket: string;
+        };
+        /**
+         * ReassignPartsPersonRequest
+         * @description `reassign-parts-person` (O5): an eligible parts person other than the current one.
+         */
+        ReassignPartsPersonRequest: {
+            /**
+             * Expected Version
+             * @description The booking `version` the client rendered (D30).
+             */
+            expected_version?: number | null;
+            /**
+             * Parts Person User Id
+             * Format: uuid
+             */
+            parts_person_user_id: string;
+        };
+        /**
+         * ReassignTechnicianRequest
+         * @description `reassign-technician` (O4): an eligible technician other than the current one.
+         */
+        ReassignTechnicianRequest: {
+            /**
+             * Expected Version
+             * @description The booking `version` the client rendered (D30).
+             */
+            expected_version?: number | null;
+            /**
+             * Technician User Id
+             * Format: uuid
+             */
+            technician_user_id: string;
+        };
+        /**
+         * RejectEstimateRequest
+         * @description `reject-estimate` (T09, customer route): optional reason, shown to the shop.
+         */
+        RejectEstimateRequest: {
+            /**
+             * Estimate Id
+             * Format: uuid
+             */
+            estimate_id: string;
+            /**
+             * Expected Version
+             * @description The booking `version` the client rendered (D30).
+             */
+            expected_version?: number | null;
+            /** Reason */
+            reason?: string | null;
+        };
+        /**
+         * ReturnToTechnicianRequest
+         * @description `return-to-technician` (T11): `note` is shown to the technician.
+         */
+        ReturnToTechnicianRequest: {
+            /**
+             * Expected Version
+             * @description The booking `version` the client rendered (D30).
+             */
+            expected_version?: number | null;
+            /** Note */
+            note?: string | null;
+        };
+        /**
+         * ReviseEstimateRequest
+         * @description `revise-estimate` (T10).
+         */
+        ReviseEstimateRequest: {
+            /**
+             * Expected Version
+             * @description The booking `version` the client rendered (D30).
+             */
+            expected_version?: number | null;
+        };
+        /**
+         * SendEstimateRequest
+         * @description `send-estimate` (T07).
+         */
+        SendEstimateRequest: {
+            /**
+             * Expected Version
+             * @description The booking `version` the client rendered (D30).
+             */
+            expected_version?: number | null;
+        };
+        /**
+         * SendToQcRequest
+         * @description `send-to-qc` (T17): `repair_notes` become the event note.
+         */
+        SendToQcRequest: {
+            /**
+             * Expected Version
+             * @description The booking `version` the client rendered (D30).
+             */
+            expected_version?: number | null;
+            /** Repair Notes */
+            repair_notes?: string | null;
+        };
+        /**
+         * ServiceBrief
+         * @description An active service as the directory lists it.
+         */
+        ServiceBrief: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+        };
+        /**
+         * ServiceCreate
+         * @description `POST /api/v1/shops/{shop_id}/services`. `base_price` null = "Price after inspection";
+         *     `is_active` omitted or `null` = `true`.
+         */
+        ServiceCreate: {
+            /** Base Price */
+            base_price?: (number | string) | null;
+            /** Description */
+            description?: string | null;
+            /**
+             * Estimated Duration Minutes
+             * @description Estimated duration in minutes (informational).
+             */
+            estimated_duration_minutes: number;
+            /**
+             * Is Active
+             * @default true
+             */
+            is_active: boolean | null;
+            /** Name */
+            name: string;
+        };
+        /**
+         * ServiceRead
+         * @description A catalogue entry; `base_price` null = "Price after inspection".
+         */
+        ServiceRead: {
+            /** Base Price */
+            base_price: string | null;
+            /** Created At */
+            created_at: string;
+            /** Description */
+            description: string | null;
+            /** Estimated Duration Minutes */
+            estimated_duration_minutes: number;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Active */
+            is_active: boolean;
+            /** Name */
+            name: string;
+            /** Updated At */
+            updated_at: string;
+        };
+        /**
+         * ServiceUpdate
+         * @description `PATCH /api/v1/shops/{shop_id}/services/{service_id}` (at least one field).
+         *
+         *     `description` and `base_price` are nullable; deactivating hides the service from the
+         *     directory and the wizard, and existing bookings keep their snapshot (D34).
+         */
+        ServiceUpdate: {
+            /** Base Price */
+            base_price?: (number | string) | null;
+            /** Description */
+            description?: string | null;
+            /** Estimated Duration Minutes */
+            estimated_duration_minutes?: number | null;
+            /** Is Active */
+            is_active?: boolean | null;
+            /** Name */
+            name?: string | null;
+        };
+        /**
+         * SessionCreate
+         * @description `POST /api/v1/auth/login`.
+         */
+        SessionCreate: {
+            /**
+             * Email
+             * Format: email
+             * @example fatima.owner@bayflow.test
+             */
+            email: string;
+            /**
+             * Password
+             * Format: password
+             */
+            password: string;
+        };
+        /**
+         * SessionRead
+         * @description Login and owner registration (D81): the token fields and the `user`, no memberships.
+         */
+        SessionRead: {
+            /** Access Token */
+            access_token: string;
+            /**
+             * Expires In
+             * @description Token lifetime in seconds (`JWT_EXPIRES_IN`).
+             */
+            expires_in: number;
+            /**
+             * Token Type
+             * @constant
+             */
+            token_type: "bearer";
+            user: components["schemas"]["UserRead"];
+        };
+        /**
+         * ShopCreate
+         * @description `POST /api/v1/shops`: the shop, its 7 working-hours rows and the caller's `OWNER`
+         *     membership, in one transaction. `slug` and `rating` are not accepted (D56, D68). `timezone`
+         *     and `is_listed` omitted or `null` take their defaults (`Asia/Karachi`, D38; `true`).
+         */
+        ShopCreate: {
+            /** Address */
+            address: string;
+            /** City */
+            city: string;
+            /**
+             * Is Listed
+             * @default true
+             */
+            is_listed: boolean | null;
+            /** Logo Url */
+            logo_url?: string | null;
+            /** Name */
+            name: string;
+            /** Phone */
+            phone: string;
+            /**
+             * Slot Capacity
+             * @description Bookings allowed per slot.
+             */
+            slot_capacity: number;
+            /**
+             * Slot Duration Minutes
+             * @description Slot length; the grid starts at midnight.
+             */
+            slot_duration_minutes: number;
+            /**
+             * Timezone
+             * @description IANA time-zone name (D38).
+             * @default Asia/Karachi
+             * @example Asia/Karachi
+             */
+            timezone: string | null;
+            /**
+             * Working Hours
+             * @description Exactly 7 entries, one per weekday.
+             */
+            working_hours: components["schemas"]["WorkingHoursWrite"][];
+        };
+        /**
+         * ShopPublicDetail
+         * @description The public page of a listed shop; `is_bookable` = at least one active service (D64).
+         */
+        ShopPublicDetail: {
+            /** Address */
+            address: string;
+            /** City */
+            city: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Bookable */
+            is_bookable: boolean;
+            /** Logo Url */
+            logo_url: string | null;
+            /** Name */
+            name: string;
+            /** Phone */
+            phone: string;
+            /** Rating */
+            rating: number | null;
+            /** Services */
+            services: components["schemas"]["ServiceRead"][];
+            /** Slot Duration Minutes */
+            slot_duration_minutes: number;
+            /** Slug */
+            slug: string;
+            /** Timezone */
+            timezone: string;
+            /** Working Hours */
+            working_hours: components["schemas"]["WorkingHoursRead"][];
+        };
+        /**
+         * ShopPublicSummary
+         * @description A directory entry (D64): listed shops with at least one active service.
+         */
+        ShopPublicSummary: {
+            /** City */
+            city: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Logo Url */
+            logo_url: string | null;
+            /** Name */
+            name: string;
+            /** Rating */
+            rating: number | null;
+            /** Services */
+            services: components["schemas"]["ServiceBrief"][];
+            /** Services Count */
+            services_count: number;
+            /** Slug */
+            slug: string;
+        };
+        /**
+         * ShopRead
+         * @description The staff view of a shop (spec 03 §3.2). `has_future_bookings` tells the settings form that
+         *     slot duration and timezone are locked (D37).
+         */
+        ShopRead: {
+            /** Address */
+            address: string;
+            /** City */
+            city: string;
+            /** Created At */
+            created_at: string;
+            /** Has Future Bookings */
+            has_future_bookings: boolean;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Listed */
+            is_listed: boolean;
+            /** Logo Url */
+            logo_url: string | null;
+            /** Name */
+            name: string;
+            /** Phone */
+            phone: string;
+            /**
+             * Rating
+             * @description Placeholder rating, one decimal; null = New (D56).
+             */
+            rating: number | null;
+            /** Slot Capacity */
+            slot_capacity: number;
+            /** Slot Duration Minutes */
+            slot_duration_minutes: number;
+            /** Slug */
+            slug: string;
+            /** Timezone */
+            timezone: string;
+            /** Updated At */
+            updated_at: string;
+            /** Working Hours */
+            working_hours: components["schemas"]["WorkingHoursRead"][];
+        };
+        /**
+         * ShopUpdate
+         * @description `PATCH /api/v1/shops/{shop_id}` (at least one field). `logo_url: null` clears the logo.
+         *
+         *     Changing `slot_duration_minutes` or `timezone` is refused with 409 while the shop has future
+         *     bookings (D37); capacity and listing changes are always allowed.
+         */
+        ShopUpdate: {
+            /** Address */
+            address?: string | null;
+            /** City */
+            city?: string | null;
+            /** Is Listed */
+            is_listed?: boolean | null;
+            /** Logo Url */
+            logo_url?: string | null;
+            /** Name */
+            name?: string | null;
+            /** Phone */
+            phone?: string | null;
+            /** Slot Capacity */
+            slot_capacity?: number | null;
+            /** Slot Duration Minutes */
+            slot_duration_minutes?: number | null;
+            /** Timezone */
+            timezone?: string | null;
+        };
+        /**
+         * SlotRead
+         * @description A bookable slot: timestamps in UTC with `Z`; `remaining` = capacity - booked, at least 1.
+         */
+        SlotRead: {
+            /** Remaining */
+            remaining: number;
+            /** Slot End */
+            slot_end: string;
+            /** Slot Start */
+            slot_start: string;
+        };
+        /**
+         * StaffRole
+         * @description `MembershipRole` without `OWNER`: the roles an Owner can assign (glossary §2.1, D19).
+         * @enum {string}
+         */
+        StaffRole: "SERVICE_ADVISOR" | "TECHNICIAN" | "PARTS_PERSON" | "QC_INSPECTOR";
+        /**
+         * StartInspectionRequest
+         * @description `start-inspection` (T05).
+         */
+        StartInspectionRequest: {
+            /**
+             * Expected Version
+             * @description The booking `version` the client rendered (D30).
+             */
+            expected_version?: number | null;
+        };
+        /**
+         * StartRepairRequest
+         * @description `start-repair` (O2).
+         */
+        StartRepairRequest: {
+            /**
+             * Expected Version
+             * @description The booking `version` the client rendered (D30).
+             */
+            expected_version?: number | null;
+        };
+        /** StatusCount */
+        StatusCount: {
+            /** Count */
+            count: number;
+            status: components["schemas"]["BookingStatus"];
+        };
+        /**
+         * StatusCountsRead
+         * @description All 17 statuses in glossary §3 order, zeros included, over the caller's D21 scope.
+         */
+        StatusCountsRead: {
+            /** Items */
+            items: components["schemas"]["StatusCount"][];
+            /** Total */
+            total: number;
+        };
+        /**
+         * StockAdjustmentCreate
+         * @description `POST …/parts/{part_id}/adjustments`: opening stock and count corrections (D82).
+         */
+        StockAdjustmentCreate: {
+            /**
+             * Quantity Delta
+             * @example 10
+             */
+            quantity_delta: number;
+            /** Reason */
+            reason: string;
+        };
+        /** StockAdjustmentRead */
+        StockAdjustmentRead: {
+            movement: components["schemas"]["StockMovementRead"];
+            part: components["schemas"]["PartRead"];
+        };
+        /** StockMovementBookingRef */
+        StockMovementBookingRef: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Reference */
+            reference: string;
+        };
+        /** StockMovementPurchaseOrderRef */
+        StockMovementPurchaseOrderRef: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Po Number */
+            po_number: string;
+        };
+        /**
+         * StockMovementRead
+         * @description One ledger row with signed deltas (D42).
+         */
+        StockMovementRead: {
+            actor: components["schemas"]["UserRef"];
+            booking: components["schemas"]["StockMovementBookingRef"] | null;
+            /** Created At */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            movement_type: components["schemas"]["StockMovementType"];
+            /** Note */
+            note: string | null;
+            /** On Hand Delta */
+            on_hand_delta: number;
+            /**
+             * Part Id
+             * Format: uuid
+             */
+            part_id: string;
+            purchase_order: components["schemas"]["StockMovementPurchaseOrderRef"] | null;
+            /** Quantity */
+            quantity: number;
+            /** Reserved Delta */
+            reserved_delta: number;
+        };
+        /**
+         * StockMovementType
+         * @enum {string}
+         */
+        StockMovementType: "RECEIVE" | "RESERVE" | "RELEASE" | "CONSUME" | "ADJUST";
+        /**
+         * StockState
+         * @description Wire enum (spec 03 §3.9, D45): computed from available stock, never stored.
+         * @enum {string}
+         */
+        StockState: "OK" | "LOW" | "OUT";
+        /**
+         * SubmitEstimateRequest
+         * @description `submit-estimate` (T06): `inspection_notes` replace the booking's when sent.
+         */
+        SubmitEstimateRequest: {
+            /**
+             * Expected Version
+             * @description The booking `version` the client rendered (D30).
+             */
+            expected_version?: number | null;
+            /** Inspection Notes */
+            inspection_notes?: string | null;
+        };
+        /**
+         * UnreadCountRead
+         * @description `GET /api/v1/me/notifications/unread-count` (polled every 15 s, D14).
+         */
+        UnreadCountRead: {
+            /** Count */
+            count: number;
+        };
+        /**
+         * UserRead
+         * @description The account itself, without memberships (spec 03 §3.2, D81). Never `password_hash`.
+         */
+        UserRead: {
+            /** Email */
+            email: string;
+            /** Full Name */
+            full_name: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Phone */
+            phone: string | null;
+        };
+        /**
+         * UserRef
+         * @description An actor or author (spec 03 §3.1).
+         */
+        UserRef: {
+            /** Full Name */
+            full_name: string;
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+        };
+        /**
+         * ValidationProblem
+         * @description A 422 problem listing the offending fields (spec 03 §2.3).
+         */
+        ValidationProblem: {
+            code: components["schemas"]["ErrorCode"];
+            /** Detail */
+            detail: string;
+            /** Errors */
+            errors: components["schemas"]["FieldError"][];
+            /** Instance */
+            instance: string;
+            /** Status */
+            status: number;
+            /** Title */
+            title: string;
+            /**
+             * Type
+             * @default about:blank
+             */
+            type: string;
+        };
+        /**
+         * VehicleBrief
+         * @description The vehicle in list items.
+         */
+        VehicleBrief: {
+            /** Make */
+            make: string;
+            /** Model */
+            model: string;
+            /** Registration Number */
+            registration_number: string;
+            /** Year */
+            year: number;
+        };
+        /**
+         * VehicleRead
+         * @description The vehicle as stored now (D35).
+         */
+        VehicleRead: {
+            /** Color */
+            color: string | null;
+            /** Created At */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Make */
+            make: string;
+            /** Mileage Km */
+            mileage_km: number | null;
+            /** Model */
+            model: string;
+            /** Registration Number */
+            registration_number: string;
+            /** Updated At */
+            updated_at: string;
+            /** Year */
+            year: number;
+        };
+        /**
+         * VehicleWrite
+         * @description The customer's car (D35). `year` is 1900-2100 here; the service also refuses a year later
+         *     than next year (422 `vehicle.year`). `mileage_km` is snapshotted on the booking (D65).
+         */
+        VehicleWrite: {
+            /** Color */
+            color?: string | null;
+            /** Make */
+            make: string;
+            /** Mileage Km */
+            mileage_km?: number | null;
+            /** Model */
+            model: string;
+            /**
+             * Registration Number
+             * @example LEA-1234
+             */
+            registration_number: string;
+            /** Year */
+            year: number;
+        };
+        /**
+         * WorkingHoursRead
+         * @description One weekday, Monday (0) first; times `HH:MM` shop-local, `null` on closed days.
+         */
+        WorkingHoursRead: {
+            /** Closes At */
+            closes_at: string | null;
+            /** Is Closed */
+            is_closed: boolean;
+            /** Opens At */
+            opens_at: string | null;
+            /** Weekday */
+            weekday: number;
+        };
+        /**
+         * WorkingHoursUpdate
+         * @description `PUT /api/v1/shops/{shop_id}/working-hours`: replaces the whole week.
+         */
+        WorkingHoursUpdate: {
+            /**
+             * Working Hours
+             * @description Exactly 7 entries, one per weekday.
+             */
+            working_hours: components["schemas"]["WorkingHoursWrite"][];
+        };
+        /**
+         * WorkingHoursWrite
+         * @description One weekday of a week (request). Open day: both times, on the slot grid, closing after
+         *     opening (checked against the shop's slot duration by the service). Closed day: times ignored.
+         */
+        WorkingHoursWrite: {
+            /** Closes At */
+            closes_at?: string | null;
+            /** Is Closed */
+            is_closed: boolean;
+            /** Opens At */
+            opens_at?: string | null;
+            /**
+             * Weekday
+             * @description 0 = Monday … 6 = Sunday.
+             */
+            weekday: number;
+        };
+    };
     responses: never;
     parameters: never;
     requestBodies: never;
@@ -14,4 +4214,4546 @@ export interface components {
     pathItems: never;
 }
 export type $defs = Record<string, never>;
-export type operations = Record<string, never>;
+export interface operations {
+    identity_login: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SessionCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    identity_logout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    identity_register_owner: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OwnerRegistrationCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionRead"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    bookings_create_booking: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BookingCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookingCreatedRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    shops_get_me: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    bookings_list_my_bookings: {
+        parameters: {
+            query?: {
+                /** @description true = active, false = completed or cancelled. */
+                active?: boolean | null;
+                /** @description `slot_start`, `-slot_start`, `-updated_at`. */
+                sort?: ("slot_start" | "-slot_start" | "-updated_at") | null;
+                /** @description Maximum number of items to return. */
+                limit?: number;
+                /** @description Number of items to skip. */
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_CustomerBookingSummary_"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    bookings_get_my_booking: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The booking id. */
+                booking_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerBookingDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    bookings_my_approve_estimate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The booking id. */
+                booking_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApproveEstimateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerBookingDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    bookings_my_cancel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The booking id. */
+                booking_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["CustomerCancelRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerBookingDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    bookings_my_complete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The booking id. */
+                booking_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["CompleteRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerBookingDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    bookings_my_reject_estimate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The booking id. */
+                booking_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RejectEstimateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerBookingDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    bookings_list_my_booking_estimates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The booking id. */
+                booking_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ItemList_CustomerEstimateRead_"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    bookings_list_my_booking_events: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The booking id. */
+                booking_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ItemList_CustomerBookingEventRead_"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    notifications_list_my_notifications: {
+        parameters: {
+            query?: {
+                /** @description Only notifications that are still unread. */
+                unread_only?: boolean;
+                /** @description Maximum number of items to return. */
+                limit?: number;
+                /** @description Number of items to skip. */
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_NotificationRead_"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    notifications_mark_all_notifications_read: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    notifications_get_unread_count: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnreadCountRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    notifications_mark_notification_read: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The notification id. */
+                notification_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    reporting_get_owner_summary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnerSummaryRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    bookings_list_my_vehicles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ItemList_VehicleRead_"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    shops_list_public_cities: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ItemList_str_"];
+                };
+            };
+        };
+    };
+    shops_list_public_shops: {
+        parameters: {
+            query?: {
+                /** @description Search text (case-insensitive). */
+                q?: string | null;
+                /** @description City (exact match). */
+                city?: string | null;
+                /** @description Maximum number of items to return. */
+                limit?: number;
+                /** @description Number of items to skip. */
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_ShopPublicSummary_"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    shops_get_public_shop: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The shop's public slug, e.g. `lahore-auto-care`. */
+                shop_slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShopPublicDetail"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    scheduling_get_availability: {
+        parameters: {
+            query: {
+                /** @description YYYY-MM-DD, shop-local. */
+                date: string;
+            };
+            header?: never;
+            path: {
+                /** @description The shop's public slug. */
+                shop_slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AvailabilityRead"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    notifications_get_realtime_ticket: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RealtimeTicketRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    shops_create_shop: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShopCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShopRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    shops_get_shop: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The shop (tenant) id. */
+                shop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShopRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    shops_update_shop: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The shop (tenant) id. */
+                shop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShopUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShopRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    bookings_list_shop_bookings: {
+        parameters: {
+            query?: {
+                /** @description `slot_start`, `updated_at`, `status_changed_at`, `created_at`; `-` = descending. */
+                sort?: "slot_start" | "-slot_start" | "updated_at" | "-updated_at" | "status_changed_at" | "-status_changed_at" | "created_at" | "-created_at";
+                /** @description Maximum number of items to return. */
+                limit?: number;
+                /** @description Number of items to skip. */
+                offset?: number;
+                /** @description Repeatable: `?status=A&status=B`. */
+                status?: components["schemas"]["BookingStatus"][] | null;
+                /** @description Reference (with or without `BF-`), customer name or plate. */
+                q?: string | null;
+                /** @description Shop-local date `YYYY-MM-DD`, inclusive. */
+                date_from?: string | null;
+                /** @description Shop-local date `YYYY-MM-DD`, inclusive. */
+                date_to?: string | null;
+                technician_user_id?: string | null;
+                parts_person_user_id?: string | null;
+            };
+            header?: never;
+            path: {
+                /** @description The shop (tenant) id. */
+                shop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_BookingSummary_"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    bookings_get_status_counts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The shop (tenant) id. */
+                shop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatusCountsRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    bookings_get_shop_booking: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The booking id. */
+                booking_id: string;
+                /** @description The shop (tenant) id. */
+                shop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookingDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    bookings_allocate_parts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The booking id. */
+                booking_id: string;
+                /** @description The shop (tenant) id. */
+                shop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["AllocatePartsRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookingDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    bookings_assign_parts_person: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The booking id. */
+                booking_id: string;
+                /** @description The shop (tenant) id. */
+                shop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssignPartsPersonRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookingDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    bookings_assign_technician: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The booking id. */
+                booking_id: string;
+                /** @description The shop (tenant) id. */
+                shop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssignTechnicianRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookingDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    bookings_cancel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The booking id. */
+                booking_id: string;
+                /** @description The shop (tenant) id. */
+                shop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CancelRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookingDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    bookings_complete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The booking id. */
+                booking_id: string;
+                /** @description The shop (tenant) id. */
+                shop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["CompleteRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookingDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    bookings_confirm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The booking id. */
+                booking_id: string;
+                /** @description The shop (tenant) id. */
+                shop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ConfirmRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookingDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    bookings_decline: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The booking id. */
+                booking_id: string;
+                /** @description The shop (tenant) id. */
+                shop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeclineRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookingDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    bookings_fail_qc: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The booking id. */
+                booking_id: string;
+                /** @description The shop (tenant) id. */
+                shop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FailQcRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookingDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    bookings_mark_parts_ready: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The booking id. */
+                booking_id: string;
+                /** @description The shop (tenant) id. */
+                shop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["MarkPartsReadyRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookingDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    bookings_notify_ready: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The booking id. */
+                booking_id: string;
+                /** @description The shop (tenant) id. */
+                shop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["NotifyReadyRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookingDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    bookings_order_parts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The booking id. */
+                booking_id: string;
+                /** @description The shop (tenant) id. */
+                shop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["OrderPartsRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookingDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    bookings_pass_qc: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The booking id. */
+                booking_id: string;
+                /** @description The shop (tenant) id. */
+                shop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PassQcRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookingDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    bookings_pick_qc: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The booking id. */
+                booking_id: string;
+                /** @description The shop (tenant) id. */
+                shop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PickQcRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookingDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    bookings_reassign_parts_person: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The booking id. */
+                booking_id: string;
+                /** @description The shop (tenant) id. */
+                shop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReassignPartsPersonRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookingDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    bookings_reassign_technician: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The booking id. */
+                booking_id: string;
+                /** @description The shop (tenant) id. */
+                shop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReassignTechnicianRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookingDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    bookings_return_to_technician: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The booking id. */
+                booking_id: string;
+                /** @description The shop (tenant) id. */
+                shop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ReturnToTechnicianRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookingDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    bookings_revise_estimate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The booking id. */
+                booking_id: string;
+                /** @description The shop (tenant) id. */
+                shop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ReviseEstimateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookingDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    bookings_send_estimate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The booking id. */
+                booking_id: string;
+                /** @description The shop (tenant) id. */
+                shop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["SendEstimateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookingDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    bookings_send_to_qc: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The booking id. */
+                booking_id: string;
+                /** @description The shop (tenant) id. */
+                shop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["SendToQcRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookingDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    bookings_start_inspection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The booking id. */
+                booking_id: string;
+                /** @description The shop (tenant) id. */
+                shop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["StartInspectionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookingDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    bookings_start_repair: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The booking id. */
+                booking_id: string;
+                /** @description The shop (tenant) id. */
+                shop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["StartRepairRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookingDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    bookings_submit_estimate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The booking id. */
+                booking_id: string;
+                /** @description The shop (tenant) id. */
+                shop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["SubmitEstimateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookingDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    bookings_edit_estimate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The booking id. */
+                booking_id: string;
+                /** @description The shop (tenant) id. */
+                shop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EstimateUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EstimateEditRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    bookings_list_booking_estimates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The booking id. */
+                booking_id: string;
+                /** @description The shop (tenant) id. */
+                shop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ItemList_EstimateRead_"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    bookings_list_booking_events: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The booking id. */
+                booking_id: string;
+                /** @description The shop (tenant) id. */
+                shop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ItemList_BookingEventRead_"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    bookings_get_booking_parts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The booking id. */
+                booking_id: string;
+                /** @description The shop (tenant) id. */
+                shop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookingPartsRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    bookings_list_booking_qc_inspections: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The booking id. */
+                booking_id: string;
+                /** @description The shop (tenant) id. */
+                shop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ItemList_QcInspectionRead_"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    shops_list_members: {
+        parameters: {
+            query?: {
+                /** @description Repeatable. */
+                role?: components["schemas"]["MembershipRole"][] | null;
+                is_active?: boolean | null;
+                /** @description Maximum number of items to return. */
+                limit?: number;
+                /** @description Number of items to skip. */
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                /** @description The shop (tenant) id. */
+                shop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_MemberRead_"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    shops_add_member: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The shop (tenant) id. */
+                shop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MemberCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberCreatedRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    shops_update_member: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                membership_id: string;
+                /** @description The shop (tenant) id. */
+                shop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MemberUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    reporting_get_overview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The shop (tenant) id. */
+                shop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OverviewRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    inventory_list_parts: {
+        parameters: {
+            query?: {
+                /** @description Maximum number of items to return. */
+                limit?: number;
+                /** @description Number of items to skip. */
+                offset?: number;
+                /** @description Case-insensitive search in SKU and name. */
+                q?: string | null;
+                /** @description Repeatable: OK, LOW, OUT (D45). */
+                stock_state?: components["schemas"]["StockState"][] | null;
+                /** @description Include deactivated parts. */
+                include_inactive?: boolean;
+                /** @description `sku`, `name` or `available`; `-` = desc. */
+                sort?: "sku" | "-sku" | "name" | "-name" | "available" | "-available";
+            };
+            header?: never;
+            path: {
+                /** @description The shop (tenant) id. */
+                shop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_PartRead_"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    inventory_create_part: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The shop (tenant) id. */
+                shop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PartCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    inventory_update_part: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                part_id: string;
+                /** @description The shop (tenant) id. */
+                shop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PartUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    inventory_adjust_stock: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                part_id: string;
+                /** @description The shop (tenant) id. */
+                shop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StockAdjustmentCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StockAdjustmentRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    inventory_list_part_movements: {
+        parameters: {
+            query?: {
+                /** @description Maximum number of items to return. */
+                limit?: number;
+                /** @description Number of items to skip. */
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                part_id: string;
+                /** @description The shop (tenant) id. */
+                shop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_StockMovementRead_"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    inventory_list_purchase_orders: {
+        parameters: {
+            query?: {
+                /** @description Repeatable: ORDERED, PARTIALLY_RECEIVED, RECEIVED. */
+                status?: components["schemas"]["PurchaseOrderStatus"][] | null;
+                /** @description Only POs linked to this booking. */
+                booking_id?: string | null;
+                /** @description Maximum number of items to return. */
+                limit?: number;
+                /** @description Number of items to skip. */
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                /** @description The shop (tenant) id. */
+                shop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_PurchaseOrderSummary_"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    inventory_create_purchase_order: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The shop (tenant) id. */
+                shop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PurchaseOrderCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PurchaseOrderRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    inventory_get_purchase_order: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                po_id: string;
+                /** @description The shop (tenant) id. */
+                shop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PurchaseOrderRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    inventory_receive_purchase_order: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                po_id: string;
+                /** @description The shop (tenant) id. */
+                shop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PurchaseOrderReceive"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PurchaseOrderReceiveRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    qc_get_checklist: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The shop (tenant) id. */
+                shop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ItemList_QcChecklistTemplateItem_"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    shops_list_services: {
+        parameters: {
+            query?: {
+                /** @description Include deactivated services. */
+                include_inactive?: boolean;
+                /** @description Maximum number of items to return. */
+                limit?: number;
+                /** @description Number of items to skip. */
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                /** @description The shop (tenant) id. */
+                shop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_ServiceRead_"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    shops_create_service: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The shop (tenant) id. */
+                shop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ServiceCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    shops_update_service: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                service_id: string;
+                /** @description The shop (tenant) id. */
+                shop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ServiceUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    shops_replace_working_hours: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The shop (tenant) id. */
+                shop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkingHoursUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShopRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
+                };
+            };
+        };
+    };
+    system_health: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HealthRead"];
+                };
+            };
+            /** @description The database is unreachable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HealthRead"];
+                };
+            };
+        };
+    };
+}
