@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter, JetBrains_Mono } from 'next/font/google'
+import { Caveat, Inter, JetBrains_Mono } from 'next/font/google'
 
 import { SkipLink } from '@/components/layout/skip-link'
 import { cn } from '@/lib/utils'
@@ -15,23 +15,28 @@ const jetBrainsMono = JetBrains_Mono({
   variable: '--font-jetbrains-mono',
   display: 'swap',
 })
+const caveat = Caveat({
+  subsets: ['latin'],
+  variable: '--font-caveat',
+  display: 'swap',
+})
 
 export const metadata: Metadata = {
-  title: { default: 'BayFlow', template: '%s · BayFlow' },
+  title: { default: 'GarageBox · Auto Repair Garage Management Software', template: '%s · GarageBox' },
   description:
-    'Book trusted car repair in minutes, approve your estimate online and track your car live.',
-  applicationName: 'BayFlow',
+    'Take control of your auto repair business with GarageBox, the leading garage management software. Simplify job scheduling, invoicing, and inventory control.',
+  applicationName: 'GarageBox',
 }
 
 export const viewport: Viewport = {
-  themeColor: '#14213D',
+  themeColor: '#1047FA',
   colorScheme: 'light',
 }
 
 export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
-    <html lang="en" className={cn(inter.variable, jetBrainsMono.variable)}>
-      <body className="flex min-h-dvh flex-col">
+    <html lang="en" className={cn(inter.variable, jetBrainsMono.variable, caveat.variable)}>
+      <body className="flex min-h-dvh flex-col bg-white text-[#171c26] antialiased">
         <SkipLink />
         <Providers>{children}</Providers>
       </body>

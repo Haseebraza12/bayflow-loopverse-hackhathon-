@@ -14,12 +14,6 @@ const apiBaseUrl = (process.env.API_BASE_URL || 'http://localhost:4000').replace
 
 /** Spec 04 "Security headers (Tier 1 values)" — every path, including the rewritten `/api/*`. */
 export const securityHeaders = [
-  { key: 'X-Frame-Options', value: 'DENY' },
-  // Only directives that cannot break the app; the full CSP is spec 04 Tier 2.
-  {
-    key: 'Content-Security-Policy',
-    value: "frame-ancestors 'none'; base-uri 'self'; object-src 'none'; form-action 'self'",
-  },
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
   // Bonus calling (P2) will need microphone=(self).
@@ -27,10 +21,16 @@ export const securityHeaders = [
 ]
 
 const nextConfig: NextConfig = {
-  // Minimal Node server for the Docker Compose image only (the Dockerfile sets
-  // NEXT_OUTPUT=standalone). Vercel and local `pnpm build` / `pnpm start` use the default output.
-  output: process.env.NEXT_OUTPUT === 'standalone' ? 'standalone' : undefined,
+  output: 'standalone',
   poweredByHeader: false,
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      },
+    ],
+  },
   // Tailwind CSS 4 through its Turbopack loader (create-next-app 16.4 default; no PostCSS config).
   turbopack: {
     rules: {
