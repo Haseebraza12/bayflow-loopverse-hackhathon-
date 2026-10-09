@@ -1,35 +1,22 @@
 'use client'
 
 import {
-  AlertCircle,
   ArrowLeft,
-  Building2,
-  Calendar,
-  Car,
   CheckCircle2,
-  Clock,
   Copy,
-  FileCheck,
   FileText,
   Mail,
-  MapPin,
-  PackageCheck,
   PackageSearch,
   Phone,
   Send,
-  ShieldCheck,
-  Sparkles,
   User,
   UserCheck,
-  Wrench,
-  XCircle,
 } from 'lucide-react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { useState } from 'react'
 
 import { StatusBadge } from '@/components/status-badge'
-import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -327,7 +314,7 @@ export default function ServiceAdvisorBookingDetailPage() {
                 <div className="p-4 border-t border-neutral-100 bg-blue-50/20 text-xs">
                   <span className="font-bold text-neutral-900">Technician Findings:</span>
                   <p className="mt-1 text-neutral-700 leading-relaxed italic">
-                    "{booking.inspectionNotes}"
+                    &quot;{booking.inspectionNotes}&quot;
                   </p>
                 </div>
               )}

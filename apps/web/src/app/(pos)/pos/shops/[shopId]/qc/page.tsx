@@ -2,13 +2,8 @@
 
 import {
   CheckCircle2,
-  ChevronRight,
   ClipboardCheck,
-  Clock,
-  Play,
-  ShieldAlert,
   ShieldCheck,
-  Wrench,
 } from 'lucide-react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'

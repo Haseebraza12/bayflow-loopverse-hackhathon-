@@ -1,11 +1,7 @@
 'use client'
 
 import {
-  AlertTriangle,
-  ArrowUpDown,
-  Boxes,
   CheckCircle2,
-  PackagePlus,
   Plus,
   Search,
   SlidersHorizontal,
@@ -14,7 +10,7 @@ import { useParams } from 'next/navigation'
 import { useState, type FormEvent } from 'react'
 
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import {
   Dialog,
   DialogContent,
@@ -47,7 +43,7 @@ export default function InventoryManagementPage() {
   const [addPartOpen, setAddPartOpen] = useState(false)
   const [newSku, setNewSku] = useState('')
   const [newName, setNewName] = useState('')
-  const [newCategory, setNewCategory] = useState('Brakes & Suspension')
+  const [newCategory] = useState('Brakes & Suspension')
   const [newReorder, setNewReorder] = useState('5')
   const [newPrice, setNewPrice] = useState('3500')
 

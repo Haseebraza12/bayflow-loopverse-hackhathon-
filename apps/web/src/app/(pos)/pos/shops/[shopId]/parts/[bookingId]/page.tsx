@@ -1,14 +1,11 @@
 'use client'
 
 import {
-  AlertTriangle,
   ArrowLeft,
   CheckCircle2,
   PackageCheck,
   PackageSearch,
   ShoppingCart,
-  Truck,
-  Wrench,
 } from 'lucide-react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
@@ -34,9 +31,19 @@ import {
   getInventory,
   saveBooking,
   savePurchaseOrder,
-  type MockBooking,
   type MockPurchaseOrder,
 } from '@/lib/mock-data'
+
+/**
+ * A fresh id and number for a new mock purchase order. Impure on purpose (clock and random), so
+ * it lives outside the component and only the "Confirm & Dispatch PO" click handler calls it.
+ */
+function newPurchaseOrderIdentity(): Pick<MockPurchaseOrder, 'id' | 'po_number'> {
+  return {
+    id: `po-${Date.now()}`,
+    po_number: `PO-2026-${Math.floor(100 + Math.random() * 900)}`,
+  }
+}
 
 export default function PartsJobDetailPage() {
   const params = useParams()
@@ -93,8 +100,7 @@ export default function PartsJobDetailPage() {
   const handleCreatePo = () => {
     const shortRows = partRows.filter((r) => r.shortage > 0)
     const newPo: MockPurchaseOrder = {
-      id: `po-${Date.now()}`,
-      po_number: `PO-2026-${Math.floor(100 + Math.random() * 900)}`,
+      ...newPurchaseOrderIdentity(),
       shopId,
       supplier: supplierName.trim(),
       created_at: new Date().toISOString(),

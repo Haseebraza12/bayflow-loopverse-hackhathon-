@@ -4,27 +4,18 @@ import {
   AlertCircle,
   ArrowLeft,
   Building2,
-  Calendar as CalendarIcon,
   Car,
   Check,
   ChevronRight,
   Clock,
   Info,
-  Lock,
-  Mail,
-  MapPin,
-  Phone,
   ShieldCheck,
-  Sparkles,
-  User,
-  Wrench,
 } from 'lucide-react'
 import Link from 'next/link'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useState } from 'react'
 
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -38,7 +29,6 @@ import {
   getCurrentUser,
   getServices,
   getShopBySlug,
-  type MockBooking,
 } from '@/lib/mock-data'
 
 const TIME_SLOTS = [
@@ -67,8 +57,8 @@ function BookingWizardContent() {
   // Wizard Step: 2 = Services, 3 = Time, 4 = Details, 5 = Review
   const [currentStep, setCurrentStep] = useState<number>(2)
 
-  // Step 2 State
-  const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([])
+  // Step 2 State: the services the customer picked; null until they change the selection
+  const [pickedServiceIds, setPickedServiceIds] = useState<string[] | null>(null)
   const [customerNotes, setCustomerNotes] = useState('')
 
   // Step 3 State
@@ -90,14 +80,16 @@ function BookingWizardContent() {
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Preselect service if present in URL
-  useEffect(() => {
-    if (preselectedServiceId && services.some((s) => s.id === preselectedServiceId)) {
-      setSelectedServiceIds([preselectedServiceId])
-    } else if (services.length > 0 && selectedServiceIds.length === 0 && services[0]) {
-      setSelectedServiceIds([services[0].id])
-    }
-  }, [preselectedServiceId, services])
+  // Preselect service if present in URL: until the customer changes the selection it is the
+  // `?service=` service (when this shop offers it), otherwise the shop's first service.
+  // Derived during render rather than copied into state by an effect.
+  const defaultServiceIds =
+    preselectedServiceId && services.some((s) => s.id === preselectedServiceId)
+      ? [preselectedServiceId]
+      : services[0]
+        ? [services[0].id]
+        : []
+  const selectedServiceIds = pickedServiceIds ?? defaultServiceIds
 
   if (!shop) {
     return (
@@ -120,9 +112,9 @@ function BookingWizardContent() {
         setError('Please choose at least one service.')
         return
       }
-      setSelectedServiceIds(selectedServiceIds.filter((sid) => sid !== id))
+      setPickedServiceIds(selectedServiceIds.filter((sid) => sid !== id))
     } else {
-      setSelectedServiceIds([...selectedServiceIds, id])
+      setPickedServiceIds([...selectedServiceIds, id])
     }
     setError(null)
   }

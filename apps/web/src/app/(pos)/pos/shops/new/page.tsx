@@ -3,12 +3,6 @@
 import {
   ArrowLeft,
   Building2,
-  Check,
-  Clock,
-  MapPin,
-  Phone,
-  ShieldCheck,
-  Sparkles,
 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'

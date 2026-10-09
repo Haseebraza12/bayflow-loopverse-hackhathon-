@@ -1,27 +1,19 @@
 'use client'
 
 import {
-  AlertCircle,
   ArrowLeft,
-  Building2,
-  Calendar,
   Car,
   CheckCircle2,
-  ChevronRight,
   Clock,
   Copy,
   FileCheck,
   FileX,
-  MapPin,
   Phone,
-  ShieldAlert,
   ShieldCheck,
   Sparkles,
-  Wrench,
-  XCircle,
 } from 'lucide-react'
 import Link from 'next/link'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import { useState } from 'react'
 
 import { StatusBadge } from '@/components/status-badge'
@@ -43,7 +35,6 @@ import { formatPKR } from '@/lib/format'
 import { getBookingById, saveBooking, type MockBooking } from '@/lib/mock-data'
 
 export default function CustomerBookingDetailPage() {
-  const router = useRouter()
   const params = useParams()
   const bookingId = typeof params?.bookingId === 'string' ? params.bookingId : ''
 
@@ -380,7 +371,7 @@ export default function CustomerBookingDetailPage() {
                   <div className="p-5 border-t border-neutral-100 bg-blue-50/30 text-xs">
                     <span className="font-bold text-neutral-900">Technician Inspection Notes:</span>
                     <p className="mt-1 text-neutral-700 leading-relaxed italic">
-                      "{booking.inspectionNotes}"
+                      &quot;{booking.inspectionNotes}&quot;
                     </p>
                   </div>
                 )}

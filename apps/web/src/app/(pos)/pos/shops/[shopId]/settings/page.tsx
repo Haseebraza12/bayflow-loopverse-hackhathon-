@@ -7,10 +7,7 @@ import {
   Clock,
   ExternalLink,
   Globe,
-  MapPin,
-  Phone,
   Save,
-  ShieldCheck,
 } from 'lucide-react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'

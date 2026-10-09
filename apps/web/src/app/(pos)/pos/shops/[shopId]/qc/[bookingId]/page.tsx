@@ -1,15 +1,10 @@
 'use client'
 
 import {
-  AlertCircle,
   AlertTriangle,
   ArrowLeft,
   CheckCircle2,
-  ClipboardCheck,
-  FileText,
-  ShieldAlert,
   ShieldCheck,
-  Wrench,
   XCircle,
 } from 'lucide-react'
 import Link from 'next/link'
@@ -17,7 +12,6 @@ import { useParams, useRouter } from 'next/navigation'
 import { useState } from 'react'
 
 import { StatusBadge } from '@/components/status-badge'
-import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {

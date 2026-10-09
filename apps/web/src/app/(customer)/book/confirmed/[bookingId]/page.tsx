@@ -1,16 +1,10 @@
 'use client'
 
 import {
-  Calendar,
   CheckCircle2,
   ChevronRight,
-  ClipboardCheck,
   Copy,
-  FileCheck,
-  MapPin,
   ShieldCheck,
-  UserCheck,
-  Wrench,
 } from 'lucide-react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
@@ -19,7 +13,6 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { useMockStore } from '@/hooks/use-mock-store'
-import { formatPKR } from '@/lib/format'
 import { getBookingById } from '@/lib/mock-data'
 
 export default function BookingConfirmedPage() {
@@ -52,7 +45,7 @@ export default function BookingConfirmedPage() {
             Booking Received!
           </h1>
           <p className="text-sm text-neutral-600 max-w-md mx-auto">
-            We've sent your appointment to{' '}
+            We&apos;ve sent your appointment to{' '}
             <strong className="text-neutral-900">{booking?.shopName || 'Lahore Auto Care'}</strong>.
             A Service Advisor will confirm your intake bay.
           </p>

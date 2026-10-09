@@ -1,13 +1,9 @@
 'use client'
 
 import {
-  AlertCircle,
   ArrowLeft,
-  Check,
   CheckCircle2,
-  Clock,
   ClipboardCheck,
-  FileCheck,
   FileText,
   Play,
   Plus,
@@ -23,7 +19,6 @@ import { StatusBadge } from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { useMockStore } from '@/hooks/use-mock-store'
 import { formatPKR } from '@/lib/format'
@@ -357,7 +352,7 @@ export default function TechnicianJobDetailPage() {
                 className="text-xs h-28"
               />
               <p className="text-[11px] text-neutral-400">
-                These notes will be reviewed by the Service Advisor and shared on the customer's digital report.
+                These notes will be reviewed by the Service Advisor and shared on the customer&apos;s digital report.
               </p>
             </CardContent>
           </Card>
@@ -386,7 +381,7 @@ export default function TechnicianJobDetailPage() {
               <div className="pt-3 border-t border-neutral-100">
                 <span className="text-[10px] uppercase font-bold text-neutral-400">Customer Notes</span>
                 <p className="mt-1 text-neutral-700 italic bg-neutral-50 p-3 rounded-lg border border-neutral-100">
-                  "{booking.customerName} reported: Routine scheduled service."
+                  &quot;{booking.customerName} reported: Routine scheduled service.&quot;
                 </p>
               </div>
             </CardContent>

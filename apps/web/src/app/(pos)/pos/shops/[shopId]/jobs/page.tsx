@@ -1,14 +1,8 @@
 'use client'
 
 import {
-  AlertTriangle,
-  Calendar,
   CheckCircle2,
   ChevronRight,
-  ClipboardCheck,
-  Clock,
-  Eye,
-  FileText,
   Play,
   ScanSearch,
   Wrench,
@@ -17,9 +11,8 @@ import Link from 'next/link'
 import { useParams } from 'next/navigation'
 
 import { StatusBadge } from '@/components/status-badge'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { useMockStore } from '@/hooks/use-mock-store'
 import { formatPKR } from '@/lib/format'
 import { getBookings, saveBooking, type MockBooking } from '@/lib/mock-data'
@@ -35,9 +28,6 @@ export default function TechnicianJobsPage() {
   const toInspect = allBookings.filter((b) => b.status === 'ASSIGNED')
   const inInspection = allBookings.filter((b) => b.status === 'INSPECTING')
   const inRepair = allBookings.filter((b) => b.status === 'IN_REPAIR')
-  const awaitingParts = allBookings.filter(
-    (b) => b.status === 'PARTS_PENDING' || b.status === 'PARTS_ORDERED' || b.status === 'PARTS_READY'
-  )
   const completedJobs = allBookings.filter(
     (b) => b.status === 'READY_FOR_PICKUP' || b.status === 'COMPLETED'
   )
@@ -46,14 +36,6 @@ export default function TechnicianJobsPage() {
     const updated: MockBooking = {
       ...booking,
       status: 'INSPECTING',
-    }
-    saveBooking(updated)
-  }
-
-  const handleStartRepair = (booking: MockBooking) => {
-    const updated: MockBooking = {
-      ...booking,
-      status: 'IN_REPAIR',
     }
     saveBooking(updated)
   }

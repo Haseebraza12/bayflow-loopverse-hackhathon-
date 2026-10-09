@@ -1,22 +1,17 @@
 'use client'
 
 import {
-  AlertCircle,
   Calendar,
   Car,
   ChevronRight,
-  Clock,
   FileCheck,
-  MapPin,
   Plus,
   Sparkles,
-  Wrench,
 } from 'lucide-react'
 import Link from 'next/link'
 import { useState } from 'react'
 
 import { StatusBadge } from '@/components/status-badge'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { useMockStore } from '@/hooks/use-mock-store'

@@ -66,7 +66,7 @@ export default function RegisterPage() {
           Register your garage
         </CardTitle>
         <CardDescription className="text-sm text-neutral-500">
-          Create your Owner account. Next, you'll set up your shop, services, and invite your workshop team.
+          Create your Owner account. Next, you&apos;ll set up your shop, services, and invite your workshop team.
         </CardDescription>
       </CardHeader>
 

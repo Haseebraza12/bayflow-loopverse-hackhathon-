@@ -5,8 +5,6 @@ import {
   Clock,
   Edit2,
   Plus,
-  Power,
-  Sparkles,
   Tags,
   Wrench,
 } from 'lucide-react'

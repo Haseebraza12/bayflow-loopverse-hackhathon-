@@ -49,8 +49,8 @@ function LoginForm() {
     // Match demo accounts or default based on email
     let matchedRole: CurrentUserSession['role'] = 'OWNER'
     let matchedName = 'Fatima Raza'
-    let matchedShop = 'shop-lahore-auto-care'
-    let matchedShopName = 'Lahore Auto Care'
+    const matchedShop = 'shop-lahore-auto-care'
+    const matchedShopName = 'Lahore Auto Care'
 
     const lowerEmail = email.toLowerCase().trim()
     if (lowerEmail.includes('owner') || lowerEmail.includes('fatima')) {
@@ -213,7 +213,7 @@ function LoginForm() {
           </form>
 
           <div className="pt-2 text-center text-xs text-neutral-500">
-            Don't have an account?{' '}
+            Don&apos;t have an account?{' '}
             <Link href="/register" className="font-semibold text-[#1047FA] hover:underline">
               Register your shop
             </Link>

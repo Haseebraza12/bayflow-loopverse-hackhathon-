@@ -1,20 +1,14 @@
 'use client'
 
 import {
-  Boxes,
-  CheckCircle2,
-  ChevronRight,
-  Clock,
   PackageCheck,
   PackageSearch,
   Truck,
-  Wrench,
 } from 'lucide-react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 
 import { StatusBadge } from '@/components/status-badge'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { useMockStore } from '@/hooks/use-mock-store'
