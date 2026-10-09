@@ -26,6 +26,9 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
+import { useMockStore } from '@/hooks/use-mock-store'
+import { getCurrentUser, type CurrentUserSession } from '@/lib/mock-data'
+import { sectionAccess } from '@/lib/pos-access'
 
 interface NavItem {
   segment: string
@@ -38,31 +41,51 @@ interface NavGroup {
   items: NavItem[]
 }
 
-// Sections and icons per spec 10 §4 and spec 09 §3.9. TODO(ShopScope): show only the sections of
-// the caller's membership role (spec 10 §4 matrix) once `GET /api/v1/me` is wired; until then
-// every section is listed. Navigation scope is never permission — the API enforces every rule.
-const NAV_GROUPS: NavGroup[] = [
-  {
-    label: 'Shop',
-    items: [
-      { segment: 'overview', label: 'Overview', icon: LayoutDashboard },
-      { segment: 'bookings', label: 'Bookings', icon: CalendarCheck },
-      { segment: 'team', label: 'Team', icon: Users },
-      { segment: 'services', label: 'Services', icon: Tags },
-      { segment: 'settings', label: 'Settings', icon: Settings },
-    ],
-  },
-  {
-    label: 'Workshop',
-    items: [
-      { segment: 'jobs', label: 'Jobs', icon: Wrench },
-      { segment: 'parts', label: 'Parts queue', icon: PackageSearch },
-      { segment: 'inventory', label: 'Inventory', icon: Boxes },
-      { segment: 'purchase-orders', label: 'Purchase orders', icon: Truck },
-      { segment: 'qc', label: 'QC queue', icon: ClipboardCheck },
-    ],
-  },
+// Sections and icons per spec 10 §4 and spec 09 §3.9.
+const ITEMS: Record<string, NavItem> = {
+  overview: { segment: 'overview', label: 'Overview', icon: LayoutDashboard },
+  bookings: { segment: 'bookings', label: 'Bookings', icon: CalendarCheck },
+  team: { segment: 'team', label: 'Team', icon: Users },
+  services: { segment: 'services', label: 'Services', icon: Tags },
+  settings: { segment: 'settings', label: 'Settings', icon: Settings },
+  jobs: { segment: 'jobs', label: 'Jobs', icon: Wrench },
+  parts: { segment: 'parts', label: 'Parts queue', icon: PackageSearch },
+  inventory: { segment: 'inventory', label: 'Inventory', icon: Boxes },
+  'purchase-orders': { segment: 'purchase-orders', label: 'Purchase orders', icon: Truck },
+  qc: { segment: 'qc', label: 'QC queue', icon: ClipboardCheck },
+}
+
+const ORDER = [
+  'overview',
+  'bookings',
+  'jobs',
+  'parts',
+  'inventory',
+  'purchase-orders',
+  'qc',
+  'team',
+  'services',
+  'settings',
 ]
+
+/**
+ * Items per role (spec 10 S-01 matrix): the Owner gets "Manage" plus read-only "Role views";
+ * every other role sees its own queue only. Navigation scope only — the API enforces permissions.
+ */
+function navGroups(role: CurrentUserSession['role']): NavGroup[] {
+  const visible = ORDER.filter((segment) => sectionAccess(role, segment))
+  const pick = (segments: string[]) => segments.map((segment) => ITEMS[segment]!)
+  if (role === 'OWNER') {
+    return [
+      { label: 'Manage', items: pick(visible.filter((s) => sectionAccess(role, s) === 'manage')) },
+      {
+        label: 'Role views (read-only)',
+        items: pick(visible.filter((s) => sectionAccess(role, s) === 'read')),
+      },
+    ]
+  }
+  return [{ label: 'Your work', items: pick(visible) }]
+}
 
 export interface PosSidebarProps {
   shopId: string
@@ -70,6 +93,8 @@ export interface PosSidebarProps {
 
 export function PosSidebar({ shopId }: PosSidebarProps) {
   const pathname = usePathname()
+  const user = useMockStore(getCurrentUser)
+  const groups = navGroups(user.role)
   const base = `/pos/shops/${encodeURIComponent(shopId)}`
 
   return (
@@ -77,7 +102,7 @@ export function PosSidebar({ shopId }: PosSidebarProps) {
     <Sidebar className="top-12 h-[calc(100svh-3rem)]! border-r border-border-subtle [&_[data-slot=sidebar-inner]]:bg-layer">
       <SidebarContent>
         <nav aria-label="Shop navigation">
-          {NAV_GROUPS.map((group) => (
+          {groups.map((group) => (
             <SidebarGroup key={group.label}>
               <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
               <SidebarGroupContent>

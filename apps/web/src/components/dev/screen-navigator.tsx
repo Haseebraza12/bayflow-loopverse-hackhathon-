@@ -50,6 +50,7 @@ const GROUPS: { name: string; screens: { label: string; href: string; note?: str
     screens: [
       { label: 'Workshop hub', href: '/pos', note: 'may redirect to role home' },
       { label: 'New shop', href: '/pos/shops/new' },
+      { label: 'All shops summary', href: '/pos/summary' },
       { label: 'Shop home', href: SHOP },
       { label: 'Overview', href: `${SHOP}/overview` },
       { label: 'Services', href: `${SHOP}/services` },

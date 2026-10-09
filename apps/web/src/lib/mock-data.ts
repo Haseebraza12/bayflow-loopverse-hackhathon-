@@ -471,6 +471,15 @@ export const INITIAL_TEAM: MockTeamMember[] = [
     role: 'PARTS_PERSON',
     is_active: true,
   },
+  {
+    // Glossary §14: Fatima also owns Raza Auto Works (shop switcher, O-07 summary).
+    id: 'mbr-fatima-raza-auto-works',
+    shopId: 'shop-raza-auto-works',
+    name: 'Fatima Raza',
+    email: 'fatima.owner@bayflow.test',
+    role: 'OWNER',
+    is_active: true,
+  },
 ]
 
 export const INITIAL_BOOKINGS: MockBooking[] = [
@@ -964,9 +973,11 @@ export function savePurchaseOrder(po: MockPurchaseOrder): void {
 export function getTeamMembers(shopId?: string): MockTeamMember[] {
   const team = getStoredData('team', INITIAL_TEAM)
   if (shopId) {
-    return derive(team, `shop:${shopId}`, (all) =>
-      all.filter((t) => t.shopId === shopId || t.shopId === 'shop-lahore-auto-care'),
-    )
+    // A shop's own members; shops without any borrow the Lahore team so every demo shop has staff.
+    return derive(team, `shop:${shopId}`, (all) => {
+      const own = all.filter((t) => t.shopId === shopId)
+      return own.length > 0 ? own : all.filter((t) => t.shopId === 'shop-lahore-auto-care')
+    })
   }
   return team
 }

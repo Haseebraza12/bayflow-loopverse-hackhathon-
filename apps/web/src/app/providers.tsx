@@ -5,6 +5,7 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { ThemeProvider } from 'next-themes'
 import type { ReactNode } from 'react'
 
+import { OfflineBanner } from '@/components/feedback/offline-banner'
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { useIsMobile } from '@/hooks/use-mobile'
@@ -31,6 +32,7 @@ export function Providers({ children }: ProvidersProps) {
     >
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
+          <OfflineBanner />
           {children}
           {/* Toasts: bottom-right on desktop, top-centre below md, at most 3 (spec 09 §4.9). */}
           <Toaster position={isMobile ? 'top-center' : 'bottom-right'} visibleToasts={3} />

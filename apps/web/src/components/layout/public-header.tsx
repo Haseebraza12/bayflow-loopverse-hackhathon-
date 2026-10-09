@@ -21,6 +21,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 
 import { Logo } from './logo'
+import { SessionActions } from './session-actions'
 
 export function PublicHeader() {
   const [featuresOpen, setFeaturesOpen] = useState(false)
@@ -308,26 +309,14 @@ export function PublicHeader() {
           </Link>
         </nav>
 
-        {/* Right Actions: Sign In */}
+        {/* Right Actions: emerald Sign In, or the bell and account menu once signed in */}
         <div className="hidden items-center gap-4 lg:flex">
-          {/* Emerald Sign In Button */}
-          <Button
-            asChild
-            className="h-10 rounded-full bg-brand-green px-6 py-2 font-semibold text-white shadow-sm transition-all duration-200 hover:bg-brand-green-hover hover:shadow-md"
-          >
-            <Link href="/login">Sign In</Link>
-          </Button>
+          <SessionActions />
         </div>
 
         {/* Mobile Hamburger Button */}
         <div className="flex items-center gap-2 lg:hidden">
-          <Button
-            asChild
-            size="sm"
-            className="rounded-full bg-brand-green px-4 py-1.5 text-xs font-semibold text-white hover:bg-brand-green-hover"
-          >
-            <Link href="/login">Sign In</Link>
-          </Button>
+          <SessionActions compact />
           <button
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}

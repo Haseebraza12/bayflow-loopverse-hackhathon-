@@ -6,6 +6,7 @@ import {
   Check,
   ChevronDown,
   Globe,
+  LayoutGrid,
   LogOut,
   Plus,
   ShieldCheck,
@@ -14,8 +15,16 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
+import { NotificationBell } from '@/components/notifications/notification-bell'
+import { endMockSession } from '@/hooks/use-mock-session'
 import { useMockStore } from '@/hooks/use-mock-store'
-import { getCurrentUser, getShops, setCurrentUser, type CurrentUserSession } from '@/lib/mock-data'
+import {
+  getCurrentUser,
+  getShops,
+  getTeamMembers,
+  setCurrentUser,
+  type CurrentUserSession,
+} from '@/lib/mock-data'
 
 import { Logo } from './logo'
 
@@ -31,6 +40,11 @@ export function PosHeader() {
   const router = useRouter()
   const user = useMockStore(() => getCurrentUser())
   const shops = useMockStore(() => getShops())
+  const team = useMockStore(() => getTeamMembers())
+  // O-07 is for owners of two or more shops (spec 10 S-01 "All shops summary").
+  const ownedShops = team.filter(
+    (m) => m.role === 'OWNER' && m.is_active && m.email === user.email,
+  ).length
 
   const [shopMenuOpen, setShopMenuOpen] = useState(false)
   const [roleMenuOpen, setRoleMenuOpen] = useState(false)
@@ -141,6 +155,17 @@ export function PosHeader() {
                   </button>
                 ))}
                 <div className="my-2 border-t border-white/10" />
+                {user.role === 'OWNER' && ownedShops >= 2 && (
+                  <Link
+                    href="/pos/summary"
+                    role="menuitem"
+                    onClick={() => setShopMenuOpen(false)}
+                    className={panelItem}
+                  >
+                    <span>All shops summary</span>
+                    <LayoutGrid className="size-4" aria-hidden="true" />
+                  </Link>
+                )}
                 <Link
                   href="/pos/shops/new"
                   role="menuitem"
@@ -205,10 +230,20 @@ export function PosHeader() {
             <span>Website</span>
           </Link>
 
-          <Link href="/login" className={item} title="Sign out">
+          <NotificationBell tone="nav" className="h-12 w-12 rounded-none" />
+
+          <button
+            type="button"
+            className={item}
+            title="Sign out"
+            onClick={() => {
+              endMockSession()
+              router.push('/login')
+            }}
+          >
             <LogOut className="size-4" aria-hidden="true" />
             <span className="hidden sm:inline">Sign out</span>
-          </Link>
+          </button>
         </div>
       </div>
     </header>

@@ -18,6 +18,7 @@ import { Suspense } from 'react'
 import { StatusBadge } from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { IN_PROGRESS_STATUSES, SA_ACTION_STATUSES, isLowStock } from '@/lib/kpis'
 import { useMockStore } from '@/hooks/use-mock-store'
 import { formatPKR } from '@/lib/format'
 import {
@@ -40,36 +41,14 @@ function ShopOverviewContent() {
   const inventory = useMockStore(() => getInventory(shopId))
   const services = useMockStore(() => getServices(shopId))
 
-  // KPI Calculations
-  const needsSaAction = bookings.filter((b) =>
-    [
-      'PENDING',
-      'CONFIRMED',
-      'ESTIMATE_REVIEW',
-      'AWAITING_CUSTOMER',
-      'ESTIMATE_REJECTED',
-      'READY_FOR_PICKUP',
-    ].includes(b.status),
-  ).length
-
-  const inProgress = bookings.filter((b) =>
-    [
-      'ASSIGNED',
-      'INSPECTING',
-      'ESTIMATE_APPROVED',
-      'PARTS_PENDING',
-      'PARTS_ORDERED',
-      'PARTS_READY',
-      'IN_REPAIR',
-      'QC_PENDING',
-      'QC_IN_PROGRESS',
-    ].includes(b.status),
-  ).length
+  // KPI tiles: the API's status groups (lib/kpis.ts), so they match the owner summary.
+  const needsSaAction = bookings.filter((b) => SA_ACTION_STATUSES.has(b.status)).length
+  const inProgress = bookings.filter((b) => IN_PROGRESS_STATUSES.has(b.status)).length
 
   const readyForPickup = bookings.filter((b) => b.status === 'READY_FOR_PICKUP').length
   const completedToday = bookings.filter((b) => b.status === 'COMPLETED').length
 
-  const lowStockParts = inventory.filter((p) => p.on_hand <= p.reorder_level)
+  const lowStockParts = inventory.filter(isLowStock)
   const totalStockValue = inventory.reduce((sum, p) => sum + p.on_hand * p.unit_price, 0)
 
   const base = `/pos/shops/${encodeURIComponent(shopId)}`
