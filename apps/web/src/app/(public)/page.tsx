@@ -144,9 +144,9 @@ export default function LandingPage() {
             </h1>
 
             <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed font-normal text-muted-foreground sm:text-lg">
-              Take control of your auto repair business with BayFlow, Pakistan&apos;s leading
-              garage management software. Simplify job scheduling, invoicing, and inventory control
-              for maximum efficiency.
+              Take control of your auto repair business with BayFlow, Pakistan&apos;s leading garage
+              management software. Simplify job scheduling, invoicing, and inventory control for
+              maximum efficiency.
             </p>
 
             {/* CTAs */}
@@ -299,15 +299,16 @@ export default function LandingPage() {
           ======================================================== */}
       <section className="relative w-full overflow-hidden border-t border-border/70 bg-muted/50 py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-3xl text-center mb-12">
+          <div className="mx-auto mb-12 max-w-3xl text-center">
             <h2 className="text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl md:text-5xl">
               <span className="font-handwriting text-4xl font-normal text-brand-blue-ink italic sm:text-5xl md:text-6xl">
                 See BayFlow
-              </span>
-              {' '}in Action
+              </span>{' '}
+              in Action
             </h2>
             <p className="mt-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
-              Swipe through screenshots of the BayFlow dashboard, technician app, and customer portal.
+              Swipe through screenshots of the BayFlow dashboard, technician app, and customer
+              portal.
             </p>
           </div>
 
@@ -323,31 +324,41 @@ export default function LandingPage() {
                 className="object-cover"
               />
             </div>
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-3">
+            <div className="absolute bottom-6 left-1/2 flex -translate-x-1/2 gap-3">
               {[1, 2, 3, 4, 5].map((i) => (
                 <button
                   key={i}
-                  className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
-                    i === 1 ? 'bg-brand-blue w-7' : 'bg-white/50 hover:bg-white'
+                  className={`h-2.5 w-2.5 rounded-full transition-all duration-300 ${
+                    i === 1 ? 'w-7 bg-brand-blue' : 'bg-white/50 hover:bg-card'
                   }`}
                   aria-label={`View screenshot ${i}`}
                 />
               ))}
             </div>
             <button
-              className="absolute left-4 top-1/2 -translate-y-1/2 size-10 rounded-full bg-white/90 text-foreground shadow-lg hover:bg-white transition-colors md:left-6"
+              className="absolute top-1/2 left-4 size-10 -translate-y-1/2 rounded-full bg-white/90 text-foreground shadow-lg transition-colors hover:bg-card md:left-6"
               aria-label="Previous screenshot"
             >
               <svg className="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 19l-7-7 7-7"
+                />
               </svg>
             </button>
             <button
-              className="absolute right-4 top-1/2 -translate-y-1/2 size-10 rounded-full bg-white/90 text-foreground shadow-lg hover:bg-white transition-colors md:right-6"
+              className="absolute top-1/2 right-4 size-10 -translate-y-1/2 rounded-full bg-white/90 text-foreground shadow-lg transition-colors hover:bg-card md:right-6"
               aria-label="Next screenshot"
             >
               <svg className="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5l7 7-7 7"
+                />
               </svg>
             </button>
           </div>
@@ -662,8 +673,8 @@ export default function LandingPage() {
                       Bring Order to the Chaos
                     </h3>
                     <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                      Simplify how your team works. With BayFlow, manage tasks, track deadlines,
-                      and stay on top of progress all from a single, easy-to-use dashboard.
+                      Simplify how your team works. With BayFlow, manage tasks, track deadlines, and
+                      stay on top of progress all from a single, easy-to-use dashboard.
                     </p>
                   </div>
                 </div>
@@ -1009,8 +1020,8 @@ export default function LandingPage() {
                   Book a Personalized Demo
                 </h3>
                 <p className="mt-1 text-xs text-helper">
-                  See how BayFlow helps auto garages schedule jobs, track parts, and increase
-                  profit by 40%.
+                  See how BayFlow helps auto garages schedule jobs, track parts, and increase profit
+                  by 40%.
                 </p>
 
                 <form

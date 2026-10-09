@@ -37,13 +37,6 @@ import { cn } from '@/lib/utils'
 type FieldName = 'fullName' | 'email' | 'phone' | 'password'
 type Errors = Partial<Record<FieldName, string>>
 
-const features = [
-  { icon: Shield, title: 'Secure & Compliant', desc: 'Bank-grade encryption, GDPR-ready, data hosted in Pakistan' },
-  { icon: Users, title: 'Multi-Shop Ready', desc: 'Run multiple locations from one dashboard' },
-  { icon: Wrench, title: 'Built for Techs', desc: 'Technician mobile app for iOS & Android' },
-  { icon: Truck, title: 'Parts & Inventory', desc: 'Auto reorder, stock tracking, supplier management' },
-]
-
 /** Spec 10 P-05 field rules (D10 passwords, D62 `.test` e-mails accepted). */
 function validate(values: { fullName: string; email: string; phone: string; password: string }) {
   const errors: Errors = {}
@@ -172,29 +165,37 @@ export default function RegisterPage() {
   }
 
   const features = [
-    { icon: Shield, title: 'Secure & Compliant', desc: 'Bank-grade encryption, GDPR-ready, data hosted in Pakistan' },
+    {
+      icon: Shield,
+      title: 'Secure & Compliant',
+      desc: 'Bank-grade encryption, GDPR-ready, data hosted in Pakistan',
+    },
     { icon: Users, title: 'Multi-Shop Ready', desc: 'Run multiple locations from one dashboard' },
     { icon: Wrench, title: 'Built for Techs', desc: 'Technician mobile app for iOS & Android' },
-    { icon: Truck, title: 'Parts & Inventory', desc: 'Auto reorder, stock tracking, supplier management' },
+    {
+      icon: Truck,
+      title: 'Parts & Inventory',
+      desc: 'Auto reorder, stock tracking, supplier management',
+    },
   ]
 
   return (
     <div className="relative min-h-screen bg-background">
       {/* Background decorative elements */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden" aria-hidden="true">
-        <div className="absolute top-1/4 left-1/2 w-[600px] h-[600px] -translate-x-1/2 rounded-full bg-brand-blue/10 blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] rounded-full bg-brand-green/10 blur-3xl" />
-        <div className="absolute top-1/2 left-1/4 w-[300px] h-[300px] rounded-full bg-brand-orange/10 blur-3xl" />
+        <div className="absolute top-1/4 left-1/2 h-[600px] w-[600px] -translate-x-1/2 rounded-full bg-brand-blue/10 blur-3xl" />
+        <div className="absolute right-1/4 bottom-1/4 h-[400px] w-[400px] rounded-full bg-brand-green/10 blur-3xl" />
+        <div className="absolute top-1/2 left-1/4 h-[300px] w-[300px] rounded-full bg-brand-orange/10 blur-3xl" />
       </div>
 
       <div className="relative flex min-h-screen items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
         <div className="w-full max-w-[980px]">
           {/* Split layout: Visual left, Form right on desktop */}
-          <div className="hidden lg:grid lg:grid-cols-12 lg:gap-8 lg:items-center">
+          <div className="hidden lg:grid lg:grid-cols-12 lg:items-center lg:gap-8">
             {/* Left: Visual/Illustration */}
-            <div className="lg:col-span-6 order-2 lg:order-1">
-              <div className="relative aspect-[4/3] bg-gradient-to-br from-brand-blue/5 via-brand-blue/10 to-transparent rounded-3xl p-8">
-                <div className="absolute inset-0 bg-grid-pattern/[0.03] rounded-3xl" />
+            <div className="order-2 lg:order-1 lg:col-span-6">
+              <div className="relative aspect-[4/3] rounded-3xl bg-gradient-to-br from-brand-blue/5 via-brand-blue/10 to-transparent p-8">
+                <div className="bg-grid-pattern/[0.03] absolute inset-0 rounded-3xl" />
                 <div className="relative flex h-full items-center justify-center">
                   {/* Illustration placeholder - you can replace with actual BayFlow illustration */}
                   <div className="flex flex-col items-center justify-center gap-6 text-center">
@@ -202,14 +203,12 @@ export default function RegisterPage() {
                       <Shield className="size-16 text-brand-blue" />
                     </div>
                     <div>
-                      <h2 className="text-3xl font-bold text-foreground">
-                        Welcome to BayFlow
-                      </h2>
+                      <h2 className="text-3xl font-bold text-foreground">Welcome to BayFlow</h2>
                       <p className="mt-2 text-lg text-muted-foreground">
-                        Pakistan's leading garage management platform
+                        Pakistan&apos;s leading garage management platform
                       </p>
                     </div>
-                    <div className="grid grid-cols-2 gap-4 mt-8 text-sm">
+                    <div className="mt-8 grid grid-cols-2 gap-4 text-sm">
                       <div className="rounded-xl bg-card p-4 text-left">
                         <p className="font-semibold text-foreground">500+</p>
                         <p className="text-helper">Garages onboarded</p>
@@ -233,8 +232,11 @@ export default function RegisterPage() {
               {/* Feature highlights */}
               <div className="mt-8 grid grid-cols-2 gap-4">
                 {features.map((f, i) => (
-                  <div key={i} className="group flex items-start gap-4 rounded-xl border border-border bg-card p-5 transition-all hover:border-brand-blue/50 hover:shadow-lg">
-                    <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-brand-blue/10 text-brand-blue group-hover:bg-brand-blue group-hover:text-brand-blue-foreground transition-colors">
+                  <div
+                    key={i}
+                    className="group flex items-start gap-4 rounded-xl border border-border bg-card p-5 transition-all hover:border-brand-blue/50 hover:shadow-lg"
+                  >
+                    <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-brand-blue/10 text-brand-blue transition-colors group-hover:bg-brand-blue group-hover:text-brand-blue-foreground">
                       <f.icon className="size-6" />
                     </div>
                     <div>
@@ -247,13 +249,13 @@ export default function RegisterPage() {
             </div>
 
             {/* Right: Form */}
-            <div className="lg:col-span-6 order-1 lg:order-2">
-              <div className="bg-card/50 backdrop-blur-sm rounded-3xl border border-border p-8 sm:p-10">
+            <div className="order-1 lg:order-2 lg:col-span-6">
+              <div className="rounded-3xl border border-border bg-card/50 p-8 backdrop-blur-sm sm:p-10">
                 <form onSubmit={handleSubmit} noValidate className="space-y-8">
                   <header className="space-y-3 text-center sm:text-left">
                     <OnboardingSteps current={0} />
                     <div className="space-y-2">
-                      <h1 className="font-heading text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
+                      <h1 className="font-heading text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
                         Create your owner account
                       </h1>
                       <p className="text-base leading-relaxed text-muted-foreground">
@@ -370,7 +372,11 @@ export default function RegisterPage() {
                             aria-pressed={showPassword}
                             onClick={() => setShowPassword((shown) => !shown)}
                           >
-                            {showPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
+                            {showPassword ? (
+                              <EyeOff aria-hidden="true" />
+                            ) : (
+                              <Eye aria-hidden="true" />
+                            )}
                           </InputGroupButton>
                         </InputGroupAddon>
                       </InputGroup>
@@ -381,8 +387,8 @@ export default function RegisterPage() {
                   <Alert variant="info">
                     <Info aria-hidden="true" />
                     <AlertDescription>
-                      Staff accounts are created by the shop owner. Work in a garage? Ask your owner for your
-                      login.
+                      Staff accounts are created by the shop owner. Work in a garage? Ask your owner
+                      for your login.
                     </AlertDescription>
                   </Alert>
 
@@ -418,11 +424,11 @@ export default function RegisterPage() {
 
           {/* Mobile form (visible on mobile, hidden on desktop) */}
           <div className="lg:hidden">
-            <div className="bg-card/50 backdrop-blur-sm rounded-3xl border border-border p-6 sm:p-8">
+            <div className="rounded-3xl border border-border bg-card/50 p-6 backdrop-blur-sm sm:p-8">
               <header className="space-y-3 text-center">
                 <OnboardingSteps current={0} />
                 <div className="space-y-2">
-                  <h1 className="font-heading text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+                  <h1 className="font-heading text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
                     Create your owner account
                   </h1>
                   <p className="text-base leading-relaxed text-muted-foreground">
@@ -540,7 +546,11 @@ export default function RegisterPage() {
                           aria-pressed={showPassword}
                           onClick={() => setShowPassword((shown) => !shown)}
                         >
-                          {showPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
+                          {showPassword ? (
+                            <EyeOff aria-hidden="true" />
+                          ) : (
+                            <Eye aria-hidden="true" />
+                          )}
                         </InputGroupButton>
                       </InputGroupAddon>
                     </InputGroup>
@@ -551,8 +561,8 @@ export default function RegisterPage() {
                 <Alert variant="info">
                   <Info aria-hidden="true" />
                   <AlertDescription>
-                    Staff accounts are created by the shop owner. Work in a garage? Ask your owner for your
-                    login.
+                    Staff accounts are created by the shop owner. Work in a garage? Ask your owner
+                    for your login.
                   </AlertDescription>
                 </Alert>
 
@@ -576,7 +586,7 @@ export default function RegisterPage() {
                 </Button>
               </form>
 
-              <p className="text-center text-sm text-muted-foreground mt-4">
+              <p className="mt-4 text-center text-sm text-muted-foreground">
                 Already have an account?{' '}
                 <Link href="/login" className="font-semibold text-brand-blue-ink hover:underline">
                   Log in
@@ -589,4 +599,3 @@ export default function RegisterPage() {
     </div>
   )
 }
-

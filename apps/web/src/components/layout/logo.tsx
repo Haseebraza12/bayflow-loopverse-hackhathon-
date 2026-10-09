@@ -35,9 +35,7 @@ export function Logo({ tone = 'light', className, showText = true, size = 'md' }
           markSizes[size],
         )}
       />
-      {showText && (
-        <span className={cn('font-sans tracking-tight', textSizes[size])}>BayFlow</span>
-      )}
+      {showText && <span className={cn('font-sans tracking-tight', textSizes[size])}>BayFlow</span>}
     </span>
   )
 }
