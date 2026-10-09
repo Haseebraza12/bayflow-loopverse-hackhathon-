@@ -35,13 +35,13 @@ export default function BookingConfirmedPage() {
       <div className="mx-auto max-w-2xl space-y-8">
         {/* Success Header */}
         <div className="text-center space-y-3">
-          <div className="mx-auto size-16 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 shadow-sm">
+          <div className="mx-auto size-16 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
             <CheckCircle2 className="size-10" />
           </div>
           <span className="inline-block rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
             Appointment Confirmed
           </span>
-          <h1 className="text-3xl font-extrabold tracking-tight text-neutral-900 sm:text-4xl">
+          <h1 className="text-3xl font-semibold text-neutral-900 sm:text-4xl">
             Booking Received!
           </h1>
           <p className="text-sm text-neutral-600 max-w-md mx-auto">
@@ -52,18 +52,18 @@ export default function BookingConfirmedPage() {
         </div>
 
         {/* Reference Code Card */}
-        <div className="rounded-2xl border border-neutral-200 bg-white p-6 text-center shadow-sm space-y-2">
-          <span className="text-xs font-bold uppercase tracking-wider text-neutral-400">
+        <div className="rounded-2xl border border-neutral-200 bg-white p-6 text-center space-y-2">
+          <span className="text-xs font-bold tracking-[0.32px] text-neutral-400">
             Your Booking Reference
           </span>
           <div className="flex items-center justify-center gap-3">
-            <span className="font-mono text-3xl font-extrabold text-[#1047FA] tracking-wide">
+            <span className="font-mono text-3xl font-semibold text-[#1047FA] tracking-wide">
               {booking?.reference || 'BF-2026-948'}
             </span>
             <button
               type="button"
               onClick={handleCopy}
-              className="rounded-lg border border-neutral-200 p-2 text-neutral-500 hover:text-neutral-900 hover:border-neutral-300 transition-colors"
+              className="rounded-full border border-neutral-200 p-2 text-neutral-500 hover:text-neutral-900 hover:border-neutral-300 transition-colors"
               title="Copy reference code"
             >
               <Copy className="size-4" />
@@ -79,9 +79,9 @@ export default function BookingConfirmedPage() {
 
         {/* Booking Details Summary */}
         {booking && (
-          <Card className="border-neutral-200 shadow-sm overflow-hidden">
+          <Card className="border-neutral-200 overflow-hidden">
             <CardContent className="p-6 space-y-4">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-neutral-400">
+              <h2 className="text-xs font-bold tracking-[0.32px] text-neutral-400">
                 Appointment Summary
               </h2>
 
@@ -121,7 +121,7 @@ export default function BookingConfirmedPage() {
         )}
 
         {/* 5-Step Roadmap: What Happens Next */}
-        <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm space-y-4">
+        <div className="rounded-2xl border border-neutral-200 bg-white p-6 space-y-4">
           <h2 className="text-sm font-bold text-neutral-900 flex items-center gap-2">
             <ShieldCheck className="size-4 text-[#1047FA]" />
             What Happens Next
@@ -184,7 +184,7 @@ export default function BookingConfirmedPage() {
         <div className="flex flex-col sm:flex-row gap-3 pt-2">
           <Button
             asChild
-            className="flex-1 bg-[#1047FA] hover:bg-blue-700 text-white font-semibold h-11 rounded-xl shadow-sm"
+            className="flex-1 bg-[#1047FA] hover:bg-blue-700 text-white font-semibold h-11 rounded-full"
           >
             <Link href={`/bookings/${bookingId}`}>
               Track Live Booking Status
@@ -195,7 +195,7 @@ export default function BookingConfirmedPage() {
           <Button
             asChild
             variant="outline"
-            className="sm:w-auto h-11 rounded-xl font-semibold border-neutral-300"
+            className="sm:w-auto h-11 rounded-full font-semibold border-neutral-300"
           >
             <Link href="/bookings">Go to My Bookings</Link>
           </Button>

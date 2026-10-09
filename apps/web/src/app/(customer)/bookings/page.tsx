@@ -38,10 +38,10 @@ export default function CustomerBookingsPage() {
         <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <span className="text-xs font-bold uppercase tracking-wider text-[#1047FA]">
+              <span className="text-xs font-bold tracking-[0.32px] text-[#1047FA]">
                 Customer Dashboard
               </span>
-              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-neutral-900 mt-1">
+              <h1 className="text-2xl sm:text-3xl font-semibold text-neutral-900 mt-1">
                 My Appointments & Repairs
               </h1>
               <p className="text-xs sm:text-sm text-neutral-500 mt-1">
@@ -51,7 +51,7 @@ export default function CustomerBookingsPage() {
 
             <Button
               asChild
-              className="bg-[#1047FA] hover:bg-blue-700 text-white font-semibold rounded-xl px-5 h-10 shadow-sm"
+              className="bg-[#1047FA] hover:bg-blue-700 text-white font-semibold rounded-full px-5 h-10"
             >
               <Link href="/book">
                 <Plus className="size-4 mr-1.5" />
@@ -98,7 +98,7 @@ export default function CustomerBookingsPage() {
       {/* Bookings List */}
       <div className="mx-auto max-w-5xl px-4 pt-8 sm:px-6 lg:px-8 space-y-4">
         {displayedBookings.length === 0 ? (
-          <div className="rounded-2xl border border-neutral-200 bg-white p-12 text-center shadow-sm">
+          <div className="rounded-2xl border border-neutral-200 bg-white p-12 text-center">
             <Car className="mx-auto size-12 text-neutral-300" />
             <h2 className="mt-4 text-base font-bold text-neutral-900">
               {activeTab === 'active' ? 'No active bookings' : 'No past bookings yet'}
@@ -109,7 +109,7 @@ export default function CustomerBookingsPage() {
                 : 'Completed and closed repair jobs will appear here.'}
             </p>
             {activeTab === 'active' && (
-              <Button asChild className="mt-5 bg-[#1047FA] text-white">
+              <Button asChild className="mt-5 bg-[#1047FA] text-white rounded-full">
                 <Link href="/book">Find a Certified Workshop</Link>
               </Button>
             )}
@@ -122,7 +122,7 @@ export default function CustomerBookingsPage() {
             return (
               <Card
                 key={b.id}
-                className="overflow-hidden border-neutral-200 bg-white hover:border-neutral-300 transition-all shadow-sm group"
+                className="overflow-hidden border-neutral-200 bg-white hover:border-neutral-300 transition-all group"
               >
                 {/* Urgent Action Needed Banner */}
                 {isAwaitingCustomer && (
@@ -134,7 +134,7 @@ export default function CustomerBookingsPage() {
                     <Button
                       asChild
                       size="sm"
-                      className="bg-white text-amber-900 hover:bg-neutral-100 text-xs font-bold h-7 rounded-md"
+                      className="bg-white text-amber-900 hover:bg-neutral-100 text-xs font-bold h-7 rounded-md rounded-full"
                     >
                       <Link href={`/bookings/${b.id}`}>Review Estimate</Link>
                     </Button>
@@ -150,7 +150,7 @@ export default function CustomerBookingsPage() {
                     <Button
                       asChild
                       size="sm"
-                      className="bg-white text-emerald-900 hover:bg-neutral-100 text-xs font-bold h-7 rounded-md"
+                      className="bg-white text-emerald-900 hover:bg-neutral-100 text-xs font-bold h-7 rounded-md rounded-full"
                     >
                       <Link href={`/bookings/${b.id}`}>View Handover</Link>
                     </Button>
@@ -161,7 +161,7 @@ export default function CustomerBookingsPage() {
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-mono text-sm font-extrabold text-[#1047FA]">
+                        <span className="font-mono text-sm font-semibold text-[#1047FA]">
                           {b.reference}
                         </span>
                         <StatusBadge status={b.status} audience="customer" size="md" />
@@ -181,7 +181,7 @@ export default function CustomerBookingsPage() {
                   {/* Vehicle & Services */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-neutral-100 text-xs">
                     <div>
-                      <span className="text-[10px] uppercase font-bold text-neutral-400">Vehicle</span>
+                      <span className="text-[10px] font-bold text-neutral-400">Vehicle</span>
                       <p className="font-semibold text-neutral-900 font-mono mt-0.5">
                         {b.licensePlate}
                       </p>
@@ -191,7 +191,7 @@ export default function CustomerBookingsPage() {
                     </div>
 
                     <div>
-                      <span className="text-[10px] uppercase font-bold text-neutral-400">
+                      <span className="text-[10px] font-bold text-neutral-400">
                         Services Requested
                       </span>
                       <div className="flex flex-wrap gap-1 mt-1">
@@ -217,7 +217,7 @@ export default function CustomerBookingsPage() {
                       asChild
                       variant="outline"
                       size="sm"
-                      className="border-neutral-200 text-xs font-semibold group-hover:border-[#1047FA] group-hover:text-[#1047FA]"
+                      className="border-neutral-200 text-xs font-semibold group-hover:border-[#1047FA] group-hover:text-[#1047FA] rounded-full"
                     >
                       <Link href={`/bookings/${b.id}`}>
                         View Details & Timeline

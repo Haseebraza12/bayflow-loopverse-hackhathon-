@@ -12,7 +12,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
           <Logo tone="dark" />
         </Link>
         <div className="space-y-4">
-          <p className="text-3xl font-semibold tracking-tight">Every hand-off, on the record.</p>
+          <p className="text-3xl font-semibold">Every hand-off, on the record.</p>
           <div aria-hidden="true" className="h-1 w-16 rounded-full bg-brand-orange" />
           <p className="max-w-sm text-nav-muted">
             Bookings, estimates, parts and quality checks for independent garages — in one place.

@@ -8,7 +8,7 @@ export interface PageHeaderProps {
   description?: ReactNode
   /** Header actions, e.g. one primary button (UX rule R7). */
   actions?: ReactNode
-  /** Portal h1 = text-3xl/700, POS h1 = text-2xl/600 (spec 09 §3.6). */
+  /** Carbon page header: portal h1 = heading-05 (32px), POS h1 = heading-04 (28px). */
   variant?: 'portal' | 'pos'
   className?: string
 }
@@ -22,18 +22,18 @@ export function PageHeader({
 }: PageHeaderProps) {
   return (
     <div
-      className={cn('flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between', className)}
+      className={cn('flex flex-col gap-4 pb-6 sm:flex-row sm:items-end sm:justify-between', className)}
     >
-      <div className="space-y-1">
+      <div className="space-y-2">
         <h1
           className={cn(
-            'tracking-tight text-foreground',
-            variant === 'portal' ? 'text-3xl font-bold' : 'text-2xl font-semibold',
+            'text-foreground',
+            variant === 'portal' ? 'type-heading-05' : 'type-heading-04',
           )}
         >
           {title}
         </h1>
-        {description ? <p className="max-w-prose text-muted-foreground">{description}</p> : null}
+        {description ? <p className="max-w-prose type-body-01 text-muted-foreground">{description}</p> : null}
       </div>
       {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
     </div>

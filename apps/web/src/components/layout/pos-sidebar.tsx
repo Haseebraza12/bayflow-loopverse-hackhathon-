@@ -73,8 +73,8 @@ export function PosSidebar({ shopId }: PosSidebarProps) {
   const base = `/pos/shops/${encodeURIComponent(shopId)}`
 
   return (
-    // Sits below the 56 px sticky PosHeader (shadcn "sticky site header" sidebar pattern).
-    <Sidebar className="top-14 h-[calc(100svh-3.5rem)]!">
+    // Carbon UI shell side nav, 256px, below the 48 px sticky PosHeader (shadcn "sticky site header" sidebar pattern).
+    <Sidebar className="top-12 h-[calc(100svh-3rem)]! border-r border-border-subtle [&_[data-slot=sidebar-inner]]:bg-layer">
       <SidebarContent>
         <nav aria-label="Shop navigation">
           {NAV_GROUPS.map((group) => (
@@ -91,7 +91,7 @@ export function PosSidebar({ shopId }: PosSidebarProps) {
                           asChild
                           isActive={active}
                           tooltip={item.label}
-                          // Active item: accent surface plus a 3 px brand-orange bar (spec 09 §4.1).
+                          // Active item: selected layer plus a 3 px brand-orange bar (spec 09 §4.1, Carbon side nav).
                           className="data-[active=true]:shadow-[inset_3px_0_0_var(--brand-orange)]"
                         >
                           <Link href={href} aria-current={active ? 'page' : undefined}>

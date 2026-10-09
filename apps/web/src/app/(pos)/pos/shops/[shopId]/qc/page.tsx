@@ -40,10 +40,10 @@ export default function QcQueuePage() {
     <div className="space-y-6 pb-12">
       {/* Header */}
       <div>
-        <span className="text-xs font-bold uppercase tracking-wider text-[#1047FA]">
+        <span className="text-xs font-bold tracking-[0.32px] text-[#1047FA]">
           Quality Assurance & Safety
         </span>
-        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-neutral-900 mt-1">
+        <h1 className="text-2xl sm:text-3xl font-semibold text-neutral-900 mt-1">
           QC Inspection Queue
         </h1>
         <p className="text-xs text-neutral-500 mt-0.5">
@@ -68,7 +68,7 @@ export default function QcQueuePage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {qcPending.map((b) => (
-                <Card key={b.id} className="border-neutral-200 bg-white shadow-sm hover:border-blue-400">
+                <Card key={b.id} className="border-neutral-200 bg-white hover:border-blue-400">
                   <CardContent className="p-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="font-mono font-bold text-[#1047FA] text-sm">{b.reference}</span>
@@ -95,7 +95,7 @@ export default function QcQueuePage() {
                         >
                           Pick Job
                         </Button>
-                        <Button asChild variant="outline" size="sm" className="h-7 text-xs">
+                        <Button asChild variant="outline" size="sm" className="h-7 text-xs rounded-full">
                           <Link href={`${base}/qc/${b.id}`}>Inspect</Link>
                         </Button>
                       </div>
@@ -121,7 +121,7 @@ export default function QcQueuePage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {qcInProgress.map((b) => (
-                <Card key={b.id} className="border-blue-200 bg-blue-50/20 shadow-sm">
+                <Card key={b.id} className="border-blue-200 bg-blue-50/20">
                   <CardContent className="p-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="font-mono font-bold text-[#1047FA] text-sm">{b.reference}</span>
@@ -130,7 +130,7 @@ export default function QcQueuePage() {
                     <p className="font-bold text-neutral-900 font-mono text-sm">{b.licensePlate}</p>
                     <div className="pt-2 border-t border-neutral-100 flex items-center justify-between">
                       <span className="text-xs font-semibold text-blue-700">Inspector testing checklist</span>
-                      <Button asChild size="sm" className="bg-[#1047FA] text-white text-xs h-7">
+                      <Button asChild size="sm" className="bg-[#1047FA] text-white text-xs h-7 rounded-full">
                         <Link href={`${base}/qc/${b.id}`}>Continue Checklist</Link>
                       </Button>
                     </div>

@@ -37,7 +37,7 @@ export default function PosHubPage() {
             <h1 className="text-2xl font-bold text-neutral-900">Your Workshop Hub</h1>
             <p className="text-xs text-neutral-500 mt-1">Select a shop or create a new branch</p>
           </div>
-          <Button asChild className="bg-[#1047FA] text-white text-xs">
+          <Button asChild className="bg-[#1047FA] text-white text-xs rounded-full">
             <Link href="/pos/shops/new">
               <Plus className="size-3.5 mr-1" />
               New Workshop
@@ -49,7 +49,7 @@ export default function PosHubPage() {
           {shops.map((shop) => (
             <Card
               key={shop.id}
-              className="border-neutral-200 hover:border-[#1047FA] transition-all cursor-pointer shadow-sm"
+              className="border-neutral-200 hover:border-[#1047FA] transition-all cursor-pointer"
               onClick={() => router.push(`/pos/shops/${shop.id}/overview`)}
             >
               <CardContent className="p-4 flex items-center justify-between">

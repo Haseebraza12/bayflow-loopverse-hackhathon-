@@ -93,7 +93,7 @@ export default function QcInspectionPage() {
     return (
       <div className="py-16 text-center space-y-4">
         <h1 className="text-xl font-bold text-neutral-900">Job not found</h1>
-        <Button asChild className="bg-[#1047FA] text-white text-xs">
+        <Button asChild className="bg-[#1047FA] text-white text-xs rounded-full">
           <Link href={`${base}/qc`}>Back to QC Queue</Link>
         </Button>
       </div>
@@ -160,11 +160,11 @@ export default function QcInspectionPage() {
       )}
 
       {/* Header & Status Card */}
-      <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm space-y-4">
+      <div className="rounded-2xl border border-neutral-200 bg-white p-6 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <span className="font-mono text-xl sm:text-2xl font-extrabold text-[#1047FA]">
+              <span className="font-mono text-xl sm:text-2xl font-semibold text-[#1047FA]">
                 {booking.licensePlate}
               </span>
               <StatusBadge status={booking.status} audience="staff" size="md" />
@@ -182,7 +182,7 @@ export default function QcInspectionPage() {
             <Button
               onClick={handlePassQc}
               disabled={!allPassed}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-9 px-5 shadow-sm"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-9 px-5 rounded-full"
             >
               <CheckCircle2 className="size-4 mr-1.5" />
               Pass QC & Authorize Handover
@@ -201,9 +201,9 @@ export default function QcInspectionPage() {
       </div>
 
       {/* 5-Point QC Checklist */}
-      <Card className="border-neutral-200 shadow-sm overflow-hidden">
+      <Card className="border-neutral-200 overflow-hidden">
         <CardHeader className="bg-neutral-50/80 border-b border-neutral-100 p-4">
-          <CardTitle className="text-xs font-bold uppercase tracking-wider text-neutral-500 flex items-center gap-1.5">
+          <CardTitle className="text-xs font-bold tracking-[0.32px] text-neutral-500 flex items-center gap-1.5">
             <ShieldCheck className="size-4 text-[#1047FA]" />
             Mandatory 5-Point Vehicle Inspection Protocol
           </CardTitle>
@@ -230,7 +230,7 @@ export default function QcInspectionPage() {
                   onClick={() => handleToggleChecklist(item.key, true)}
                   className={`rounded-lg px-4 py-1.5 text-xs font-bold transition-all ${
                     item.passed
-                      ? 'bg-emerald-600 text-white shadow-sm'
+                      ? 'bg-emerald-600 text-white'
                       : 'text-neutral-600 hover:text-neutral-900'
                   }`}
                 >
@@ -241,7 +241,7 @@ export default function QcInspectionPage() {
                   onClick={() => handleToggleChecklist(item.key, false)}
                   className={`rounded-lg px-4 py-1.5 text-xs font-bold transition-all ${
                     !item.passed
-                      ? 'bg-red-600 text-white shadow-sm'
+                      ? 'bg-red-600 text-white'
                       : 'text-neutral-600 hover:text-neutral-900'
                   }`}
                 >
@@ -254,9 +254,9 @@ export default function QcInspectionPage() {
       </Card>
 
       {/* Inspector Notes */}
-      <Card className="border-neutral-200 shadow-sm">
+      <Card className="border-neutral-200">
         <CardHeader className="pb-3 border-b border-neutral-100">
-          <CardTitle className="text-xs font-bold uppercase tracking-wider text-neutral-500">
+          <CardTitle className="text-xs font-bold tracking-[0.32px] text-neutral-500">
             Inspector Certification Statement
           </CardTitle>
         </CardHeader>
@@ -312,7 +312,7 @@ export default function QcInspectionPage() {
             <Button variant="outline" onClick={() => setFailDialogOpen(false)} className="text-xs font-semibold">
               Cancel
             </Button>
-            <Button onClick={handleConfirmFailQc} className="bg-red-600 text-white text-xs font-bold">
+            <Button onClick={handleConfirmFailQc} className="bg-red-600 text-white text-xs font-bold rounded-full">
               Confirm Return to Technician
             </Button>
           </DialogFooter>

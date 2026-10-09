@@ -45,13 +45,13 @@ export default function BookChooseShopPage() {
         <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#1047FA] mb-1">
+              <div className="flex items-center gap-2 text-xs font-bold tracking-[0.32px] text-[#1047FA] mb-1">
                 <span className="flex size-5 items-center justify-center rounded-full bg-[#1047FA] text-white text-[10px]">
                   1
                 </span>
                 Step 1 of 5
               </div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-neutral-900">
+              <h1 className="text-2xl sm:text-3xl font-semibold text-neutral-900">
                 Choose a Certified Workshop
               </h1>
               <p className="text-xs sm:text-sm text-neutral-500 mt-1">
@@ -95,7 +95,7 @@ export default function BookChooseShopPage() {
                   onClick={() => setSelectedCity(city)}
                   className={`rounded-full px-3.5 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors ${
                     selectedCity === city
-                      ? 'bg-[#1047FA] text-white shadow-sm'
+                      ? 'bg-[#1047FA] text-white'
                       : 'bg-white text-neutral-600 border border-neutral-200 hover:border-blue-400'
                   }`}
                 >
@@ -110,14 +110,14 @@ export default function BookChooseShopPage() {
       {/* Shop Cards Grid */}
       <div className="mx-auto max-w-5xl px-4 pt-8 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between mb-4">
-          <p className="text-xs font-bold uppercase tracking-wider text-neutral-500">
+          <p className="text-xs font-bold tracking-[0.32px] text-neutral-500">
             Available Workshops ({filteredShops.length})
           </p>
           <span className="text-xs text-neutral-400">All workshops verified by BayFlow QA</span>
         </div>
 
         {filteredShops.length === 0 ? (
-          <div className="rounded-2xl border border-neutral-200 bg-white p-12 text-center shadow-sm">
+          <div className="rounded-2xl border border-neutral-200 bg-white p-12 text-center">
             <Building2 className="mx-auto size-12 text-neutral-300" />
             <h3 className="mt-4 text-base font-bold text-neutral-900">No workshops match your search</h3>
             <p className="mt-1 text-xs text-neutral-500">
@@ -143,7 +143,7 @@ export default function BookChooseShopPage() {
               return (
                 <Card
                   key={shop.id}
-                  className="overflow-hidden border-neutral-200/90 bg-white hover:border-[#1047FA]/60 hover:shadow-md transition-all group flex flex-col justify-between"
+                  className="overflow-hidden border-neutral-200/90 bg-white hover:border-[#1047FA]/60 transition-all group flex flex-col justify-between"
                 >
                   <CardContent className="p-5 space-y-4">
                     <div className="flex items-start justify-between gap-3">
@@ -182,7 +182,7 @@ export default function BookChooseShopPage() {
 
                     {/* Services Chips Preview */}
                     <div className="space-y-1.5">
-                      <p className="text-[11px] font-semibold text-neutral-400 uppercase tracking-wider">
+                      <p className="text-[11px] font-semibold text-neutral-400 tracking-[0.32px]">
                         Popular Services
                       </p>
                       <div className="flex flex-wrap gap-1.5">
@@ -213,7 +213,7 @@ export default function BookChooseShopPage() {
                           asChild
                           variant="ghost"
                           size="sm"
-                          className="text-xs font-semibold text-neutral-600 hover:text-[#1047FA]"
+                          className="text-xs font-semibold text-neutral-600 hover:text-[#1047FA] rounded-full"
                         >
                           <Link href={`/shops/${shop.slug}`}>Details</Link>
                         </Button>
@@ -221,7 +221,7 @@ export default function BookChooseShopPage() {
                         <Button
                           asChild
                           size="sm"
-                          className="bg-[#1047FA] hover:bg-blue-700 text-white font-semibold text-xs rounded-lg px-4"
+                          className="bg-[#1047FA] hover:bg-blue-700 text-white font-semibold text-xs rounded-full px-4"
                         >
                           <Link href={`/book/${shop.slug}`}>Book Now</Link>
                         </Button>

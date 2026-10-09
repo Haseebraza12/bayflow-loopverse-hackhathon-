@@ -80,10 +80,10 @@ export default function TeamManagementPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <span className="text-xs font-bold uppercase tracking-wider text-[#1047FA]">
+          <span className="text-xs font-bold tracking-[0.32px] text-[#1047FA]">
             Shop Administration
           </span>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-neutral-900 mt-1">
+          <h1 className="text-2xl sm:text-3xl font-semibold text-neutral-900 mt-1">
             Workshop Team & Staff Roles
           </h1>
           <p className="text-xs text-neutral-500 mt-0.5">
@@ -93,7 +93,7 @@ export default function TeamManagementPage() {
 
         <Button
           onClick={() => setAddDialogOpen(true)}
-          className="bg-[#1047FA] hover:bg-blue-700 text-white font-semibold text-xs rounded-lg px-4 h-9 shadow-sm"
+          className="bg-[#1047FA] hover:bg-blue-700 text-white font-semibold text-xs rounded-lg px-4 h-9"
         >
           <Plus className="size-4 mr-1.5" />
           Add Team Member
@@ -108,10 +108,10 @@ export default function TeamManagementPage() {
       )}
 
       {/* Staff Members Table Card */}
-      <Card className="border-neutral-200 shadow-sm overflow-hidden">
+      <Card className="border-neutral-200 overflow-hidden">
         <CardHeader className="bg-neutral-50/80 border-b border-neutral-100 p-4">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-xs font-bold uppercase tracking-wider text-neutral-500 flex items-center gap-1.5">
+            <CardTitle className="text-xs font-bold tracking-[0.32px] text-neutral-500 flex items-center gap-1.5">
               <Users className="size-4 text-[#1047FA]" />
               Active Team Roster ({team.length})
             </CardTitle>
@@ -122,7 +122,7 @@ export default function TeamManagementPage() {
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-neutral-50 text-[11px] font-bold uppercase text-neutral-400 border-b border-neutral-200">
+              <thead className="bg-neutral-50 text-[11px] font-bold text-neutral-400 border-b border-neutral-200">
                 <tr>
                   <th className="px-5 py-3">Team Member</th>
                   <th className="px-4 py-3">Role</th>
@@ -160,7 +160,7 @@ export default function TeamManagementPage() {
 
                       <td className="px-4 py-3.5">
                         <span
-                          className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                          className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold tracking-[0.32px] ${
                             member.role === 'OWNER'
                               ? 'bg-purple-50 text-purple-700 border border-purple-200'
                               : member.role === 'SERVICE_ADVISOR'
@@ -324,7 +324,7 @@ export default function TeamManagementPage() {
               </Button>
               <Button
                 type="submit"
-                className="bg-[#1047FA] hover:bg-blue-700 text-white font-bold text-xs"
+                className="bg-[#1047FA] hover:bg-blue-700 text-white font-bold text-xs rounded-full"
               >
                 Add Staff Member
               </Button>

@@ -99,10 +99,10 @@ export default function ServiceAdvisorBookingsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <span className="text-xs font-bold uppercase tracking-wider text-[#1047FA]">
+          <span className="text-xs font-bold tracking-[0.32px] text-[#1047FA]">
             Service Advisor Workspace
           </span>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-neutral-900 mt-1">
+          <h1 className="text-2xl sm:text-3xl font-semibold text-neutral-900 mt-1">
             Bookings & Work Orders Queue
           </h1>
           <p className="text-xs text-neutral-500 mt-0.5">
@@ -110,7 +110,7 @@ export default function ServiceAdvisorBookingsPage() {
           </p>
         </div>
 
-        <Button asChild className="bg-[#1047FA] text-white text-xs font-semibold h-9 rounded-lg">
+        <Button asChild className="bg-[#1047FA] text-white text-xs font-semibold h-9 rounded-lg rounded-full">
           <Link href="/book">
             <Plus className="size-3.5 mr-1" />
             New Walk-in Booking
@@ -126,7 +126,7 @@ export default function ServiceAdvisorBookingsPage() {
             onClick={() => setFilterPreset('needs_sa')}
             className={`rounded-lg px-3.5 py-1.5 text-xs font-bold transition-colors whitespace-nowrap ${
               filterPreset === 'needs_sa'
-                ? 'bg-[#1047FA] text-white shadow-sm'
+                ? 'bg-[#1047FA] text-white'
                 : 'bg-white border border-neutral-200 text-neutral-600 hover:border-blue-300'
             }`}
           >
@@ -138,7 +138,7 @@ export default function ServiceAdvisorBookingsPage() {
             onClick={() => setFilterPreset('in_progress')}
             className={`rounded-lg px-3.5 py-1.5 text-xs font-bold transition-colors whitespace-nowrap ${
               filterPreset === 'in_progress'
-                ? 'bg-[#1047FA] text-white shadow-sm'
+                ? 'bg-[#1047FA] text-white'
                 : 'bg-white border border-neutral-200 text-neutral-600 hover:border-blue-300'
             }`}
           >
@@ -150,7 +150,7 @@ export default function ServiceAdvisorBookingsPage() {
             onClick={() => setFilterPreset('all')}
             className={`rounded-lg px-3.5 py-1.5 text-xs font-bold transition-colors whitespace-nowrap ${
               filterPreset === 'all'
-                ? 'bg-[#1047FA] text-white shadow-sm'
+                ? 'bg-[#1047FA] text-white'
                 : 'bg-white border border-neutral-200 text-neutral-600 hover:border-blue-300'
             }`}
           >
@@ -170,7 +170,7 @@ export default function ServiceAdvisorBookingsPage() {
       </div>
 
       {/* Bookings Queue Table */}
-      <Card className="border-neutral-200 shadow-sm overflow-hidden">
+      <Card className="border-neutral-200 overflow-hidden">
         <CardContent className="p-0">
           {filteredBookings.length === 0 ? (
             <div className="p-12 text-center space-y-2">
@@ -183,7 +183,7 @@ export default function ServiceAdvisorBookingsPage() {
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-neutral-50 text-[11px] font-bold uppercase text-neutral-400 border-b border-neutral-200">
+                <thead className="bg-neutral-50 text-[11px] font-bold text-neutral-400 border-b border-neutral-200">
                   <tr>
                     <th className="px-5 py-3">Reference / Slot</th>
                     <th className="px-4 py-3">Customer & Vehicle</th>
@@ -265,7 +265,7 @@ export default function ServiceAdvisorBookingsPage() {
                             asChild
                             variant="outline"
                             size="sm"
-                            className="h-7 text-xs font-semibold border-neutral-200"
+                            className="h-7 text-xs font-semibold border-neutral-200 rounded-full"
                           >
                             <Link href={`${base}/bookings/${b.id}`}>
                               Manage

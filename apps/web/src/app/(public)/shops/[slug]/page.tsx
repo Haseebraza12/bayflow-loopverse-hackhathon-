@@ -33,7 +33,7 @@ export default function ShopDetailPage() {
       <div className="mx-auto max-w-4xl px-4 py-16 text-center">
         <h1 className="text-2xl font-bold text-neutral-900">Shop Not Found</h1>
         <p className="mt-2 text-neutral-600">The shop you&apos;re looking for does not exist or has moved.</p>
-        <Button asChild className="mt-6 bg-[#1047FA] text-white">
+        <Button asChild className="mt-6 bg-[#1047FA] text-white rounded-full">
           <Link href="/book">Browse All Verified Shops</Link>
         </Button>
       </div>
@@ -60,7 +60,7 @@ export default function ShopDetailPage() {
 
       <div className="mx-auto max-w-6xl px-4 pt-8 sm:px-6 lg:px-8 space-y-8">
         {/* Shop Header Card */}
-        <div className="rounded-2xl border border-neutral-200 bg-white p-6 sm:p-8 shadow-sm">
+        <div className="rounded-2xl border border-neutral-200 bg-white p-6 sm:p-8">
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
             <div className="space-y-3">
               <div className="flex flex-wrap items-center gap-2">
@@ -81,7 +81,7 @@ export default function ShopDetailPage() {
                 <span className="text-xs text-neutral-400 font-medium">Slot length: {shop.slot_duration_minutes} min</span>
               </div>
 
-              <h1 className="text-3xl font-extrabold tracking-tight text-neutral-900 sm:text-4xl">
+              <h1 className="text-3xl font-semibold text-neutral-900 sm:text-4xl">
                 {shop.name}
               </h1>
 
@@ -103,7 +103,7 @@ export default function ShopDetailPage() {
               <Button
                 asChild
                 size="lg"
-                className="bg-[#1047FA] hover:bg-blue-700 text-white font-semibold rounded-xl px-7 shadow-sm"
+                className="bg-[#1047FA] hover:bg-blue-700 text-white font-semibold rounded-full px-7"
               >
                 <Link href={`/book/${shop.slug}`}>
                   Book an Appointment
@@ -133,7 +133,7 @@ export default function ShopDetailPage() {
               {activeServices.map((srv) => (
                 <div
                   key={srv.id}
-                  className="rounded-xl border border-neutral-200 bg-white p-5 hover:border-blue-400 hover:shadow-sm transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                  className="rounded-xl border border-neutral-200 bg-white p-5 hover:border-blue-400 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                 >
                   <div className="space-y-1.5 flex-1">
                     <div className="flex items-center gap-2">
@@ -158,7 +158,7 @@ export default function ShopDetailPage() {
                   <Button
                     asChild
                     variant="outline"
-                    className="border-neutral-300 hover:border-[#1047FA] hover:text-[#1047FA] hover:bg-blue-50 font-semibold rounded-lg shrink-0"
+                    className="border-neutral-300 hover:border-[#1047FA] hover:text-[#1047FA] hover:bg-blue-50 font-semibold rounded-full shrink-0"
                   >
                     <Link href={`/book/${shop.slug}?service=${srv.id}`}>
                       Book Service
@@ -185,7 +185,7 @@ export default function ShopDetailPage() {
           {/* Right Sidebar: Hours & Contact */}
           <div className="space-y-6">
             {/* Opening Hours */}
-            <Card className="border-neutral-200 shadow-sm">
+            <Card className="border-neutral-200">
               <CardHeader className="pb-3">
                 <CardTitle className="text-base font-bold text-neutral-900 flex items-center gap-2">
                   <Clock className="size-4 text-[#1047FA]" />
@@ -209,7 +209,7 @@ export default function ShopDetailPage() {
                         <span className="flex items-center gap-1.5">
                           {wh.day}
                           {isToday && (
-                            <span className="text-[10px] bg-[#1047FA] text-white px-1.5 py-0.2 rounded-full uppercase tracking-wider">
+                            <span className="text-[10px] bg-[#1047FA] text-white px-1.5 py-0.2 rounded-full tracking-[0.32px]">
                               Today
                             </span>
                           )}
@@ -223,7 +223,7 @@ export default function ShopDetailPage() {
             </Card>
 
             {/* Direct Contact & Location */}
-            <Card className="border-neutral-200 shadow-sm">
+            <Card className="border-neutral-200">
               <CardHeader className="pb-3">
                 <CardTitle className="text-base font-bold text-neutral-900 flex items-center gap-2">
                   <Building2 className="size-4 text-[#1047FA]" />

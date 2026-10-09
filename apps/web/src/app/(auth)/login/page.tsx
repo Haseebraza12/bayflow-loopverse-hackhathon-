@@ -126,9 +126,9 @@ function LoginForm() {
 
   return (
     <div className="space-y-6">
-      <Card className="border-neutral-200 shadow-sm">
+      <Card className="border-neutral-200">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold tracking-tight text-neutral-900">
+          <CardTitle className="text-2xl font-bold text-neutral-900">
             Log in to BayFlow
           </CardTitle>
           <CardDescription className="text-sm text-neutral-500">
@@ -206,7 +206,7 @@ function LoginForm() {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full bg-[#1047FA] hover:bg-blue-700 text-white font-semibold h-10 shadow-sm"
+              className="w-full bg-[#1047FA] hover:bg-blue-700 text-white font-semibold h-10 rounded-full"
             >
               {loading ? 'Logging in...' : 'Sign In'}
             </Button>
@@ -222,7 +222,7 @@ function LoginForm() {
       </Card>
 
       {/* Demo Credentials Quick-Select Panel */}
-      <Card className="border-blue-100 bg-blue-50/40 shadow-sm">
+      <Card className="border-blue-100 bg-blue-50/40">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-sm font-bold text-neutral-900 flex items-center gap-1.5">
@@ -250,7 +250,7 @@ function LoginForm() {
                   <span className="font-semibold text-neutral-900 group-hover:text-[#1047FA]">
                     {acc.name}
                   </span>
-                  <span className="text-[10px] font-medium text-neutral-500 uppercase tracking-wider bg-neutral-100 px-1.5 py-0.5 rounded">
+                  <span className="text-[10px] font-medium text-neutral-500 tracking-[0.32px] bg-neutral-100 px-1.5 py-0.5 rounded">
                     {acc.role}
                   </span>
                 </div>

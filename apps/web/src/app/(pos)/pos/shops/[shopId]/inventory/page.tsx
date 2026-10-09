@@ -112,10 +112,10 @@ export default function InventoryManagementPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <span className="text-xs font-bold uppercase tracking-wider text-[#1047FA]">
+          <span className="text-xs font-bold tracking-[0.32px] text-[#1047FA]">
             Warehouse & Store
           </span>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-neutral-900 mt-1">
+          <h1 className="text-2xl sm:text-3xl font-semibold text-neutral-900 mt-1">
             Parts & Lubricants Inventory
           </h1>
           <p className="text-xs text-neutral-500 mt-0.5">
@@ -147,7 +147,7 @@ export default function InventoryManagementPage() {
             onClick={() => setFilterState('ALL')}
             className={`rounded-lg px-3.5 py-1.5 text-xs font-bold transition-colors whitespace-nowrap ${
               filterState === 'ALL'
-                ? 'bg-[#1047FA] text-white shadow-sm'
+                ? 'bg-[#1047FA] text-white'
                 : 'bg-white border border-neutral-200 text-neutral-600 hover:border-blue-300'
             }`}
           >
@@ -159,7 +159,7 @@ export default function InventoryManagementPage() {
             onClick={() => setFilterState('LOW')}
             className={`rounded-lg px-3.5 py-1.5 text-xs font-bold transition-colors whitespace-nowrap ${
               filterState === 'LOW'
-                ? 'bg-amber-600 text-white shadow-sm'
+                ? 'bg-amber-600 text-white'
                 : 'bg-white border border-neutral-200 text-neutral-600 hover:border-amber-300'
             }`}
           >
@@ -171,7 +171,7 @@ export default function InventoryManagementPage() {
             onClick={() => setFilterState('OUT')}
             className={`rounded-lg px-3.5 py-1.5 text-xs font-bold transition-colors whitespace-nowrap ${
               filterState === 'OUT'
-                ? 'bg-red-600 text-white shadow-sm'
+                ? 'bg-red-600 text-white'
                 : 'bg-white border border-neutral-200 text-neutral-600 hover:border-red-300'
             }`}
           >
@@ -191,11 +191,11 @@ export default function InventoryManagementPage() {
       </div>
 
       {/* Inventory Table Card */}
-      <Card className="border-neutral-200 shadow-sm overflow-hidden">
+      <Card className="border-neutral-200 overflow-hidden">
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-neutral-50 text-[11px] font-bold uppercase text-neutral-400 border-b border-neutral-200">
+              <thead className="bg-neutral-50 text-[11px] font-bold text-neutral-400 border-b border-neutral-200">
                 <tr>
                   <th className="px-5 py-3">SKU</th>
                   <th className="px-4 py-3">Part Name & Category</th>
@@ -333,7 +333,7 @@ export default function InventoryManagementPage() {
               <Button type="button" variant="outline" onClick={() => setAddPartOpen(false)} className="text-xs font-semibold">
                 Cancel
               </Button>
-              <Button type="submit" className="bg-[#1047FA] text-white font-bold text-xs">
+              <Button type="submit" className="bg-[#1047FA] text-white font-bold text-xs rounded-full">
                 Create SKU
               </Button>
             </DialogFooter>
@@ -382,7 +382,7 @@ export default function InventoryManagementPage() {
               <Button type="button" variant="outline" onClick={() => setAdjustOpen(false)} className="text-xs font-semibold">
                 Cancel
               </Button>
-              <Button type="submit" className="bg-[#1047FA] text-white font-bold text-xs">
+              <Button type="submit" className="bg-[#1047FA] text-white font-bold text-xs rounded-full">
                 Apply Stock Adjustment
               </Button>
             </DialogFooter>

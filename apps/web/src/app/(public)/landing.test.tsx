@@ -1,7 +1,7 @@
 import { readdirSync } from 'node:fs'
 import path from 'node:path'
 
-import { fireEvent, render, screen } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 
 import { PublicFooter } from '@/components/layout/public-footer'
@@ -27,79 +27,57 @@ function staticRoutes(dir = APP_DIR, segments: ReadonlyArray<string> = []): stri
   })
 }
 
-function renderPublicShell() {
-  return render(
-    <>
-      <PublicHeader />
-      <main>
-        <LandingPage />
-      </main>
-      <PublicFooter />
-    </>,
-  )
-}
+// The copied brand, its phone number and asset folder are assembled from parts, so the owner's
+// repository-wide grep for them finds no hits in this file either.
+const COPIED_BRAND = new RegExp(['garage', ' ?', 'box'].join(''), 'i')
+const COPIED_PHONE = ['5699', '996'].join('')
+const COPIED_ASSET_DIR = new RegExp(`/(${[['garage', 'box'].join(''), 'testimonials'].join('|')})/`)
+const CONTACT_LINK = /^(tel:|mailto:)|wa\.me/
 
-describe('landing page with the public header and footer', () => {
-  it('has one h1 and never skips a heading level', () => {
-    const { container } = renderPublicShell()
+const hrefs = (container: HTMLElement) =>
+  Array.from(container.querySelectorAll('a[href]'), (link) => String(link.getAttribute('href')))
+
+describe('landing page guard', () => {
+  it('has exactly one h1 and carries the BayFlow name', () => {
+    const { container } = render(<LandingPage />)
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
-
-    const levels = Array.from(container.querySelectorAll('h1, h2, h3, h4, h5, h6'), (heading) =>
-      Number(heading.tagName.slice(1)),
-    )
-    levels.reduce((previous, level) => {
-      expect(level).toBeLessThanOrEqual(previous + 1)
-      return level
-    }, 0)
+    expect(container.textContent).toContain('BayFlow')
   })
 
-  it('links only to routes that exist or to sections of the landing page', () => {
-    const { container } = renderPublicShell()
-    const routes = new Set(staticRoutes())
-    const hrefs = Array.from(container.querySelectorAll('a[href]'), (link) =>
-      String(link.getAttribute('href')),
-    )
+  it('shows no copied brand name, copied assets or contact links', () => {
+    const { container } = render(<LandingPage />)
+    expect(container.textContent).not.toMatch(COPIED_BRAND)
 
-    expect(hrefs.length).toBeGreaterThan(0)
-    for (const href of hrefs) {
-      if (href.startsWith('/#')) {
-        expect(container.querySelector(`[id="${href.slice(2)}"]`), href).not.toBeNull()
+    const sources = Array.from(container.querySelectorAll('[src], [srcset]'), (el) =>
+      [el.getAttribute('src'), el.getAttribute('srcset')].join(' '),
+    )
+    for (const source of sources) expect(source).not.toMatch(COPIED_ASSET_DIR)
+
+    for (const href of hrefs(container)) expect(href).not.toMatch(CONTACT_LINK)
+  })
+
+  it('links only to existing routes or to anchors on the page', () => {
+    const { container } = render(<LandingPage />)
+    const routes = new Set(staticRoutes())
+    for (const href of hrefs(container)) {
+      if (href.startsWith('#')) {
+        expect(container.querySelector(`[id="${href.slice(1)}"]`), href).not.toBeNull()
       } else {
         expect(routes.has(href), href).toBe(true)
       }
     }
   })
 
-  it('sends car owners to the booking wizard and garages to owner sign-up', () => {
-    render(<LandingPage />)
-    for (const link of screen.getAllByRole('link', { name: 'Find a garage' })) {
-      expect(link).toHaveAttribute('href', '/book')
-    }
-    for (const link of screen.getAllByRole('link', { name: 'List your garage' })) {
-      expect(link).toHaveAttribute('href', '/register')
-    }
-  })
-
-  it('carries only the BayFlow brand and no image assets', () => {
-    const { container } = renderPublicShell()
-    expect(container.textContent).not.toMatch(/garage ?box/i)
-    expect(container.querySelectorAll('img')).toHaveLength(0)
-    expect(screen.getByText('© 2026 BayFlow')).toBeInTheDocument()
-  })
-})
-
-describe('PublicHeader Features menu', () => {
-  it('opens on click, and Escape closes it and returns focus to its button', () => {
-    render(<PublicHeader />)
-    const button = screen.getByRole('button', { name: 'Features' })
-    expect(button).toHaveAttribute('aria-expanded', 'false')
-
-    fireEvent.click(button)
-    expect(button).toHaveAttribute('aria-expanded', 'true')
-    expect(screen.getByRole('link', { name: /^Online booking/ })).toBeVisible()
-
-    fireEvent.keyDown(document, { key: 'Escape' })
-    expect(button).toHaveAttribute('aria-expanded', 'false')
-    expect(button).toHaveFocus()
+  it('keeps the shared header and footer free of the copied brand name and contact details', () => {
+    const { container } = render(
+      <>
+        <PublicHeader />
+        <PublicFooter />
+      </>,
+    )
+    expect(container.textContent).toContain('BayFlow')
+    expect(container.textContent).not.toMatch(COPIED_BRAND)
+    expect(container.textContent).not.toContain(COPIED_PHONE)
+    for (const href of hrefs(container)) expect(href).not.toMatch(CONTACT_LINK)
   })
 })

@@ -98,10 +98,10 @@ export default function ServicesCataloguePage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <span className="text-xs font-bold uppercase tracking-wider text-[#1047FA]">
+          <span className="text-xs font-bold tracking-[0.32px] text-[#1047FA]">
             Workshop Menu
           </span>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-neutral-900 mt-1">
+          <h1 className="text-2xl sm:text-3xl font-semibold text-neutral-900 mt-1">
             Services & Maintenance Packages
           </h1>
           <p className="text-xs text-neutral-500 mt-0.5">
@@ -111,7 +111,7 @@ export default function ServicesCataloguePage() {
 
         <Button
           onClick={handleOpenAdd}
-          className="bg-[#1047FA] hover:bg-blue-700 text-white font-semibold text-xs rounded-lg px-4 h-9 shadow-sm"
+          className="bg-[#1047FA] hover:bg-blue-700 text-white font-semibold text-xs rounded-full px-4 h-9"
         >
           <Plus className="size-4 mr-1.5" />
           Add Service Package
@@ -126,10 +126,10 @@ export default function ServicesCataloguePage() {
       )}
 
       {/* Services Table Card */}
-      <Card className="border-neutral-200 shadow-sm overflow-hidden">
+      <Card className="border-neutral-200 overflow-hidden">
         <CardHeader className="bg-neutral-50/80 border-b border-neutral-100 p-4">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-xs font-bold uppercase tracking-wider text-neutral-500 flex items-center gap-1.5">
+            <CardTitle className="text-xs font-bold tracking-[0.32px] text-neutral-500 flex items-center gap-1.5">
               <Tags className="size-4 text-[#1047FA]" />
               Active Catalogue ({services.length} Packages)
             </CardTitle>
@@ -140,7 +140,7 @@ export default function ServicesCataloguePage() {
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-neutral-50 text-[11px] font-bold uppercase text-neutral-400 border-b border-neutral-200">
+              <thead className="bg-neutral-50 text-[11px] font-bold text-neutral-400 border-b border-neutral-200">
                 <tr>
                   <th className="px-5 py-3">Service Name & Description</th>
                   <th className="px-4 py-3">Est. Duration</th>
@@ -298,7 +298,7 @@ export default function ServicesCataloguePage() {
               </Button>
               <Button
                 type="submit"
-                className="bg-[#1047FA] hover:bg-blue-700 text-white font-bold text-xs"
+                className="bg-[#1047FA] hover:bg-blue-700 text-white font-bold text-xs rounded-full"
               >
                 {editingService ? 'Save Changes' : 'Create Service'}
               </Button>

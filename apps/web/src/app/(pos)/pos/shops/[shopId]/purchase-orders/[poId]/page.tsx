@@ -36,7 +36,7 @@ export default function PurchaseOrderDetailPage() {
     return (
       <div className="py-16 text-center space-y-4">
         <h1 className="text-xl font-bold text-neutral-900">Purchase order not found</h1>
-        <Button asChild className="bg-[#1047FA] text-white text-xs">
+        <Button asChild className="bg-[#1047FA] text-white text-xs rounded-full">
           <Link href={`${base}/purchase-orders`}>Back to Orders</Link>
         </Button>
       </div>
@@ -78,15 +78,15 @@ export default function PurchaseOrderDetailPage() {
       )}
 
       {/* Header & Status Card */}
-      <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm space-y-4">
+      <div className="rounded-2xl border border-neutral-200 bg-white p-6 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <span className="font-mono text-2xl font-extrabold text-[#1047FA]">
+              <span className="font-mono text-2xl font-semibold text-[#1047FA]">
                 {po.po_number}
               </span>
               <span
-                className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold tracking-[0.32px] ${
                   po.status === 'RECEIVED'
                     ? 'bg-emerald-100 text-emerald-800'
                     : 'bg-amber-100 text-amber-800'
@@ -104,7 +104,7 @@ export default function PurchaseOrderDetailPage() {
           {po.status !== 'RECEIVED' && (
             <Button
               onClick={handleReceiveAll}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-9 px-5 shadow-sm"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-9 px-5 rounded-full"
             >
               <PackageCheck className="size-4 mr-1.5" />
               Receive Shipment into Stock
@@ -114,9 +114,9 @@ export default function PurchaseOrderDetailPage() {
       </div>
 
       {/* Items Card */}
-      <Card className="border-neutral-200 shadow-sm overflow-hidden">
+      <Card className="border-neutral-200 overflow-hidden">
         <CardHeader className="bg-neutral-50/80 border-b border-neutral-100 p-4">
-          <CardTitle className="text-xs font-bold uppercase tracking-wider text-neutral-500 flex items-center gap-1.5">
+          <CardTitle className="text-xs font-bold tracking-[0.32px] text-neutral-500 flex items-center gap-1.5">
             <Truck className="size-4 text-[#1047FA]" />
             Ordered Line Items ({po.items.length})
           </CardTitle>
@@ -124,7 +124,7 @@ export default function PurchaseOrderDetailPage() {
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-neutral-50 text-[11px] font-bold uppercase text-neutral-400 border-b border-neutral-200">
+              <thead className="bg-neutral-50 text-[11px] font-bold text-neutral-400 border-b border-neutral-200">
                 <tr>
                   <th className="px-5 py-3">Part Description</th>
                   <th className="px-4 py-3">SKU</th>
@@ -151,7 +151,7 @@ export default function PurchaseOrderDetailPage() {
                   <td colSpan={4} className="px-5 py-3 text-right text-neutral-600">
                     Total Order Value
                   </td>
-                  <td className="px-5 py-3 text-right font-extrabold text-sm text-[#1047FA]">
+                  <td className="px-5 py-3 text-right font-semibold text-sm text-[#1047FA]">
                     {formatPKR(po.total_amount)}
                   </td>
                 </tr>
