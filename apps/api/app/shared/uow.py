@@ -5,6 +5,11 @@ events with `await uow.publish(event)` and, as a top-level use case, finish with
 `await uow.commit()`. Callbacks queued with `uow.after_commit(...)` (WebSocket pushes, e-mails)
 start only after a successful commit, as background tasks that never reuse the request session;
 their failures are logged and never change the HTTP response.
+
+`uow.app_state` is the application's `State` (D90): handlers reach per-app resources through it
+(`db`, `settings`, the notifications module's hub and e-mail sender), never through module-level
+singletons. It is `None` when a script, the seed or a unit test builds the unit of work by hand;
+handlers then still write their rows but queue no push and no e-mail.
 """
 
 import asyncio
@@ -14,6 +19,7 @@ from typing import Annotated
 
 from fastapi import Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.datastructures import State
 
 from app.core.database import DbSession
 from app.shared.event_bus import MAX_EVENT_DEPTH, Event, EventBus
@@ -31,9 +37,12 @@ class EventNestingTooDeepError(RuntimeError):
 
 
 class UnitOfWork:
-    def __init__(self, session: AsyncSession, bus: EventBus) -> None:
+    def __init__(
+        self, session: AsyncSession, bus: EventBus, *, app_state: State | None = None
+    ) -> None:
         self.session = session
         self.bus = bus
+        self.app_state = app_state
         self._after_commit: list[AfterCommitCallback] = []
         self._depth = 0
 
@@ -101,7 +110,7 @@ def get_event_bus(request: Request) -> EventBus:
 
 
 async def get_uow(request: Request, session: DbSession) -> UnitOfWork:
-    return UnitOfWork(session, get_event_bus(request))
+    return UnitOfWork(session, get_event_bus(request), app_state=request.app.state)
 
 
 UowDep = Annotated[UnitOfWork, Depends(get_uow)]

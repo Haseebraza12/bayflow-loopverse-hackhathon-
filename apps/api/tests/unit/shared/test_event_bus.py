@@ -5,12 +5,16 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 
 import pytest
+from fastapi import FastAPI
+from starlette.datastructures import State
+from starlette.requests import Request
 
 from app.shared.event_bus import MAX_EVENT_DEPTH, Event, EventBus
 from app.shared.uow import (
     EventNestingTooDeepError,
     UnitOfWork,
     drain_after_commit_tasks,
+    get_uow,
     pending_after_commit_tasks,
 )
 
@@ -137,6 +141,37 @@ async def test_rollback_discards_after_commit_callbacks() -> None:
     await drain_after_commit_tasks()
     assert ran == []
     assert session.rollbacks == 1
+
+
+def test_a_hand_built_unit_of_work_has_no_app_state() -> None:
+    uow, _ = make_uow(EventBus())
+    assert uow.app_state is None  # D90: scripts, the seed and unit tests queue no push or e-mail
+
+
+async def test_handlers_reach_per_app_resources_through_the_app_state() -> None:
+    bus = EventBus()
+    state = State()
+    state.marker = "per-app resource"
+    seen: list[object] = []
+
+    async def handler(event: SomethingHappened, uow: UnitOfWork) -> None:
+        seen.append(None if uow.app_state is None else uow.app_state.marker)
+
+    bus.subscribe(SomethingHappened, handler)
+    uow = UnitOfWork(FakeSession(), bus, app_state=state)  # type: ignore[arg-type]
+    await uow.publish(SomethingHappened(occurred_at=NOW, name="x"))
+    assert seen == ["per-app resource"]
+
+
+async def test_get_uow_carries_the_request_app_state_and_bus() -> None:
+    app = FastAPI()
+    app.state.event_bus = EventBus()
+    request = Request({"type": "http", "app": app})
+    session = FakeSession()
+    uow = await get_uow(request, session)  # type: ignore[arg-type]
+    assert uow.app_state is app.state
+    assert uow.bus is app.state.event_bus
+    assert uow.session is session  # type: ignore[comparison-overlap]
 
 
 async def test_a_failing_after_commit_callback_is_logged_not_raised(
