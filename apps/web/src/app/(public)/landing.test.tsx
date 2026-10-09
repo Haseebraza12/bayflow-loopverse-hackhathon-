@@ -1,8 +1,8 @@
 import { readdirSync } from 'node:fs'
 import path from 'node:path'
 
-import { render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { fireEvent, render, screen } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
 
 import { PublicFooter } from '@/components/layout/public-footer'
 import { PublicHeader } from '@/components/layout/public-header'
@@ -31,11 +31,37 @@ function staticRoutes(dir = APP_DIR, segments: ReadonlyArray<string> = []): stri
 // repository-wide grep for them finds no hits in this file either.
 const COPIED_BRAND = new RegExp(['garage', ' ?', 'box'].join(''), 'i')
 const COPIED_PHONE = ['5699', '996'].join('')
-const COPIED_ASSET_DIR = new RegExp(`/(${[['garage', 'box'].join(''), 'testimonials'].join('|')})/`)
+const COPIED_ASSET_DIR = new RegExp(`/${['garage', 'box'].join('')}/`)
 const CONTACT_LINK = /^(tel:|mailto:)|wa\.me/
+/** Rating-count claims such as "<n>+ reviews" or "5-Star Rated". */
+const RATING_CLAIM = /\d+\s*\+?\s*reviews|star rated/i
+/** Third-party review platforms and app stores: other companies' marks implying reviews or apps. */
+const THIRD_PARTY_MARKS =
+  /\b(Google|G2|Clutch|TrustRadius|Trustpilot|SoftwareSuggest)\b|app store|play store|google play/i
 
 const hrefs = (container: HTMLElement) =>
   Array.from(container.querySelectorAll('a[href]'), (link) => String(link.getAttribute('href')))
+
+/** URL-decoded, so `/_next/image?url=%2Fdir%2Ffile` still reveals the asset path. */
+const decode = (value: string) => {
+  try {
+    return decodeURIComponent(value)
+  } catch {
+    return value
+  }
+}
+
+/** Visible text plus the attributes that can carry copy or asset names. */
+function pageCopy(container: HTMLElement) {
+  const attributes = Array.from(
+    container.querySelectorAll('[alt], [title], [src], [srcset]'),
+    (el) =>
+      ['alt', 'title', 'src', 'srcset']
+        .map((name) => decode(el.getAttribute(name) ?? ''))
+        .join(' '),
+  )
+  return [container.textContent ?? '', ...attributes].join('\n')
+}
 
 describe('landing page guard', () => {
   it('has exactly one h1 and carries the BayFlow name', () => {
@@ -44,16 +70,20 @@ describe('landing page guard', () => {
     expect(container.textContent).toContain('BayFlow')
   })
 
-  it('shows no copied brand name, copied assets or contact links', () => {
+  it('shows no copied brand, copied assets, contact links, rating claims or third-party marks', () => {
     const { container } = render(<LandingPage />)
-    expect(container.textContent).not.toMatch(COPIED_BRAND)
-
-    const sources = Array.from(container.querySelectorAll('[src], [srcset]'), (el) =>
-      [el.getAttribute('src'), el.getAttribute('srcset')].join(' '),
-    )
-    for (const source of sources) expect(source).not.toMatch(COPIED_ASSET_DIR)
-
+    const copy = pageCopy(container)
+    expect(copy).not.toMatch(COPIED_BRAND)
+    expect(copy).not.toContain(COPIED_PHONE)
+    expect(copy).not.toMatch(COPIED_ASSET_DIR)
+    expect(copy).not.toMatch(RATING_CLAIM)
+    expect(copy).not.toMatch(THIRD_PARTY_MARKS)
     for (const href of hrefs(container)) expect(href).not.toMatch(CONTACT_LINK)
+  })
+
+  it('labels the testimonials as illustrative', () => {
+    render(<LandingPage />)
+    expect(screen.getByText('Illustrative stories, not real customers')).toBeVisible()
   })
 
   it('links only to existing routes or to anchors on the page', () => {
@@ -66,6 +96,22 @@ describe('landing page guard', () => {
         expect(routes.has(href), href).toBe(true)
       }
     }
+  })
+
+  it('sends nothing from the demo form and says so', () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch')
+    render(<LandingPage />)
+    fireEvent.click(screen.getAllByRole('button', { name: 'Book a Demo' })[0]!)
+    fireEvent.submit(screen.getByRole('button', { name: 'Confirm Demo Request' }).closest('form')!)
+
+    expect(fetchSpy).not.toHaveBeenCalled()
+    expect(screen.getByRole('heading', { name: 'This is a demo' })).toBeVisible()
+    expect(screen.getByText(/Nothing was sent/)).toBeVisible()
+    expect(screen.getByRole('link', { name: 'Sign in with a demo account' })).toHaveAttribute(
+      'href',
+      '/login',
+    )
+    fetchSpy.mockRestore()
   })
 
   it('keeps the shared header and footer free of the copied brand name and contact details', () => {
