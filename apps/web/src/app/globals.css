@@ -211,8 +211,9 @@
     @apply border-border outline-ring;
   }
   html {
-    /* Keep focused/anchored content clear of the sticky headers (WCAG 2.4.11, spec 09 §5.2). */
-    scroll-padding-top: 4rem;
+    /* Keep focused/anchored content clear of the sticky headers (WCAG 2.4.11, spec 09 §5.2).
+       The tallest one is the 5rem public header, plus 1rem of breathing room. */
+    scroll-padding-top: 6rem;
   }
   body {
     @apply bg-background font-sans text-foreground antialiased;
@@ -225,7 +226,7 @@
 
 .bg-grid-pattern {
   background-size: 32px 32px;
-  background-image: 
+  background-image:
     linear-gradient(to right, rgba(226, 232, 240, 0.65) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(226, 232, 240, 0.65) 1px, transparent 1px);
 }

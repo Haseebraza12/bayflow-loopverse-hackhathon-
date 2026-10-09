@@ -1,440 +1,381 @@
 'use client'
 
 import {
-  BarChart3,
   Bell,
-  Box,
-  Calendar,
+  CalendarCheck,
   ChevronDown,
   ChevronRight,
   ClipboardCheck,
+  FileCheck,
   Menu,
-  PhoneCall,
-  PlusCircle,
-  ShoppingBag,
-  Warehouse,
+  PackageSearch,
+  Store,
+  Users,
+  Workflow,
   X,
+  type LucideIcon,
 } from 'lucide-react'
 import Link from 'next/link'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState, type FocusEvent } from 'react'
 
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
 import { Logo } from './logo'
 
+interface FeatureLink {
+  title: string
+  desc: string
+  icon: LucideIcon
+  color: string
+  href: `/#${string}`
+}
+
+/**
+ * The Features menu. Each entry jumps to its section of the landing page; the hrefs start with `/`
+ * so they also work from the other pages that share this header.
+ */
+const FEATURE_LINKS: ReadonlyArray<FeatureLink> = [
+  {
+    title: 'Online booking',
+    desc: 'Pick a garage, choose services and book a slot that still has space.',
+    icon: CalendarCheck,
+    color: 'bg-blue-50 text-blue-600',
+    href: '/#booking',
+  },
+  {
+    title: 'Estimate approval',
+    desc: 'Itemised, versioned estimates the customer approves or rejects online.',
+    icon: FileCheck,
+    color: 'bg-rose-50 text-rose-600',
+    href: '/#estimates',
+  },
+  {
+    title: 'Status tracking',
+    desc: 'A timeline of every step and an in-app notice when the car is ready.',
+    icon: Bell,
+    color: 'bg-indigo-50 text-indigo-600',
+    href: '/#tracking',
+  },
+  {
+    title: 'Parts and purchase orders',
+    desc: 'Stock checked against each job; missing parts ordered and received.',
+    icon: PackageSearch,
+    color: 'bg-cyan-50 text-cyan-600',
+    href: '/#parts',
+  },
+  {
+    title: 'Quality control',
+    desc: 'A checklist before hand-over; a failed check goes back with an issue.',
+    icon: ClipboardCheck,
+    color: 'bg-emerald-50 text-emerald-600',
+    href: '/#qc',
+  },
+  {
+    title: 'Role-based workspaces',
+    desc: 'Service Advisor, Technician, Parts, QC and Owner each see their own work.',
+    icon: Users,
+    color: 'bg-amber-50 text-amber-600',
+    href: '/#roles',
+  },
+  {
+    title: 'Multi-shop',
+    desc: 'Separate team, stock, slots and bookings per shop, one switcher for owners.',
+    icon: Store,
+    color: 'bg-teal-50 text-teal-600',
+    href: '/#multi-shop',
+  },
+  {
+    title: 'Booking lifecycle',
+    desc: 'One responsible role per status, and every hand-off on the record.',
+    icon: Workflow,
+    color: 'bg-purple-50 text-purple-600',
+    href: '/#lifecycle',
+  },
+]
+
+const NAV_LINKS = [
+  { label: 'How it works', href: '/#how-it-works' },
+  { label: 'For garages', href: '/#for-garages' },
+] as const
+
+const FOCUS_RING = 'focus-visible:outline-2 focus-visible:outline-offset-2'
+
+const NAV_ITEM = cn(
+  'inline-flex items-center gap-1 rounded-lg px-3 py-2 text-xs font-bold tracking-wider text-neutral-700 uppercase transition-colors hover:text-[#1047FA] xl:text-sm',
+  FOCUS_RING,
+)
+
+/**
+ * Customer-portal header (spec 09 §4.1): sticky, logo home link, main navigation, "Log in" and
+ * "List your garage". Below `lg` the links fold into a menu. Anonymous state only for now: the
+ * logged-in state needs `GET /api/v1/me`.
+ */
 export function PublicHeader() {
   const [featuresOpen, setFeaturesOpen] = useState(false)
-  const [solutionsOpen, setSolutionsOpen] = useState(false)
-  const [companyOpen, setCompanyOpen] = useState(false)
-  const [resourcesOpen, setResourcesOpen] = useState(false)
-  const [langOpen, setLangOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [selectedLang, setSelectedLang] = useState('English')
 
-  const navRef = useRef<HTMLDivElement>(null)
+  const featuresPanelId = useId()
+  const mobileMenuId = useId()
+  const featuresRef = useRef<HTMLDivElement>(null)
+  const featuresButtonRef = useRef<HTMLButtonElement>(null)
+  const mobileButtonRef = useRef<HTMLButtonElement>(null)
 
+  // While a menu is open, Escape closes it and returns focus to its button, and a click outside
+  // the Features menu closes that menu.
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (navRef.current && !navRef.current.contains(event.target as Node)) {
+    if (!featuresOpen && !mobileMenuOpen) return
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key !== 'Escape') return
+      if (featuresOpen) {
         setFeaturesOpen(false)
-        setSolutionsOpen(false)
-        setCompanyOpen(false)
-        setResourcesOpen(false)
-        setLangOpen(false)
+        featuresButtonRef.current?.focus()
+      }
+      if (mobileMenuOpen) {
+        setMobileMenuOpen(false)
+        mobileButtonRef.current?.focus()
       }
     }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
 
-  const featureItems = [
-    {
-      title: 'Workflow',
-      desc: 'Assign tasks, schedule jobs, and track progress in real time. Keep your team aligned and your shop running like clockwork.',
-      icon: BarChart3,
-      color: 'bg-blue-50 text-blue-600',
-      href: '#workflow',
-    },
-    {
-      title: 'Estimates',
-      desc: 'Send professional estimates in seconds. Get approvals faster and get to work sooner.',
-      icon: PlusCircle,
-      color: 'bg-rose-50 text-rose-600',
-      href: '#estimates',
-    },
-    {
-      title: 'Inventory',
-      desc: "Know exactly what's in stock from parts to tires. Reduce delays and keep your jobs moving.",
-      icon: Warehouse,
-      color: 'bg-indigo-50 text-indigo-600',
-      href: '#inventory',
-    },
-    {
-      title: 'Vehicle Inspections',
-      desc: 'Catch issues early and build trust. Create digital inspection reports your customers can see and understand instantly.',
-      icon: ClipboardCheck,
-      color: 'bg-emerald-50 text-emerald-600',
-      href: '#inspections',
-    },
-    {
-      title: 'Packaged Services',
-      desc: 'Bundle common repairs and maintenance into convenient packages that deliver more value and more revenue.',
-      icon: Box,
-      color: 'bg-cyan-50 text-cyan-600',
-      href: '#packages',
-    },
-    {
-      title: 'Procurement',
-      desc: 'Order the right parts, on time. Manage suppliers and restock with confidence without chasing paperwork.',
-      icon: ShoppingBag,
-      color: 'bg-amber-50 text-amber-600',
-      href: '#procurement',
-    },
-    {
-      title: 'Appointment Scheduling',
-      desc: 'Notifications to prompt action for upcoming tasks or events.',
-      icon: Calendar,
-      color: 'bg-teal-50 text-teal-600',
-      href: '#scheduling',
-    },
-    {
-      title: 'Service Reminders',
-      desc: 'Diagnose multiple systems with a single tool.',
-      icon: Bell,
-      color: 'bg-purple-50 text-purple-600',
-      href: '#reminders',
-    },
-  ]
+    function handlePointerDown(event: PointerEvent) {
+      if (featuresRef.current && !featuresRef.current.contains(event.target as Node)) {
+        setFeaturesOpen(false)
+      }
+    }
 
-  const languages = [
-    { name: 'English', flag: '🇬🇧' },
-    { name: 'العربية (Arabic)', flag: '🇦🇪' },
-    { name: 'اردو (Urdu)', flag: '🇵🇰' },
-    { name: 'Bahasa Melayu', flag: '🇲🇾' },
-    { name: 'ไทย (Thai)', flag: '🇹🇭' },
-  ]
+    document.addEventListener('keydown', handleKeyDown)
+    document.addEventListener('pointerdown', handlePointerDown)
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+      document.removeEventListener('pointerdown', handlePointerDown)
+    }
+  }, [featuresOpen, mobileMenuOpen])
+
+  // Keyboard users who tab out of the Features menu close it.
+  function handleFeaturesBlur(event: FocusEvent<HTMLDivElement>) {
+    if (!event.currentTarget.contains(event.relatedTarget)) setFeaturesOpen(false)
+  }
+
+  const closeMobileMenu = () => setMobileMenuOpen(false)
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-neutral-200/80 bg-white/95 backdrop-blur-md">
-      <div
-        ref={navRef}
-        className="mx-auto flex h-20 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8"
-      >
-        {/* Brand Logo */}
-        <Link href="/" aria-label="GarageBox home" className="flex items-center gap-2">
+    <header className="sticky top-0 z-40 w-full border-b border-neutral-200/80 bg-white/95 backdrop-blur-md">
+      <div className="mx-auto flex h-20 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+        <Link href="/" aria-label="BayFlow home" className={cn('rounded-xl', FOCUS_RING)}>
           <Logo size="md" />
         </Link>
 
-        {/* Desktop Nav */}
-        <nav aria-label="Main Navigation" className="hidden lg:flex items-center gap-1 xl:gap-2">
-          {/* FEATURES DROPDOWN */}
-          <div className="relative">
+        {/* Desktop navigation */}
+        <nav aria-label="Main" className="hidden items-center gap-1 lg:flex xl:gap-2">
+          <Link href="/book" className={NAV_ITEM}>
+            Find a garage
+          </Link>
+
+          <div ref={featuresRef} className="relative" onBlur={handleFeaturesBlur}>
             <button
+              ref={featuresButtonRef}
               type="button"
-              onClick={() => {
-                setFeaturesOpen(!featuresOpen)
-                setSolutionsOpen(false)
-                setCompanyOpen(false)
-                setResourcesOpen(false)
-              }}
-              className="inline-flex items-center gap-1 px-3 py-2 text-xs xl:text-sm font-bold uppercase tracking-wider text-neutral-700 hover:text-[#1047FA] transition-colors"
+              aria-expanded={featuresOpen}
+              aria-controls={featuresPanelId}
+              onClick={() => setFeaturesOpen((open) => !open)}
+              className={NAV_ITEM}
             >
               Features
               <ChevronDown
-                className={`size-4 transition-transform duration-200 ${featuresOpen ? 'rotate-180 text-[#1047FA]' : ''}`}
+                aria-hidden="true"
+                className={cn(
+                  'size-4 transition-transform duration-200 motion-reduce:transition-none',
+                  featuresOpen && 'rotate-180 text-[#1047FA]',
+                )}
               />
             </button>
 
-            {featuresOpen && (
-              <div className="absolute left-1/2 -translate-x-1/2 top-full mt-3 w-[680px] xl:w-[760px] rounded-3xl border border-neutral-200 bg-white p-6 shadow-2xl transition-all duration-200 z-50">
-                <div className="grid grid-cols-2 gap-4 pb-5 border-b border-neutral-100">
-                  {featureItems.map((item) => (
+            <div
+              id={featuresPanelId}
+              hidden={!featuresOpen}
+              className="absolute top-full left-1/2 z-50 mt-3 w-[640px] -translate-x-1/2 rounded-3xl border border-neutral-200 bg-white p-6 shadow-2xl xl:w-[720px]"
+            >
+              <ul className="grid grid-cols-2 gap-2 border-b border-neutral-100 pb-5">
+                {FEATURE_LINKS.map((item) => (
+                  <li key={item.href}>
                     <Link
-                      key={item.title}
                       href={item.href}
                       onClick={() => setFeaturesOpen(false)}
-                      className="group flex items-start gap-3.5 rounded-2xl p-3 hover:bg-neutral-50 transition-colors"
+                      className={cn(
+                        'group flex items-start gap-3.5 rounded-2xl p-3 transition-colors hover:bg-neutral-50',
+                        FOCUS_RING,
+                      )}
                     >
-                      <div
-                        className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${item.color}`}
+                      <span
+                        className={cn(
+                          'flex size-10 shrink-0 items-center justify-center rounded-xl',
+                          item.color,
+                        )}
                       >
-                        <item.icon className="size-5" />
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-bold text-neutral-900 group-hover:text-[#1047FA] transition-colors">
+                        <item.icon aria-hidden="true" className="size-5" />
+                      </span>
+                      <span>
+                        <span className="block text-sm font-bold text-neutral-900 transition-colors group-hover:text-[#1047FA]">
                           {item.title}
-                        </h4>
-                        <p className="mt-0.5 line-clamp-2 text-xs text-neutral-500 leading-relaxed">
+                        </span>
+                        <span className="mt-0.5 block text-xs leading-relaxed text-neutral-600">
                           {item.desc}
-                        </p>
-                      </div>
+                        </span>
+                      </span>
                     </Link>
-                  ))}
-                </div>
+                  </li>
+                ))}
+              </ul>
 
-                <div className="flex items-center justify-between pt-4 px-2 text-xs font-semibold">
-                  <a
-                    href="tel:+923125699996"
-                    className="inline-flex items-center gap-2 text-neutral-600 hover:text-[#1047FA] transition-colors"
-                  >
-                    <PhoneCall className="size-3.5 text-[#1047FA]" />
-                    <span>Contact Sales</span>
-                  </a>
-                  <Link
-                    href="#features-all"
-                    onClick={() => setFeaturesOpen(false)}
-                    className="inline-flex items-center gap-1.5 text-[#1047FA] hover:underline"
-                  >
-                    <span>VIEW ALL FEATURES</span>
-                    <ChevronRight className="size-4" />
-                  </Link>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* SOLUTIONS DROPDOWN */}
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => {
-                setSolutionsOpen(!solutionsOpen)
-                setFeaturesOpen(false)
-                setCompanyOpen(false)
-                setResourcesOpen(false)
-              }}
-              className="inline-flex items-center gap-1 px-3 py-2 text-xs xl:text-sm font-bold uppercase tracking-wider text-neutral-700 hover:text-[#1047FA] transition-colors"
-            >
-              Solutions
-              <ChevronDown
-                className={`size-4 transition-transform duration-200 ${solutionsOpen ? 'rotate-180 text-[#1047FA]' : ''}`}
-              />
-            </button>
-
-            {solutionsOpen && (
-              <div className="absolute left-0 top-full mt-3 w-72 rounded-2xl border border-neutral-200 bg-white p-3 shadow-xl z-50">
-                <div className="space-y-1">
-                  {[
-                    'Built for Every Type of Shop',
-                    'Scalable for Any Size',
-                    'Win Trust. Keep Customers.',
-                    'From Check-In to Checkout',
-                    'Your Parts and Purchasing',
-                    'Profit Starts with Clarity',
-                  ].map((sol) => (
-                    <Link
-                      key={sol}
-                      href="#solutions"
-                      onClick={() => setSolutionsOpen(false)}
-                      className="block rounded-lg px-3 py-2 text-xs font-medium text-neutral-700 hover:bg-neutral-50 hover:text-[#1047FA] transition-colors"
-                    >
-                      {sol}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* COMPANY DROPDOWN */}
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => {
-                setCompanyOpen(!companyOpen)
-                setFeaturesOpen(false)
-                setSolutionsOpen(false)
-                setResourcesOpen(false)
-              }}
-              className="inline-flex items-center gap-1 px-3 py-2 text-xs xl:text-sm font-bold uppercase tracking-wider text-neutral-700 hover:text-[#1047FA] transition-colors"
-            >
-              Company
-              <ChevronDown
-                className={`size-4 transition-transform duration-200 ${companyOpen ? 'rotate-180 text-[#1047FA]' : ''}`}
-              />
-            </button>
-
-            {companyOpen && (
-              <div className="absolute left-0 top-full mt-3 w-64 rounded-2xl border border-neutral-200 bg-white p-3 shadow-xl z-50">
-                <div className="space-y-1">
-                  {['Available Countries', 'About Us', 'Careers', 'Contact Us'].map((item) => (
-                    <Link
-                      key={item}
-                      href="#offices"
-                      onClick={() => setCompanyOpen(false)}
-                      className="block rounded-lg px-3 py-2 text-xs font-medium text-neutral-700 hover:bg-neutral-50 hover:text-[#1047FA] transition-colors"
-                    >
-                      {item}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* RESOURCES DROPDOWN */}
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => {
-                setResourcesOpen(!resourcesOpen)
-                setFeaturesOpen(false)
-                setSolutionsOpen(false)
-                setCompanyOpen(false)
-              }}
-              className="inline-flex items-center gap-1 px-3 py-2 text-xs xl:text-sm font-bold uppercase tracking-wider text-neutral-700 hover:text-[#1047FA] transition-colors"
-            >
-              Resources
-              <ChevronDown
-                className={`size-4 transition-transform duration-200 ${resourcesOpen ? 'rotate-180 text-[#1047FA]' : ''}`}
-              />
-            </button>
-
-            {resourcesOpen && (
-              <div className="absolute left-0 top-full mt-3 w-64 rounded-2xl border border-neutral-200 bg-white p-3 shadow-xl z-50">
-                <div className="space-y-1">
-                  {['Pricing Guide', 'Customer Stories', 'Help Center', 'Blog & Updates'].map(
-                    (res) => (
-                      <Link
-                        key={res}
-                        href="#support"
-                        onClick={() => setResourcesOpen(false)}
-                        className="block rounded-lg px-3 py-2 text-xs font-medium text-neutral-700 hover:bg-neutral-50 hover:text-[#1047FA] transition-colors"
-                      >
-                        {res}
-                      </Link>
-                    ),
+              <div className="flex items-center justify-between px-2 pt-4 text-xs font-semibold">
+                <Link
+                  href="/#how-it-works"
+                  onClick={() => setFeaturesOpen(false)}
+                  className={cn(
+                    'rounded-sm text-neutral-600 transition-colors hover:text-[#1047FA]',
+                    FOCUS_RING,
                   )}
-                </div>
+                >
+                  How BayFlow works
+                </Link>
+                <Link
+                  href="/book"
+                  onClick={() => setFeaturesOpen(false)}
+                  className={cn(
+                    'inline-flex items-center gap-1.5 rounded-sm tracking-wider text-[#1047FA] uppercase hover:underline',
+                    FOCUS_RING,
+                  )}
+                >
+                  Find a garage
+                  <ChevronRight aria-hidden="true" className="size-4" />
+                </Link>
               </div>
-            )}
+            </div>
           </div>
 
-          {/* PRICING LINK */}
-          <Link
-            href="#pricing"
-            className="px-3 py-2 text-xs xl:text-sm font-bold uppercase tracking-wider text-neutral-700 hover:text-[#1047FA] transition-colors"
-          >
-            Pricing
-          </Link>
+          {NAV_LINKS.map((link) => (
+            <Link key={link.href} href={link.href} className={NAV_ITEM}>
+              {link.label}
+            </Link>
+          ))}
         </nav>
 
-        {/* Right Actions: Language & Sign In */}
-        <div className="hidden lg:flex items-center gap-4">
-          {/* Language selector */}
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setLangOpen(!langOpen)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-neutral-700 hover:text-neutral-900 transition-colors"
-            >
-              <span className="text-base">🇬🇧</span>
-              <span>{selectedLang}</span>
-              <ChevronDown className="size-3.5 text-neutral-500" />
-            </button>
-
-            {langOpen && (
-              <div className="absolute right-0 top-full mt-2 w-48 rounded-xl border border-neutral-200 bg-white p-1.5 shadow-lg z-50">
-                {languages.map((l) => (
-                  <button
-                    key={l.name}
-                    type="button"
-                    onClick={() => {
-                      setSelectedLang(l.name.split(' ')[0] ?? l.name)
-                      setLangOpen(false)
-                    }}
-                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-neutral-700 hover:bg-neutral-50 hover:text-[#1047FA]"
-                  >
-                    <span>{l.flag}</span>
-                    <span>{l.name}</span>
-                  </button>
-                ))}
-              </div>
+        {/* Desktop actions ("List your garage" from xl: at lg the row would be too tight) */}
+        <div className="hidden items-center gap-3 lg:flex">
+          <Link
+            href="/register"
+            className={cn(
+              'hidden rounded-full border border-neutral-900 bg-white px-5 py-2 text-sm font-semibold text-neutral-900 shadow-sm transition-colors hover:bg-neutral-50 xl:inline-flex',
+              FOCUS_RING,
             )}
-          </div>
-
-          {/* Emerald Sign In Button */}
+          >
+            List your garage
+          </Link>
+          {/* emerald-700: white text at 5.4 : 1 (the lighter emerald failed WCAG 1.4.3) */}
           <Button
             asChild
-            className="rounded-full bg-[#00c070] hover:bg-[#00a860] text-white font-semibold px-6 py-2 h-10 shadow-sm transition-all duration-200 hover:shadow-md"
+            className="h-10 rounded-full bg-emerald-700 px-6 font-semibold text-white shadow-sm transition-all duration-200 hover:bg-emerald-800 hover:shadow-md"
           >
-            <Link href="/login">Sign In</Link>
+            <Link href="/login">Log in</Link>
           </Button>
         </div>
 
-        {/* Mobile Hamburger Button */}
+        {/* Mobile actions */}
         <div className="flex items-center gap-2 lg:hidden">
           <Button
             asChild
             size="sm"
-            className="rounded-full bg-[#00c070] hover:bg-[#00a860] text-white font-semibold px-4 py-1.5 text-xs"
+            className="rounded-full bg-emerald-700 px-4 text-xs font-semibold text-white hover:bg-emerald-800"
           >
-            <Link href="/login">Sign In</Link>
+            <Link href="/login">Log in</Link>
           </Button>
           <button
+            ref={mobileButtonRef}
             type="button"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 text-neutral-700 hover:text-neutral-900 rounded-lg hover:bg-neutral-100"
-            aria-label="Toggle navigation"
+            aria-label="Menu"
+            aria-expanded={mobileMenuOpen}
+            aria-controls={mobileMenuId}
+            onClick={() => setMobileMenuOpen((open) => !open)}
+            className={cn(
+              'rounded-lg p-2 text-neutral-700 hover:bg-neutral-100 hover:text-neutral-900',
+              FOCUS_RING,
+            )}
           >
-            {mobileMenuOpen ? <X className="size-6" /> : <Menu className="size-6" />}
+            {mobileMenuOpen ? (
+              <X aria-hidden="true" className="size-6" />
+            ) : (
+              <Menu aria-hidden="true" className="size-6" />
+            )}
           </button>
         </div>
       </div>
 
-      {/* Mobile Menu Drawer */}
-      {mobileMenuOpen && (
-        <div className="border-t border-neutral-200 bg-white px-4 py-6 shadow-xl lg:hidden">
-          <div className="flex flex-col space-y-4">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-neutral-400 mb-2">
-                Features
-              </p>
-              <div className="grid grid-cols-1 gap-2 pl-2">
-                {featureItems.slice(0, 4).map((item) => (
-                  <Link
-                    key={item.title}
-                    href={item.href}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center gap-2 text-sm font-medium text-neutral-800"
-                  >
-                    <item.icon className="size-4 text-[#1047FA]" />
-                    <span>{item.title}</span>
-                  </Link>
-                ))}
-              </div>
-            </div>
-
-            <hr className="border-neutral-100" />
-
-            <div className="flex flex-col space-y-2.5 text-sm font-semibold text-neutral-800">
-              <Link href="#solutions" onClick={() => setMobileMenuOpen(false)}>
-                Solutions
+      {/* Mobile menu */}
+      <div
+        id={mobileMenuId}
+        hidden={!mobileMenuOpen}
+        className="max-h-[calc(100dvh-5rem)] overflow-y-auto border-t border-neutral-200 bg-white px-4 py-6 shadow-xl lg:hidden"
+      >
+        <nav aria-label="Main" className="flex flex-col gap-4">
+          <ul className="flex flex-col gap-1 text-sm font-semibold text-neutral-800">
+            <li>
+              <Link
+                href="/book"
+                onClick={closeMobileMenu}
+                className={cn('block rounded-lg py-1.5', FOCUS_RING)}
+              >
+                Find a garage
               </Link>
-              <Link href="#workflow" onClick={() => setMobileMenuOpen(false)}>
-                Workflow
-              </Link>
-              <Link href="#offices" onClick={() => setMobileMenuOpen(false)}>
-                Offices
-              </Link>
-              <Link href="#support" onClick={() => setMobileMenuOpen(false)}>
-                Support & Onboarding
-              </Link>
-              <Link href="#pricing" onClick={() => setMobileMenuOpen(false)}>
-                Pricing
-              </Link>
-            </div>
-
-            <div className="pt-2">
-              <Button asChild className="w-full rounded-full bg-[#1047FA] text-white font-semibold">
-                <Link href="/register" onClick={() => setMobileMenuOpen(false)}>
-                  Book a Demo / Get Started
+            </li>
+            {NAV_LINKS.map((link) => (
+              <li key={link.href}>
+                <Link
+                  href={link.href}
+                  onClick={closeMobileMenu}
+                  className={cn('block rounded-lg py-1.5', FOCUS_RING)}
+                >
+                  {link.label}
                 </Link>
-              </Button>
-            </div>
+              </li>
+            ))}
+          </ul>
+
+          <hr className="border-neutral-100" />
+
+          <div>
+            <p className="mb-2 text-xs font-bold tracking-wider text-neutral-600 uppercase">
+              Features
+            </p>
+            <ul className="grid grid-cols-1 gap-1 pl-2">
+              {FEATURE_LINKS.map((item) => (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    onClick={closeMobileMenu}
+                    className={cn(
+                      'flex items-center gap-2 rounded-lg py-1.5 text-sm font-medium text-neutral-800',
+                      FOCUS_RING,
+                    )}
+                  >
+                    <item.icon aria-hidden="true" className="size-4 text-[#1047FA]" />
+                    {item.title}
+                  </Link>
+                </li>
+              ))}
+            </ul>
           </div>
-        </div>
-      )}
+
+          <Button
+            asChild
+            className="h-11 w-full rounded-full bg-[#1047FA] font-semibold text-white hover:bg-[#0935c7]"
+          >
+            <Link href="/register" onClick={closeMobileMenu}>
+              List your garage
+            </Link>
+          </Button>
+        </nav>
+      </div>
     </header>
   )
 }

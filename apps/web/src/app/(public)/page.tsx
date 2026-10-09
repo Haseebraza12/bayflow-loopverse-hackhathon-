@@ -1,1053 +1,1282 @@
-'use client'
-
 import {
-  BarChart3,
-  Box,
+  ArrowRight,
+  Bell,
+  CalendarCheck,
+  Car,
+  CarFront,
   Check,
-  FileText,
-  HelpCircle,
-  PlusCircle,
-  ShoppingCart,
-  Star,
-  Warehouse,
-  X,
+  ChevronDown,
+  CircleAlert,
+  ClipboardCheck,
+  ClipboardList,
+  Clock,
+  FileCheck,
+  Inbox,
+  LayoutDashboard,
+  Monitor,
+  PackageSearch,
+  ScanSearch,
+  ScrollText,
+  ShieldCheck,
+  Smartphone,
+  Store,
+  Tablet,
+  Truck,
+  UserPlus,
+  Users,
+  Wrench,
+  type LucideIcon,
 } from 'lucide-react'
-import Image from 'next/image'
 import Link from 'next/link'
-import { useState } from 'react'
+import type { ReactNode } from 'react'
 
-import { Button } from '@/components/ui/button'
+import { Logo } from '@/components/layout/logo'
+import { StatusBadge } from '@/components/status-badge'
+import { formatPKR } from '@/lib/format'
+import {
+  STATUS_PHASE_LABELS,
+  statusesInPhase,
+  statusLabel,
+  type BookingStatus,
+  type StatusPhase,
+} from '@/lib/status'
+import { cn } from '@/lib/utils'
+
+/*
+ * P-01 Landing (spec 10). A Server Component: nothing here is interactive, so the page ships no
+ * JavaScript of its own. Every sentence describes BayFlow as specified (brief §3–§7, specs 06, 08,
+ * 09, 10). The illustrations are drawn in JSX from the brief's worked example (§6), are marked
+ * "Example" and use the app's real status labels and money format. There are no third-party
+ * images, logos, ratings or testimonials.
+ */
+
+// ---------------------------------------------------------------------------------------------
+// Shared styles
+// ---------------------------------------------------------------------------------------------
+
+const FOCUS_RING = 'focus-visible:outline-2 focus-visible:outline-offset-2'
+
+const PRIMARY_PILL = cn(
+  'inline-flex items-center justify-center rounded-full bg-[#1047FA] px-8 py-3 text-sm font-semibold text-white shadow-md shadow-[#1047FA]/20 transition-all duration-200 hover:bg-[#0935c7] active:scale-95 motion-reduce:transition-none motion-reduce:active:scale-100 sm:px-9 sm:text-base',
+  FOCUS_RING,
+)
+
+const SECONDARY_PILL = cn(
+  'inline-flex items-center justify-center rounded-full border border-neutral-900 bg-white px-8 py-3 text-sm font-semibold text-neutral-900 shadow-sm transition-all duration-200 hover:bg-neutral-50 active:scale-95 motion-reduce:transition-none motion-reduce:active:scale-100 sm:text-base',
+  FOCUS_RING,
+)
+
+const TEXT_LINK = cn('rounded-sm font-bold text-[#1047FA] hover:underline', FOCUS_RING)
+
+const EYEBROW = 'text-xs font-extrabold tracking-widest text-[#1047FA] uppercase md:text-sm'
+
+const SECTION_TITLE =
+  'mt-3 text-3xl font-extrabold tracking-tight text-balance text-[#111827] sm:text-4xl md:text-5xl'
+
+// Handwritten accent word. Caveat has no italic face, so the browser slants it and the last letter
+// leans over the next space; the right padding is the italic correction. `nowrap` keeps "pick-up,"
+// from breaking at its hyphen.
+const HANDWRITING =
+  'font-handwriting pr-[0.15em] text-4xl font-normal whitespace-nowrap italic sm:text-5xl md:text-6xl'
+
+// ---------------------------------------------------------------------------------------------
+// Content (brief §5–§6, glossary §3 and §14, spec 10)
+// ---------------------------------------------------------------------------------------------
+
+/** The worked example's booking (brief §6): Lahore Auto Care, a 2016 Honda Civic, LEA-1234. */
+const EXAMPLE = {
+  shop: 'Lahore Auto Care',
+  otherShop: 'Raza Auto Works',
+  vehicle: 'Honda Civic 2016 · LEA-1234',
+  reference: 'BF-7K2M4Q',
+  purchaseOrder: 'PO-4H8K2M',
+  slot: 'Fri 16 Oct · 10:00 am',
+  services: 'Check engine light, Oil change',
+} as const
+
+/** Estimate v2 from the worked example: the Service Advisor cut labour to 3,500 (total 16,100). */
+const ESTIMATE_LINES: ReadonlyArray<{ label: string; amount: number }> = [
+  { label: 'Ignition coil × 1', amount: 6500 },
+  { label: 'Oil filter × 1', amount: 900 },
+  { label: 'Engine oil 4 L × 1', amount: 5200 },
+  { label: 'Labour', amount: 3500 },
+]
+
+const ESTIMATE_TOTAL = ESTIMATE_LINES.reduce((sum, line) => sum + line.amount, 0)
+
+const ROLES: ReadonlyArray<{ label: string; icon: LucideIcon }> = [
+  { label: 'Customer', icon: Car },
+  { label: 'Service Advisor', icon: CalendarCheck },
+  { label: 'Technician', icon: Wrench },
+  { label: 'Parts Person', icon: PackageSearch },
+  { label: 'QC Inspector', icon: ClipboardCheck },
+  { label: 'Owner', icon: LayoutDashboard },
+]
+
+const STEPS: ReadonlyArray<{
+  title: string
+  body: string
+  icon: LucideIcon
+  status: BookingStatus | null
+}> = [
+  {
+    title: 'Choose a garage',
+    body: 'Search the garages by name or city, then open one to see its services and opening hours.',
+    icon: Store,
+    status: null,
+  },
+  {
+    title: 'Pick a time',
+    body: 'Choose your services, describe the problem and pick a free slot. Your account is created as you book.',
+    icon: CalendarCheck,
+    status: 'PENDING',
+  },
+  {
+    title: 'Approve the estimate',
+    body: 'After the inspection you get an itemised estimate for parts and labour. Approve it online, or reject it and the garage follows up.',
+    icon: FileCheck,
+    status: 'AWAITING_CUSTOMER',
+  },
+  {
+    title: 'Track and pick up',
+    body: 'Follow every step on your booking page. Once the car passes its quality check, the garage lets you know it is ready.',
+    icon: CarFront,
+    status: 'READY_FOR_PICKUP',
+  },
+]
+
+interface FeatureBullet {
+  /** Target of the header's Features menu (`/#id`). */
+  id?: string
+  title: string
+  body: string
+  icon: LucideIcon
+}
+
+const CUSTOMER_FEATURES: ReadonlyArray<FeatureBullet> = [
+  {
+    id: 'booking',
+    title: 'Live slot availability',
+    body: 'Pick a garage, your services and a time. You only see slots that still have space, and a slot can never be booked beyond its capacity.',
+    icon: CalendarCheck,
+  },
+  {
+    id: 'estimates',
+    title: 'Estimates you approve',
+    body: 'Your estimate lists every part and the labour, with its version number. Approve or reject it online, and your decision is saved with the time you made it.',
+    icon: FileCheck,
+  },
+  {
+    id: 'tracking',
+    title: 'Ready-for-pick-up notice',
+    body: 'A status timeline shows where your car is at every step, and the garage lets you know in the app when it is ready to collect.',
+    icon: Bell,
+  },
+]
+
+const WORKSHOP_FEATURES: ReadonlyArray<FeatureBullet> = [
+  {
+    title: 'From inspection to estimate',
+    body: 'The technician records the parts and labour the car needs. The Service Advisor reviews it, saves any changes as a new version and sends it to the customer.',
+    icon: ClipboardList,
+  },
+  {
+    id: 'parts',
+    title: 'Parts reserved, shortages ordered',
+    body: 'Required parts are checked against the shop’s stock. What is in stock is reserved for the job, shortages go on a purchase order, and receiving it updates the stock.',
+    icon: PackageSearch,
+  },
+  {
+    id: 'qc',
+    title: 'Quality control with a fail loop',
+    body: 'A QC Inspector picks the job from the shop’s shared queue and works through a checklist. A failed check records an issue and sends the car back to the technician until it passes.',
+    icon: ClipboardCheck,
+  },
+]
+
+const TEAM_FEATURES: ReadonlyArray<FeatureBullet> = [
+  {
+    id: 'roles',
+    title: 'Role-based workspaces',
+    body: 'Service Advisor, Technician, Parts Person, QC Inspector and Owner each start on their own screen and only see the actions their role can take.',
+    icon: Users,
+  },
+  {
+    id: 'multi-shop',
+    title: 'Multi-shop, kept separate',
+    body: 'Each shop has its own team, services, slots, stock and bookings. Staff of one shop can never open another shop’s records, and owners switch shops in one click.',
+    icon: Store,
+  },
+  {
+    title: 'Every hand-off on the record',
+    body: 'Each status change is logged with who made it, in which role, when and with what note. Owners can look into every role’s view to support the team.',
+    icon: ScrollText,
+  },
+]
+
+/** The six working phases of a booking (spec 09 §3.3); statuses come from `lib/status`. */
+const PHASES: ReadonlyArray<{
+  phase: StatusPhase
+  icon: LucideIcon
+  responsible: string
+  body: string
+}> = [
+  {
+    phase: 'INTAKE',
+    icon: Inbox,
+    responsible: 'Service Advisor',
+    body: 'A new booking reaches the Service Advisor, who confirms or declines it and assigns a technician.',
+  },
+  {
+    phase: 'INSPECTION',
+    icon: ScanSearch,
+    responsible: 'Technician',
+    body: 'The assigned technician inspects the car and adds the parts, labour and total cost it needs.',
+  },
+  {
+    phase: 'ESTIMATE',
+    icon: ClipboardList,
+    responsible: 'Service Advisor, then the customer',
+    body: 'The Service Advisor reviews and sends the estimate. The customer approves or rejects it online.',
+  },
+  {
+    phase: 'PARTS',
+    icon: PackageSearch,
+    responsible: 'Parts Person',
+    body: 'Stock is checked against the job. Missing parts are ordered, received into stock and allocated to the booking.',
+  },
+  {
+    phase: 'REPAIR_QC',
+    icon: Wrench,
+    responsible: 'Technician, then a QC Inspector',
+    body: 'The technician repairs the car and sends it to QC. A failed check returns it to the technician with a recorded issue.',
+  },
+  {
+    phase: 'HANDOVER',
+    icon: CarFront,
+    responsible: 'Service Advisor and customer',
+    body: 'The Service Advisor tells the customer the car is ready, and the booking is completed at pick-up.',
+  },
+]
+
+const ONBOARDING: ReadonlyArray<{
+  title: string
+  body: string
+  icon: LucideIcon
+  tags?: ReadonlyArray<string>
+}> = [
+  {
+    title: 'Register as the owner',
+    body: 'Create your owner account with your name, e-mail and a password.',
+    icon: UserPlus,
+  },
+  {
+    title: 'Set up your shop',
+    body: 'Add your address, working hours, slot length and capacity, and the services customers can book.',
+    icon: Store,
+    tags: ['Working hours', 'Slots', 'Services'],
+  },
+  {
+    title: 'Add your team',
+    body: 'Create an account for each person and give them a role. Staff never sign up on their own.',
+    icon: Users,
+    tags: ['SA', 'Tech', 'Parts', 'QC'],
+  },
+]
+
+const DEVICES: ReadonlyArray<{ label: string; icon: LucideIcon }> = [
+  { label: 'Phone', icon: Smartphone },
+  { label: 'Tablet', icon: Tablet },
+  { label: 'Desktop', icon: Monitor },
+]
+
+// ---------------------------------------------------------------------------------------------
+// Page
+// ---------------------------------------------------------------------------------------------
 
 export default function LandingPage() {
-  const [demoModalOpen, setDemoModalOpen] = useState(false)
-  const [demoSubmitted, setDemoSubmitted] = useState(false)
-  const [demoForm, setDemoForm] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    garageName: '',
-    country: 'Pakistan',
-  })
-
-  const reviews = [
-    {
-      initial: 'G',
-      name: 'Ganesh Gaikwad',
-      role: 'Director @GadiRepair.com',
-      title: 'Double Engine Software for Garages Growth',
-      stars: 5,
-      quote:
-        'Service Packages, Jobs Approvals, Tally Level Accounting, Checklists integrated with Parts & Services enlisting, Detailed Business Analysis...',
-      flag: '🇮🇳',
-      country: 'India',
-    },
-    {
-      initial: 'E',
-      name: 'Emeline Rose',
-      role: 'Operations Head @AutoVolt.me',
-      title: 'GarageBox is a smart investment for modernizing your operations...',
-      stars: 4.5,
-      quote:
-        'All-in-one garage management platform is designed to streamline operations, boost team productivity & Seamless workflow.',
-      flag: '🇧🇭',
-      country: 'Bahrain',
-    },
-    {
-      initial: 'S',
-      name: 'Sifaudeen Sirajudeen',
-      role: 'Manager @AutoIndustriesFabrication.me',
-      title: 'GarageBox is the digital toolbox every modern garage needs!',
-      stars: 5,
-      quote:
-        'GarageBox has completely transformed how we manage our garage operations. From job card creation to real-time updates for customers, it keeps everything transparent.',
-      flag: '🇦🇪',
-      country: 'UAE',
-    },
-    {
-      initial: 'R',
-      name: 'Ratan G.',
-      role: 'Director @IndWheelzAuto',
-      title: 'Easy to Use and Helpful',
-      stars: 5,
-      quote:
-        'We started using GarageBox and honestly it has made our work smoother. Earlier we used to rely on paper job cards and manual billing, but now everything is digitized.',
-      flag: '🇮🇳',
-      country: 'India',
-    },
-  ]
-
-  const capabilities = [
-    {
-      title: 'Workflow',
-      desc: 'Assign tasks, schedule jobs, and track progress in real time. Keep your team aligned and your shop running like clockwork.',
-      icon: BarChart3,
-      color: 'bg-[#1047FA]',
-    },
-    {
-      title: 'Estimates',
-      desc: 'Send professional estimates in seconds. Get approvals faster and get to work sooner.',
-      icon: PlusCircle,
-      color: 'bg-rose-500',
-    },
-    {
-      title: 'Inventory',
-      desc: "Know exactly what's in stock from parts to tires. Reduce delays and keep your jobs moving.",
-      icon: Warehouse,
-      color: 'bg-[#1047FA]',
-    },
-    {
-      title: 'Vehicle Inspections',
-      desc: 'Catch issues early and build trust. Create digital inspection reports your customers can see and understand instantly.',
-      icon: FileText,
-      color: 'bg-[#1047FA]',
-    },
-    {
-      title: 'Packaged Services',
-      desc: 'Bundle common repairs and maintenance into convenient packages that deliver more value and more revenue.',
-      icon: Box,
-      color: 'bg-[#1047FA]',
-    },
-    {
-      title: 'Procurement',
-      desc: 'Order the right parts, on time. Manage suppliers and restock with confidence without chasing paperwork.',
-      icon: ShoppingCart,
-      color: 'bg-[#1047FA]',
-    },
-  ]
-
   return (
-    <div className="relative w-full overflow-hidden bg-white text-[#171c26]">
-      {/* ========================================================
-          1. HERO SECTION (100% PIXEL PERFECT TO GARAGEBOX.IO)
-          ======================================================== */}
-      <section className="relative w-full pt-10 pb-16 md:pt-16 md:pb-24 bg-grid-pattern">
-        {/* Soft radial backdrop */}
-        <div className="pointer-events-none absolute inset-0 bg-radial-[circle_at_50%_15%] from-blue-50/40 via-transparent to-transparent" />
+    <div className="relative w-full overflow-x-clip bg-white text-[#171c26]">
+      {/* 1. Hero */}
+      <section className="bg-grid-pattern relative w-full pt-10 pb-16 md:pt-16 md:pb-24">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 bg-radial-[circle_at_50%_15%] from-blue-50/40 via-transparent to-transparent"
+        />
 
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          {/* Eyebrow, Heading & Copy */}
           <div className="mx-auto max-w-4xl text-center">
-            <p className="text-xs md:text-sm font-bold uppercase tracking-widest text-[#1047FA] mb-3">
-              GARAGE SOFTWARE IN PAKISTAN
+            <p className="mb-3 text-xs font-bold tracking-widest text-[#1047FA] uppercase md:text-sm">
+              Auto repair, without the phone calls
             </p>
 
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-[68px] font-extrabold tracking-tight text-[#111827] leading-[1.12]">
-              Auto Repair Garage Management <br className="hidden sm:inline" />
-              Software{' '}
-              <span className="font-handwriting font-normal italic text-[#374151] text-5xl sm:text-6xl md:text-7xl lg:text-[76px] align-baseline">
-                in Pakistan
+            <h1 className="text-4xl leading-[1.12] font-extrabold tracking-tight text-balance text-[#111827] sm:text-5xl md:text-6xl lg:text-[68px]">
+              Book trusted car repair{' '}
+              <span className="align-baseline font-handwriting text-5xl font-normal whitespace-nowrap text-[#374151] italic sm:text-6xl md:text-7xl lg:text-[76px]">
+                in minutes
               </span>
             </h1>
 
-            <p className="mx-auto mt-5 max-w-2xl text-base sm:text-lg text-neutral-600 leading-relaxed font-normal">
-              Take control of your auto repair business with GarageBox, Pakistan&apos;s leading
-              garage management software. Simplify job scheduling, invoicing, and inventory control
-              for maximum efficiency.
+            <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-pretty text-neutral-600 sm:text-lg">
+              Find a garage, pick a free slot, approve your estimate online and follow every step
+              until your car is ready. For garages, BayFlow runs bookings, estimates, parts, quality
+              checks and the team in one system, kept separate for every shop.
             </p>
 
-            {/* CTAs */}
-            <div className="mt-8 flex flex-row items-center justify-center gap-4">
-              <button
-                type="button"
-                onClick={() => setDemoModalOpen(true)}
-                className="rounded-full border border-neutral-900 bg-white px-7 sm:px-8 py-3 text-sm sm:text-base font-semibold text-neutral-900 shadow-sm hover:bg-neutral-50 transition-all duration-200 active:scale-95"
-              >
-                Book a Demo
-              </button>
-              <Link
-                href="/register"
-                className="rounded-full bg-[#1047FA] px-7 sm:px-9 py-3 text-sm sm:text-base font-semibold text-white shadow-md shadow-[#1047FA]/20 hover:bg-[#0935c7] transition-all duration-200 active:scale-95 text-center"
-              >
-                Get Started
+            <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center sm:gap-4">
+              <Link href="/book" className={PRIMARY_PILL}>
+                Find a garage
+              </Link>
+              <Link href="/register" className={SECONDARY_PILL}>
+                List your garage
               </Link>
             </div>
           </div>
 
-          {/* ========================================================
-              EXACT HERO IMAGE ASSET (From garagebox.io)
-              ======================================================== */}
-          <div className="relative mx-auto mt-12 md:mt-16 max-w-[1020px] flex justify-center">
-            {/* Desktop Hero Image */}
-            <div className="hidden md:block w-full">
-              <Image
-                src="/garagebox/hero-desktop.webp"
-                alt="Auto Repair Garage Management Software in Pakistan"
-                width={1020}
-                height={580}
-                priority
-                sizes="(min-width: 1280px) 1020px, (min-width: 768px) 90vw, 100vw"
-                className="w-full h-auto object-contain select-none pointer-events-none drop-shadow-md"
-              />
-            </div>
+          <HeroPreview />
 
-            {/* Mobile Hero Image */}
-            <div className="block md:hidden w-full max-w-[480px]">
-              <Image
-                src="/garagebox/hero-mobile.webp"
-                alt="Auto Repair Garage Management Software"
-                width={480}
-                height={480}
-                priority
-                sizes="(max-width: 640px) 100vw, 480px"
-                className="w-full h-auto object-contain select-none pointer-events-none"
-              />
-            </div>
-          </div>
-
-          {/* ========================================================
-              RATING & APP STORES & PLATFORM LOGOS
-              ======================================================== */}
-          <div className="mt-12 md:mt-16 flex flex-col items-center justify-center gap-6 text-center">
-            {/* 5-Star Rating */}
-            <div className="flex items-center gap-1.5">
-              {[...Array(5)].map((_, i) => (
-                <Star key={i} className="size-5 fill-[#f59e0b] text-[#f59e0b]" />
+          <div className="mt-12 flex flex-col items-center gap-4 text-center md:mt-16">
+            <p id="roles-strip-title" className="text-sm font-bold text-neutral-800">
+              One booking, shared by everyone involved
+            </p>
+            <ul
+              aria-labelledby="roles-strip-title"
+              className="flex flex-wrap items-center justify-center gap-2 sm:gap-3"
+            >
+              {ROLES.map((role) => (
+                <li
+                  key={role.label}
+                  className="inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-neutral-700 shadow-sm sm:text-sm"
+                >
+                  <role.icon aria-hidden="true" className="size-4 text-[#1047FA]" />
+                  {role.label}
+                </li>
               ))}
-              <span className="ml-2 text-sm font-bold text-neutral-800">
-                5-Star Rated based on 200+ reviews
-              </span>
-            </div>
-
-            {/* App Store Badges */}
-            <div className="flex flex-wrap items-center justify-center gap-4">
-              <a
-                href="#google-play"
-                className="hover:opacity-90 transition-opacity"
-                title="Google Play Store"
-              >
-                <Image
-                  src="/garagebox/play-store.svg"
-                  alt="Google Play Store"
-                  width={165}
-                  height={50}
-                  className="h-11 w-auto"
-                />
-              </a>
-              <a
-                href="#app-store"
-                className="hover:opacity-90 transition-opacity"
-                title="Apple App Store"
-              >
-                <Image
-                  src="/garagebox/app-store.svg"
-                  alt="Apple App Store"
-                  width={155}
-                  height={50}
-                  className="h-11 w-auto"
-                />
-              </a>
-            </div>
-
-            {/* Platform Review Logos Banner */}
-            <div className="mt-6 flex flex-wrap items-center justify-center gap-6 sm:gap-10 md:gap-12 opacity-85 hover:opacity-100 transition-opacity">
-              <Image
-                src="/garagebox/review-google.svg"
-                alt="Google Reviews"
-                width={41}
-                height={36}
-                className="h-8 w-auto object-contain"
-              />
-              <Image
-                src="/garagebox/review-g2.svg"
-                alt="G2 Reviews"
-                width={41}
-                height={36}
-                className="h-8 w-auto object-contain"
-              />
-              <Image
-                src="/garagebox/review-clutch.svg"
-                alt="Clutch Reviews"
-                width={100}
-                height={36}
-                className="h-8 w-auto object-contain"
-              />
-              <Image
-                src="/garagebox/review-trustradius.svg"
-                alt="TrustRadius Reviews"
-                width={50}
-                height={36}
-                className="h-8 w-auto object-contain"
-              />
-              <Image
-                src="/garagebox/review-trustpilot.svg"
-                alt="Trustpilot Reviews"
-                width={146}
-                height={36}
-                className="h-8 w-auto object-contain"
-              />
-              <Image
-                src="/garagebox/review-softwaresuggest.svg"
-                alt="SoftwareSuggest Reviews"
-                width={120}
-                height={36}
-                className="h-8 w-auto object-contain"
-              />
-            </div>
+            </ul>
           </div>
         </div>
       </section>
 
-      {/* ========================================================
-          2. TESTIMONIALS SECTION
-          "Trusted by Garages, Proven by Performance"
-          ======================================================== */}
-      <section className="relative w-full py-20 bg-neutral-50/50 border-t border-neutral-200/70">
+      {/* 2. How it works (for car owners) */}
+      <section
+        id="how-it-works"
+        className="relative w-full border-t border-neutral-200/70 bg-neutral-50/50 py-20"
+      >
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-3xl text-center">
-            <p className="text-xs md:text-sm font-extrabold uppercase tracking-widest text-[#1047FA]">
-              TOP RATED GARAGE MANAGEMENT SOFTWARE OF 2026
-            </p>
-            <h2 className="mt-3 text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-[#111827]">
-              Trusted by{' '}
-              <span className="font-handwriting font-normal italic text-[#1047FA] text-4xl sm:text-5xl md:text-6xl">
-                Garages
-              </span>
-              , Proven by <span className="text-[#00c070]">Performance</span>
+            <p className={EYEBROW}>How it works</p>
+            <h2 className={SECTION_TITLE}>
+              From booking to <span className={cn(HANDWRITING, 'text-[#1047FA]')}>pick-up,</span> in
+              four steps
             </h2>
-            <p className="mt-4 text-neutral-600 text-sm sm:text-base leading-relaxed">
-              From small to large, auto repair shops rely on GarageBox to power their daily
-              operations, maximise efficiency, and stay in control every day.
+            <p className="mt-4 text-sm leading-relaxed text-neutral-600 sm:text-base">
+              No phone calls needed: your booking page shows the status, the estimate and the
+              pick-up notice.
             </p>
           </div>
 
-          {/* Review Cards Grid */}
-          <div className="mt-14 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {reviews.map((r) => (
-              <div
-                key={r.name}
-                className="flex flex-col justify-between rounded-3xl border border-neutral-200/90 bg-white p-6 shadow-sm hover:shadow-lg transition-all duration-300"
+          <ol className="mt-14 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {STEPS.map((step, index) => (
+              <li
+                key={step.title}
+                className="flex flex-col justify-between rounded-3xl border border-neutral-200/90 bg-white p-6 shadow-sm transition-shadow duration-300 hover:shadow-lg motion-reduce:transition-none"
               >
                 <div>
                   <div className="flex items-center gap-3">
-                    <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white font-bold text-sm">
-                      {r.initial}
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-bold text-neutral-900">{r.name}</h4>
-                      <p className="text-[11px] text-neutral-500 font-medium">{r.role}</p>
-                    </div>
+                    <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-sm font-bold text-white">
+                      {index + 1}
+                    </span>
+                    <step.icon aria-hidden="true" className="size-5 text-[#1047FA]" />
                   </div>
+                  <h3 className="mt-4 text-base font-bold text-neutral-900">{step.title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-neutral-600">{step.body}</p>
+                </div>
 
-                  <h5 className="mt-4 text-xs font-bold text-neutral-900 leading-snug">
-                    {r.title}
-                  </h5>
+                <div className="mt-6 flex min-h-8 flex-wrap items-center gap-x-2 gap-y-1 border-t border-neutral-100 pt-4 text-xs">
+                  {step.status ? (
+                    <>
+                      <span className="text-neutral-600">You’ll see</span>
+                      <StatusBadge status={step.status} audience="customer" />
+                    </>
+                  ) : (
+                    <Link href="/book" className={cn(TEXT_LINK, 'inline-flex items-center gap-1')}>
+                      Browse garages
+                      <ArrowRight aria-hidden="true" className="size-3.5" />
+                    </Link>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
 
-                  <div className="mt-2 flex items-center gap-1">
-                    {[...Array(5)].map((_, i) => (
-                      <Star
-                        key={i}
-                        className={`size-3.5 ${
-                          i < Math.floor(r.stars)
-                            ? 'fill-[#f59e0b] text-[#f59e0b]'
-                            : 'fill-neutral-200 text-neutral-200'
-                        }`}
-                      />
-                    ))}
-                    <span className="ml-1 text-[11px] font-bold text-neutral-700">{r.stars}/5</span>
+      {/* 3–5. Feature sections */}
+      <FeatureSection
+        id="for-car-owners"
+        eyebrow="For car owners"
+        title={
+          <>
+            <span className={cn(HANDWRITING, 'text-[#171c26]')}>Book,</span> approve and track your
+            repair online
+          </>
+        }
+        features={CUSTOMER_FEATURES}
+        iconTone="bg-blue-50 text-[#1047FA]"
+        cta={{ label: 'Find a garage', href: '/book' }}
+        visual={<SlotPickerPreview />}
+      />
+
+      <FeatureSection
+        id="for-garages"
+        eyebrow="For garages"
+        title={
+          <>
+            <span className={cn(HANDWRITING, 'text-[#171c26]')}>Every</span> hand-off, on the record
+          </>
+        }
+        features={WORKSHOP_FEATURES}
+        iconTone="bg-emerald-50 text-emerald-600"
+        cta={{ label: 'List your garage', href: '/register' }}
+        visual={<PartsAndQcPreview />}
+        reverse
+        muted
+      />
+
+      <FeatureSection
+        id="for-owners"
+        eyebrow="For owners and teams"
+        title={
+          <>
+            <span className={cn(HANDWRITING, 'text-[#171c26]')}>One</span> workspace per role,
+            separate for every shop
+          </>
+        }
+        features={TEAM_FEATURES}
+        iconTone="bg-amber-50 text-amber-600"
+        cta={{ label: 'Log in', href: '/login' }}
+        visual={<WorkspacesPreview />}
+      />
+
+      {/* 6. The booking lifecycle */}
+      <section
+        id="lifecycle"
+        className="relative w-full border-t border-neutral-200/60 bg-neutral-50/50 py-20"
+      >
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-3xl text-center">
+            <p className={EYEBROW}>The booking lifecycle</p>
+            <h2 className={SECTION_TITLE}>One booking, six phases, a clear role for every step</h2>
+            <p className="mt-4 text-sm leading-relaxed text-neutral-600 sm:text-base">
+              Every booking follows the same status flow. Each status has one responsible role,
+              BayFlow only offers the actions that role can take next, and every change is recorded
+              with who made it and when.
+            </p>
+          </div>
+
+          <ol className="mt-14 grid grid-cols-1 gap-6 sm:grid-cols-2 sm:gap-8 lg:grid-cols-3">
+            {PHASES.map((item, index) => {
+              const phaseLabel = STATUS_PHASE_LABELS[item.phase]
+              return (
+                <li
+                  key={item.phase}
+                  className="rounded-3xl border border-neutral-200/90 bg-white p-8 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl motion-reduce:transition-none motion-reduce:hover:translate-y-0"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="flex size-12 items-center justify-center rounded-2xl bg-[#1047FA] text-white shadow-md">
+                      <item.icon aria-hidden="true" className="size-6 stroke-[2.2]" />
+                    </span>
+                    <span className="text-xs font-bold text-neutral-600">
+                      Phase {index + 1} of {PHASES.length}
+                    </span>
                   </div>
-
-                  <p className="mt-3 text-xs text-neutral-600 leading-relaxed font-normal">
-                    &ldquo;{r.quote}&rdquo;
+                  <h3 className="mt-6 text-xl font-bold text-neutral-900">{phaseLabel}</h3>
+                  <p className="mt-3 text-sm leading-relaxed text-neutral-600">{item.body}</p>
+                  <p className="mt-4 text-xs font-semibold text-neutral-800">
+                    Responsible:{' '}
+                    <span className="font-normal text-neutral-600">{item.responsible}</span>
                   </p>
-                </div>
+                  <ul aria-label={`${phaseLabel} statuses`} className="mt-4 flex flex-wrap gap-1.5">
+                    {statusesInPhase(item.phase).map((status) => (
+                      <li key={status}>
+                        <StatusBadge status={status} audience="staff" />
+                      </li>
+                    ))}
+                  </ul>
+                </li>
+              )
+            })}
+          </ol>
 
-                <div className="mt-6 pt-4 border-t border-neutral-100 flex items-center justify-between text-xs">
-                  <span className="flex items-center gap-1.5 font-medium text-neutral-700">
-                    <span>{r.flag}</span>
-                    <span>{r.country}</span>
-                  </span>
-                  <a
-                    href="#g2-reviews"
-                    className="font-bold text-[#1047FA] hover:underline flex items-center gap-0.5"
-                  >
-                    <span>Read more on G2</span>
-                  </a>
-                </div>
-              </div>
-            ))}
-          </div>
+          <p className="mx-auto mt-10 max-w-3xl text-center text-sm leading-relaxed text-neutral-600">
+            A rejected estimate goes back to the Service Advisor to revise or cancel. A booking can
+            be cancelled before the repair starts, and any reserved parts go back into stock.
+          </p>
         </div>
       </section>
 
-      {/* ========================================================
-          3. FEATURE 1: STREAMLINE WORKFLOW (Exact SVG)
-          ======================================================== */}
+      {/* 7. Getting started (for garage owners) */}
       <section
-        id="workflow"
-        className="relative w-full py-20 bg-white border-t border-neutral-200/60"
-      >
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
-            {/* Left Content */}
-            <div className="lg:col-span-6 space-y-8">
-              <div>
-                <p className="text-xs md:text-sm font-extrabold uppercase tracking-widest text-[#1047FA]">
-                  GARAGE MANAGEMENT SOFTWARE (GMS)
-                </p>
-                <h2 className="mt-3 text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-[#111827] leading-tight">
-                  <span className="font-handwriting font-normal italic text-4xl sm:text-5xl md:text-6xl text-[#171c26]">
-                    Streamline
-                  </span>{' '}
-                  Workflow, and Control Inventory
-                </h2>
-              </div>
-
-              {/* Bullet Points */}
-              <div className="space-y-6">
-                <div className="flex items-start gap-4">
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-[#1047FA] mt-0.5">
-                    <BarChart3 className="size-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-base sm:text-lg font-bold text-neutral-900">
-                      Take Control of Your Day
-                    </h3>
-                    <p className="mt-1 text-sm text-neutral-600 leading-relaxed">
-                      From Estimates to Digital Authorisations, Inspections to Job Cards. GarageBox
-                      keeps your entire workflow flowing smoothly. Assign technician tasks, monitor
-                      labor, and track productivity in real time.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4">
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-[#1047FA] mt-0.5">
-                    <ShoppingCart className="size-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-base sm:text-lg font-bold text-neutral-900">
-                      Never Run Out, Never Overstock
-                    </h3>
-                    <p className="mt-1 text-sm text-neutral-600 leading-relaxed">
-                      Turn parts requisitions into purchase orders in seconds. Reserve, Issue, and
-                      Track Stock precisely so every part is where it needs to be, when it needs to
-                      be.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4">
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-[#1047FA] mt-0.5">
-                    <BarChart3 className="size-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-base sm:text-lg font-bold text-neutral-900">
-                      See Where You Earn. For Where You Don&apos;t
-                    </h3>
-                    <p className="mt-1 text-sm text-neutral-600 leading-relaxed">
-                      Our visual reports highlight what&apos;s working and what&apos;s not, helping
-                      you spot profit leaks, track labor time, and make data-driven decisions that
-                      drive growth.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-2">
-                <Link
-                  href="/register"
-                  className="inline-block rounded-full bg-[#1047FA] px-9 py-3.5 text-sm sm:text-base font-semibold text-white shadow-md hover:bg-[#0838c9] transition-all"
-                >
-                  Get Started
-                </Link>
-              </div>
-            </div>
-
-            {/* Right Graphic: Exact SVG from GarageBox */}
-            <div className="lg:col-span-6 flex justify-center">
-              <div className="relative w-full max-w-[514px] flex justify-center">
-                <Image
-                  src="/garagebox/feature-workflow.svg"
-                  alt="Streamline Workflow, and Control Inventory"
-                  width={514}
-                  height={512}
-                  className="w-full h-auto object-contain drop-shadow-md"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ========================================================
-          4. FEATURE 2: DELIVER UNFORGETTABLE EXPERIENCE (Exact SVG)
-          ======================================================== */}
-      <section className="relative w-full py-20 bg-neutral-50/50 border-t border-neutral-200/60">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
-            {/* Left Graphic: Exact SVG from GarageBox */}
-            <div className="lg:col-span-6 flex justify-center order-2 lg:order-1">
-              <div className="relative w-full max-w-[514px] flex justify-center">
-                <Image
-                  src="/garagebox/feature-crm.svg"
-                  alt="Deliver an Unforgettable Customer Experience"
-                  width={514}
-                  height={512}
-                  className="w-full h-auto object-contain drop-shadow-md"
-                />
-              </div>
-            </div>
-
-            {/* Right Content */}
-            <div className="lg:col-span-6 space-y-8 order-1 lg:order-2">
-              <div>
-                <p className="text-xs md:text-sm font-extrabold uppercase tracking-widest text-[#1047FA]">
-                  GARAGE CRM SOFTWARE
-                </p>
-                <h2 className="mt-3 text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-[#111827] leading-tight">
-                  <span className="font-handwriting font-normal italic text-4xl sm:text-5xl md:text-6xl text-[#171c26]">
-                    Deliver an
-                  </span>{' '}
-                  Unforgettable Customer Experience
-                </h2>
-              </div>
-
-              {/* Bullet Points */}
-              <div className="space-y-6">
-                <div className="flex items-start gap-4">
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 mt-0.5">
-                    <svg className="size-5 fill-current" viewBox="0 0 24 24">
-                      <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="text-base sm:text-lg font-bold text-neutral-900">
-                      Connect, Capture, Communicate
-                    </h3>
-                    <p className="mt-1 text-sm text-neutral-600 leading-relaxed">
-                      Keep customers engaged from first contact to final service. Send real-time
-                      updates about appointments, vehicle inspections, and estimates via SMS,
-                      Email, or WhatsApp.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4">
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 mt-0.5">
-                    <svg className="size-5 fill-current" viewBox="0 0 24 24">
-                      <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="text-base sm:text-lg font-bold text-neutral-900">
-                      Never Miss a Beat with Smart Reminders
-                    </h3>
-                    <p className="mt-1 text-sm text-neutral-600 leading-relaxed">
-                      Automate service alerts and document renewal reminders. Help customers stay on
-                      top of their maintenance without lifting a finger.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4">
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 mt-0.5">
-                    <svg className="size-5 fill-current" viewBox="0 0 24 24">
-                      <path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm6.93 6h-2.95a15.65 15.65 0 0 0-1.38-3.56A8.03 8.03 0 0 1 18.92 8zM12 4.04c.83 1.2 1.48 2.53 1.91 3.96h-3.82c.43-1.43 1.08-2.76 1.91-3.96zM4.26 14C4.1 13.36 4 12.69 4 12s.1-1.36.26-2h3.38c-.08.66-.14 1.32-.14 2 0 .68.06 1.34.14 2H4.26zm.82 2h2.95c.32 1.25.78 2.45 1.38 3.56A7.987 7.987 0 0 1 5.08 16zm2.95-8H5.08a7.987 7.987 0 0 1 4.33-3.56A15.65 15.65 0 0 0 8.03 8zM12 19.96c-.83-1.2-1.48-2.53-1.91-3.96h3.82c-.43 1.43-1.08 2.76-1.91 3.96zM14.34 14H9.66c-.09-.66-.16-1.32-.16-2 0-.68.07-1.35.16-2h4.68c.09.65.16 1.32.16 2 0 .68-.07 1.34-.16 2zm.25 5.56c.6-1.11 1.06-2.31 1.38-3.56h2.95a8.03 8.03 0 0 1-4.33 3.56zM16.36 14c.08-.66.14-1.32.14-2 0-.68-.06-1.34-.14-2h3.38c.16.64.26 1.31.26 2s-.1 1.36-.26 2h-3.38z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="text-base sm:text-lg font-bold text-neutral-900">
-                      Book Online in Seconds No Calls Needed
-                    </h3>
-                    <p className="mt-1 text-sm text-neutral-600 leading-relaxed">
-                      Let your website do the work. With online booking and custom web forms, your
-                      customers can schedule services anytime, from anywhere.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-2">
-                <Link
-                  href="/register"
-                  className="inline-block rounded-full bg-[#1047FA] px-9 py-3.5 text-sm sm:text-base font-semibold text-white shadow-md hover:bg-[#0838c9] transition-all"
-                >
-                  Get Started
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ========================================================
-          5. FEATURE 3: MAXIMIZE SHOP PRODUCTIVITY (Exact SVG)
-          ======================================================== */}
-      <section className="relative w-full py-20 bg-white border-t border-neutral-200/60">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
-            {/* Left Content */}
-            <div className="lg:col-span-6 space-y-8">
-              <div>
-                <p className="text-xs md:text-sm font-extrabold uppercase tracking-widest text-[#1047FA]">
-                  TIME TRACKING SOFTWARE FOR MECHANICS
-                </p>
-                <h2 className="mt-3 text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-[#111827] leading-tight">
-                  <span className="font-handwriting font-normal italic text-4xl sm:text-5xl md:text-6xl text-[#171c26]">
-                    Maximize
-                  </span>{' '}
-                  Shop Productivity with Technician App
-                </h2>
-              </div>
-
-              {/* Bullet Points */}
-              <div className="space-y-6">
-                <div className="flex items-start gap-4">
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600 mt-0.5">
-                    <svg className="size-5 fill-current" viewBox="0 0 24 24">
-                      <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="text-base sm:text-lg font-bold text-neutral-900">
-                      Track Time. Drive Results.
-                    </h3>
-                    <p className="mt-1 text-sm text-neutral-600 leading-relaxed">
-                      Stay on top of work hours with our intuitive Time Clock feature. Keep your team
-                      motivated, accountable, and focused without micromanaging.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4">
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600 mt-0.5">
-                    <svg className="size-5 fill-current" viewBox="0 0 24 24">
-                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-10 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="text-base sm:text-lg font-bold text-neutral-900">
-                      Bring Order to the Chaos
-                    </h3>
-                    <p className="mt-1 text-sm text-neutral-600 leading-relaxed">
-                      Simplify how your team works. With GarageBox, manage tasks, track deadlines,
-                      and stay on top of progress all from a single, easy-to-use dashboard.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4">
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600 mt-0.5">
-                    <svg className="size-5 fill-current" viewBox="0 0 24 24">
-                      <path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="text-base sm:text-lg font-bold text-neutral-900">
-                      Power Your Team on the Go
-                    </h3>
-                    <p className="mt-1 text-sm text-neutral-600 leading-relaxed">
-                      With the GarageBox for Techs mobile app (iOS & Android), your technicians stay
-                      connected, informed, and engaged wherever they are.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-2">
-                <Link
-                  href="/register"
-                  className="inline-block rounded-full bg-[#1047FA] px-9 py-3.5 text-sm sm:text-base font-semibold text-white shadow-md hover:bg-[#0838c9] transition-all"
-                >
-                  Get Started
-                </Link>
-              </div>
-            </div>
-
-            {/* Right Graphic: Exact SVG from GarageBox */}
-            <div className="lg:col-span-6 flex justify-center">
-              <div className="relative w-full max-w-[514px] flex justify-center">
-                <Image
-                  src="/garagebox/feature-technician.svg"
-                  alt="Maximize Shop Productivity with Technician App"
-                  width={514}
-                  height={512}
-                  className="w-full h-auto object-contain drop-shadow-md"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ========================================================
-          6. ALL-IN-ONE CAPABILITIES GRID
-          ======================================================== */}
-      <section
-        id="features-all"
-        className="relative w-full py-20 bg-neutral-50/50 border-t border-neutral-200/60"
+        id="get-started"
+        className="bg-grid-pattern relative w-full border-t border-neutral-200/60 bg-white py-20"
       >
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-3xl text-center">
-            <p className="text-xs md:text-sm font-extrabold uppercase tracking-widest text-[#1047FA]">
-              ALL-IN-ONE GARAGE MANAGEMENT SOFTWARE
-            </p>
-            <h2 className="mt-3 text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-[#111827]">
-              Garage Management Software
+            <p className={EYEBROW}>For garage owners</p>
+            <h2 className={SECTION_TITLE}>
+              Set up your <span className={cn(HANDWRITING, 'text-[#171c26]')}>garage</span> in three
+              steps
             </h2>
-            <p className="mt-4 text-neutral-600 text-sm sm:text-base leading-relaxed">
-              GarageBox helps you manage service bookings, estimates, job cards, payments,
-              inspections, inventory, customer communication, and labor tracking in an all-in-one
-              garage management software.
+            <p className="mt-4 text-sm leading-relaxed text-neutral-600 sm:text-base">
+              BayFlow is built for independent garages. Run one shop or several, each with its own
+              team, stock and bookings.
             </p>
           </div>
 
-          <div className="mt-14 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-            {capabilities.map((c) => (
-              <div
-                key={c.title}
-                className="group rounded-3xl border border-neutral-200/90 bg-white p-8 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+          <ol className="mt-14 grid grid-cols-1 gap-6 sm:gap-8 md:grid-cols-3">
+            {ONBOARDING.map((step, index) => (
+              <li
+                key={step.title}
+                className="flex flex-col justify-between rounded-3xl border border-neutral-200 bg-white p-8 shadow-md transition-shadow hover:shadow-xl motion-reduce:transition-none"
               >
-                <div
-                  className={`flex size-12 items-center justify-center rounded-2xl ${c.color} text-white shadow-md`}
-                >
-                  <c.icon className="size-6 stroke-[2.2]" />
+                <div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="flex size-12 items-center justify-center rounded-2xl bg-blue-50 text-[#1047FA]">
+                      <step.icon aria-hidden="true" className="size-6" />
+                    </span>
+                    <span className="text-xs font-bold text-neutral-600">Step {index + 1}</span>
+                  </div>
+                  <h3 className="mt-6 text-xl font-bold text-neutral-900">{step.title}</h3>
+                  <p className="mt-3 text-sm leading-relaxed text-neutral-600">{step.body}</p>
                 </div>
-                <h3 className="mt-6 text-xl font-bold text-neutral-900 group-hover:text-[#1047FA] transition-colors">
-                  {c.title}
-                </h3>
-                <p className="mt-3 text-sm text-neutral-600 leading-relaxed font-normal">
-                  {c.desc}
-                </p>
-              </div>
+                <div className="mt-8">
+                  {step.tags ? (
+                    <ul className="flex flex-wrap gap-1.5">
+                      {step.tags.map((tag) => (
+                        <li
+                          key={tag}
+                          className="rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-semibold text-neutral-700"
+                        >
+                          {tag}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <Link
+                      href="/register"
+                      className={cn(TEXT_LINK, 'inline-flex items-center gap-1 text-sm')}
+                    >
+                      Create your account
+                      <ArrowRight aria-hidden="true" className="size-4" />
+                    </Link>
+                  )}
+                </div>
+              </li>
             ))}
-          </div>
-        </div>
-      </section>
+          </ol>
 
-      {/* ========================================================
-          7. SUPPORT & ONBOARDING
-          "Built for Garages. Backed by Humans."
-          ======================================================== */}
-      <section
-        id="support"
-        className="relative w-full py-20 bg-white border-t border-neutral-200/60 bg-grid-pattern"
-      >
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-3xl text-center">
-            <p className="text-xs md:text-sm font-extrabold uppercase tracking-widest text-[#1047FA]">
-              FREE ONBOARDING & TRAINING
-            </p>
-            <h2 className="mt-3 text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-[#111827]">
-              Built for{' '}
-              <span className="font-handwriting font-normal italic text-4xl sm:text-5xl md:text-6xl text-[#171c26]">
-                Garages.
-              </span>{' '}
-              Backed by Humans.
-            </h2>
-            <p className="mt-4 text-neutral-600 text-sm sm:text-base leading-relaxed">
-              From setup to daily operations, we are here to keep your garage running smoothly every
-              mile of the way.
-            </p>
-          </div>
-
-          <div className="mt-14 grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
-            {/* Card 1: Data Migration */}
-            <div className="flex flex-col justify-between rounded-3xl border border-neutral-200 bg-white p-8 shadow-md hover:shadow-xl transition-all">
-              <div>
-                <div className="flex size-12 items-center justify-center rounded-2xl bg-blue-50 text-[#1047FA]">
-                  <Box className="size-6" />
-                </div>
-                <h3 className="mt-6 text-xl font-bold text-neutral-900">Data Migration</h3>
-                <p className="mt-3 text-sm text-neutral-600 leading-relaxed">
-                  Leave no data behind - we&apos;ll seamlessly transition your customer info,
-                  invoices, and more to GarageBox.
-                </p>
-              </div>
-              <div className="mt-8 text-right">
-                <button
-                  type="button"
-                  onClick={() => setDemoModalOpen(true)}
-                  className="text-sm font-bold text-[#1047FA] hover:underline"
-                >
-                  Contact Us
-                </button>
-              </div>
-            </div>
-
-            {/* Card 2: Live Support */}
-            <div className="flex flex-col justify-between rounded-3xl border border-neutral-200 bg-white p-8 shadow-md hover:shadow-xl transition-all">
-              <div>
-                <div className="flex size-12 items-center justify-center rounded-2xl bg-blue-50 text-[#1047FA]">
-                  <HelpCircle className="size-6" />
-                </div>
-                <h3 className="mt-6 text-xl font-bold text-neutral-900">Live Support</h3>
-                <p className="mt-3 text-sm text-neutral-600 leading-relaxed">
-                  Get live support from our Customer Support team, available Monday to Friday, 10 am
-                  to 7 pm IST
-                </p>
-              </div>
-              <div className="mt-8 text-right">
-                <a
-                  href="https://wa.me/923125699996"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm font-bold text-[#1047FA] hover:underline"
-                >
-                  Chat With Us
-                </a>
-              </div>
-            </div>
-
-            {/* Card 3: Help Center */}
-            <div className="flex flex-col justify-between rounded-3xl border border-neutral-200 bg-white p-8 shadow-md hover:shadow-xl transition-all">
-              <div>
-                <div className="flex size-12 items-center justify-center rounded-2xl bg-blue-50 text-[#1047FA]">
-                  <FileText className="size-6" />
-                </div>
-                <h3 className="mt-6 text-xl font-bold text-neutral-900">Help Center</h3>
-                <p className="mt-3 text-sm text-neutral-600 leading-relaxed">
-                  Guide to help you get started smoothly and improve your understanding of all
-                  features
-                </p>
-              </div>
-              <div className="mt-8 text-right">
-                <a href="#help-center" className="text-sm font-bold text-[#1047FA] hover:underline">
-                  How to Use
-                </a>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-12 flex flex-row items-center justify-center gap-4">
-            <button
-              type="button"
-              onClick={() => setDemoModalOpen(true)}
-              className="rounded-full border border-neutral-900 bg-white px-7 sm:px-8 py-3 text-sm sm:text-base font-semibold text-neutral-900 shadow-sm hover:bg-neutral-50 transition-all active:scale-95"
-            >
-              Book a Demo
-            </button>
-            <Link
-              href="/register"
-              className="rounded-full bg-[#1047FA] px-7 sm:px-9 py-3 text-sm sm:text-base font-semibold text-white shadow-md shadow-[#1047FA]/20 hover:bg-[#0935c7] transition-all active:scale-95 text-center"
-            >
-              Get Started
+          <div className="mt-12 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center sm:gap-4">
+            <Link href="/register" className={PRIMARY_PILL}>
+              List your garage
+            </Link>
+            <Link href="/login" className={SECONDARY_PILL}>
+              Log in
             </Link>
           </div>
+          <p className="mt-6 text-center text-sm text-neutral-600">
+            Exploring the demo? The{' '}
+            <Link href="/login" className={cn(TEXT_LINK, 'underline')}>
+              log-in page
+            </Link>{' '}
+            lists a demo account for every role.
+          </p>
         </div>
       </section>
 
-      {/* ========================================================
-          8. EXPERIENCE MOBILE APP BANNER
-          ======================================================== */}
-      <section className="relative w-full py-16 bg-neutral-50">
+      {/* 8. Closing band */}
+      <section className="relative w-full bg-neutral-50 py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="relative rounded-[40px] border border-neutral-200/90 bg-white p-8 sm:p-12 lg:p-16 shadow-lg overflow-hidden bg-grid-pattern">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
-              {/* Left Column Content */}
-              <div className="lg:col-span-7 space-y-6">
-                <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-[#111827] leading-tight">
-                  <span className="font-handwriting font-normal italic text-4xl sm:text-5xl md:text-6xl text-[#171c26]">
-                    Experience the
-                  </span>{' '}
-                  #1 All-in-One Garage Management Software
+          <div className="bg-grid-pattern relative overflow-hidden rounded-[40px] border border-neutral-200/90 bg-white p-6 shadow-lg sm:p-12 lg:p-16">
+            <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-12">
+              <div className="space-y-6 lg:col-span-7">
+                <h2 className="text-3xl leading-tight font-extrabold tracking-tight text-balance text-[#111827] sm:text-4xl md:text-5xl">
+                  <span className={cn(HANDWRITING, 'text-[#171c26]')}>Repairs,</span> without the
+                  phone calls
                 </h2>
 
-                <p className="text-sm sm:text-base text-neutral-600 leading-relaxed font-normal">
-                  Start managing Customers, Vehicles, Jobs, Digital Vehicle Inspections (DVI), and
-                  Invoicing all in one platform. Automate daily tasks, track labor, digital estimate
-                  authorisation to eliminate manual works, and increase your shop profits today.
+                <p className="text-sm leading-relaxed text-neutral-600 sm:text-base">
+                  Customers book, approve and follow their repair online. Garages run every job from
+                  one shared record, from the first booking to the hand-over.
                 </p>
 
-                <div className="flex flex-wrap items-center gap-4 pt-2">
-                  <Link
-                    href="/register"
-                    className="rounded-full bg-[#1047FA] px-8 py-3 text-sm sm:text-base font-semibold text-white shadow-md hover:bg-[#0838c9] transition-all"
-                  >
-                    Get Started
+                <div className="flex flex-col items-stretch gap-3 pt-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
+                  <Link href="/book" className={PRIMARY_PILL}>
+                    Find a garage
                   </Link>
-                  <button
-                    type="button"
-                    onClick={() => setDemoModalOpen(true)}
-                    className="rounded-full border border-neutral-900 bg-white px-8 py-3 text-sm sm:text-base font-semibold text-neutral-900 shadow-sm hover:bg-neutral-50 transition-all"
-                  >
-                    Book a Demo
-                  </button>
+                  <Link href="/register" className={SECONDARY_PILL}>
+                    List your garage
+                  </Link>
                 </div>
 
-                <div className="pt-6 border-t border-neutral-100">
-                  <p className="text-xs font-bold text-neutral-700 mb-3">
-                    Download GarageBox app from
+                <div className="border-t border-neutral-100 pt-6">
+                  <p id="devices-title" className="mb-3 text-xs font-bold text-neutral-700">
+                    Runs in your browser. Nothing to install.
                   </p>
-                  <div className="flex flex-wrap items-center gap-3">
-                    <a
-                      href="#google-play"
-                      className="hover:opacity-90 transition-opacity"
-                      title="Google Play Store"
-                    >
-                      <Image
-                        src="/garagebox/play-store.svg"
-                        alt="Google Play Store"
-                        width={165}
-                        height={50}
-                        className="h-10 w-auto"
-                      />
-                    </a>
-                    <a
-                      href="#app-store"
-                      className="hover:opacity-90 transition-opacity"
-                      title="Apple App Store"
-                    >
-                      <Image
-                        src="/garagebox/app-store.svg"
-                        alt="Apple App Store"
-                        width={155}
-                        height={50}
-                        className="h-10 w-auto"
-                      />
-                    </a>
-                  </div>
+                  <ul aria-labelledby="devices-title" className="flex flex-wrap items-center gap-3">
+                    {DEVICES.map((device) => (
+                      <li
+                        key={device.label}
+                        className="inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-neutral-700"
+                      >
+                        <device.icon aria-hidden="true" className="size-4 text-[#1047FA]" />
+                        {device.label}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               </div>
 
-              {/* Right Column: Exact Mobile Mockup from GarageBox */}
-              <div className="lg:col-span-5 flex justify-center">
-                <div className="relative w-full max-w-[350px] flex justify-center">
-                  <Image
-                    src="/garagebox/mobile-mockup.png"
-                    alt="GarageBox mobile application"
-                    width={350}
-                    height={596}
-                    sizes="(max-width: 1024px) 300px, 350px"
-                    className="w-full h-auto object-contain drop-shadow-xl"
-                  />
-                </div>
+              <div className="flex justify-center lg:col-span-5">
+                <PhonePreview />
               </div>
             </div>
           </div>
         </div>
       </section>
+    </div>
+  )
+}
 
-      {/* ========================================================
-          BOOK A DEMO MODAL
-          ======================================================== */}
-      {demoModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="relative w-full max-w-lg rounded-3xl bg-white p-6 sm:p-8 shadow-2xl border border-neutral-200">
-            <button
-              type="button"
-              onClick={() => {
-                setDemoModalOpen(false)
-                setDemoSubmitted(false)
-              }}
-              className="absolute top-5 right-5 p-2 rounded-full text-neutral-400 hover:text-neutral-800 hover:bg-neutral-100 transition-colors"
-              aria-label="Close"
-            >
-              <X className="size-5" />
-            </button>
+// ---------------------------------------------------------------------------------------------
+// Sections
+// ---------------------------------------------------------------------------------------------
 
-            {demoSubmitted ? (
-              <div className="text-center py-6">
-                <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 mb-4">
-                  <Check className="size-8 stroke-[3]" />
-                </div>
-                <h3 className="text-2xl font-bold text-neutral-900">Demo Request Received!</h3>
-                <p className="mt-2 text-sm text-neutral-600">
-                  Thank you! Our garage software specialist will reach out to you within 2 business
-                  hours on WhatsApp/Phone.
-                </p>
-                <div className="mt-6">
-                  <Button
-                    onClick={() => {
-                      setDemoModalOpen(false)
-                      setDemoSubmitted(false)
-                    }}
-                    className="rounded-full bg-[#1047FA] px-8"
+interface FeatureSectionProps {
+  id: string
+  eyebrow: string
+  title: ReactNode
+  features: ReadonlyArray<FeatureBullet>
+  /** Background and ink of the bullet icon tiles. */
+  iconTone: string
+  cta: { label: string; href: string }
+  visual: ReactNode
+  /** Visual on the left from `lg` up (text always comes first in reading order). */
+  reverse?: boolean
+  /** Light grey band instead of white. */
+  muted?: boolean
+}
+
+function FeatureSection({
+  id,
+  eyebrow,
+  title,
+  features,
+  iconTone,
+  cta,
+  visual,
+  reverse = false,
+  muted = false,
+}: FeatureSectionProps) {
+  return (
+    <section
+      id={id}
+      className={cn(
+        'relative w-full border-t border-neutral-200/60 py-20',
+        muted ? 'bg-neutral-50/50' : 'bg-white',
+      )}
+    >
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-12 lg:gap-16">
+          <div className={cn('space-y-8 lg:col-span-6', reverse && 'lg:order-2')}>
+            <div>
+              <p className={EYEBROW}>{eyebrow}</p>
+              <h2 className={cn(SECTION_TITLE, 'leading-tight')}>{title}</h2>
+            </div>
+
+            <ul className="space-y-6">
+              {features.map((feature) => (
+                <li key={feature.title} id={feature.id} className="flex items-start gap-4">
+                  <span
+                    className={cn(
+                      'mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl',
+                      iconTone,
+                    )}
                   >
-                    Done
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-[#1047FA]">
-                  Free Live Walkthrough
-                </p>
-                <h3 className="text-2xl font-bold text-neutral-900 mt-1">
-                  Book a Personalized Demo
-                </h3>
-                <p className="text-xs text-neutral-500 mt-1">
-                  See how GarageBox helps auto garages schedule jobs, track parts, and increase
-                  profit by 40%.
-                </p>
-
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault()
-                    setDemoSubmitted(true)
-                  }}
-                  className="mt-6 space-y-4"
-                >
+                    <feature.icon aria-hidden="true" className="size-5" />
+                  </span>
                   <div>
-                    <label className="block text-xs font-bold text-neutral-700 mb-1">
-                      Full Name *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Tariq Mehmood"
-                      value={demoForm.name}
-                      onChange={(e) => setDemoForm({ ...demoForm, name: e.target.value })}
-                      className="w-full rounded-xl border border-neutral-300 px-3.5 py-2.5 text-sm focus:border-[#1047FA] focus:ring-1 focus:ring-[#1047FA] outline-none"
-                    />
+                    <h3 className="text-base font-bold text-neutral-900 sm:text-lg">
+                      {feature.title}
+                    </h3>
+                    <p className="mt-1 text-sm leading-relaxed text-neutral-600">{feature.body}</p>
                   </div>
+                </li>
+              ))}
+            </ul>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-bold text-neutral-700 mb-1">
-                        Phone / WhatsApp *
-                      </label>
-                      <input
-                        type="tel"
-                        required
-                        placeholder="+92 300 1234567"
-                        value={demoForm.phone}
-                        onChange={(e) => setDemoForm({ ...demoForm, phone: e.target.value })}
-                        className="w-full rounded-xl border border-neutral-300 px-3.5 py-2.5 text-sm focus:border-[#1047FA] focus:ring-1 focus:ring-[#1047FA] outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-neutral-700 mb-1">
-                        Work Email
-                      </label>
-                      <input
-                        type="email"
-                        placeholder="tariq@garage.com"
-                        value={demoForm.email}
-                        onChange={(e) => setDemoForm({ ...demoForm, email: e.target.value })}
-                        className="w-full rounded-xl border border-neutral-300 px-3.5 py-2.5 text-sm focus:border-[#1047FA] focus:ring-1 focus:ring-[#1047FA] outline-none"
-                      />
-                    </div>
-                  </div>
+            <div className="pt-2">
+              <Link href={cta.href} className={PRIMARY_PILL}>
+                {cta.label}
+              </Link>
+            </div>
+          </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-neutral-700 mb-1">
-                      Garage / Workshop Name *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Apex Auto Care Lahore"
-                      value={demoForm.garageName}
-                      onChange={(e) => setDemoForm({ ...demoForm, garageName: e.target.value })}
-                      className="w-full rounded-xl border border-neutral-300 px-3.5 py-2.5 text-sm focus:border-[#1047FA] focus:ring-1 focus:ring-[#1047FA] outline-none"
-                    />
-                  </div>
-
-                  <div className="pt-2">
-                    <button
-                      type="submit"
-                      className="w-full rounded-full bg-[#1047FA] py-3 text-sm font-bold text-white shadow-md hover:bg-[#0838c9] transition-all"
-                    >
-                      Confirm Demo Request
-                    </button>
-                  </div>
-                </form>
-              </div>
-            )}
+          <div className={cn('flex justify-center lg:col-span-6', reverse && 'lg:order-1')}>
+            {visual}
           </div>
         </div>
+      </div>
+    </section>
+  )
+}
+
+// ---------------------------------------------------------------------------------------------
+// Illustrations: self-made, decorative product previews. Each is one `role="img"` with a label,
+// so screen readers hear a single description instead of the example data.
+// ---------------------------------------------------------------------------------------------
+
+function ExampleTag({ className }: { className?: string }) {
+  return (
+    <span
+      className={cn(
+        'shrink-0 rounded-full bg-blue-50 px-2.5 py-1 text-[10px] font-bold tracking-wider text-[#1047FA] uppercase',
+        className,
       )}
+    >
+      Example
+    </span>
+  )
+}
+
+function Chip({ className, children }: { className?: string; children: ReactNode }) {
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap',
+        className,
+      )}
+    >
+      {children}
+    </span>
+  )
+}
+
+const HERO_TIMELINE: ReadonlyArray<{ label: string; state: 'done' | 'current' | 'next' }> = [
+  { label: statusLabel('PENDING', 'customer'), state: 'done' },
+  { label: statusLabel('CONFIRMED', 'customer'), state: 'done' },
+  { label: statusLabel('INSPECTING', 'customer'), state: 'done' },
+  { label: statusLabel('AWAITING_CUSTOMER', 'customer'), state: 'current' },
+  { label: 'Parts, repair and quality check', state: 'next' },
+  { label: statusLabel('READY_FOR_PICKUP', 'customer'), state: 'next' },
+]
+
+/** Hero: the customer's booking page with its timeline and the estimate waiting for approval. */
+function HeroPreview() {
+  return (
+    <div className="relative mx-auto mt-12 max-w-[1020px] md:mt-16">
+      <div
+        role="img"
+        aria-label={`Example booking ${EXAMPLE.reference} at ${EXAMPLE.shop} for a 2016 Honda Civic. Its timeline has reached “${statusLabel('AWAITING_CUSTOMER', 'customer')}”, and estimate version 2 totals ${formatPKR(ESTIMATE_TOTAL)}, with Approve and Reject buttons.`}
+        className="rounded-3xl border border-neutral-200 bg-white p-2 text-left shadow-2xl shadow-[#1047FA]/10 sm:p-3"
+      >
+        <div className="flex items-center gap-2 rounded-2xl bg-neutral-50 px-4 py-3">
+          <span className="size-2.5 shrink-0 rounded-full bg-rose-300" />
+          <span className="size-2.5 shrink-0 rounded-full bg-amber-300" />
+          <span className="size-2.5 shrink-0 rounded-full bg-emerald-300" />
+          <span className="ml-2 min-w-0 truncate text-xs font-semibold text-neutral-600">
+            My bookings / {EXAMPLE.reference}
+          </span>
+          <ExampleTag className="ml-auto" />
+        </div>
+
+        <div className="grid gap-3 p-2 pt-3 sm:gap-4 sm:p-3 md:grid-cols-12">
+          {/* Booking */}
+          <div className="rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5 md:col-span-7">
+            <div className="flex items-start gap-3">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#1047FA] text-sm font-bold text-white">
+                LA
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-bold text-neutral-900">{EXAMPLE.shop}</p>
+                <p className="truncate text-xs text-neutral-600">{EXAMPLE.vehicle}</p>
+              </div>
+              <span className="hidden shrink-0 font-mono text-[11px] font-semibold tracking-wide text-neutral-600 sm:inline">
+                {EXAMPLE.reference}
+              </span>
+            </div>
+
+            <div className="mt-3">
+              <StatusBadge status="AWAITING_CUSTOMER" audience="customer" size="md" />
+            </div>
+
+            <div className="mt-4 grid grid-cols-1 gap-2 text-xs sm:grid-cols-2">
+              <div className="rounded-xl bg-neutral-50 p-2.5">
+                <p className="text-neutral-600">Appointment</p>
+                <p className="mt-0.5 font-semibold text-neutral-900">{EXAMPLE.slot}</p>
+              </div>
+              <div className="rounded-xl bg-neutral-50 p-2.5">
+                <p className="text-neutral-600">Services</p>
+                <p className="mt-0.5 font-semibold text-neutral-900">{EXAMPLE.services}</p>
+              </div>
+            </div>
+
+            <ol className="mt-4 hidden space-y-2.5 sm:block">
+              {HERO_TIMELINE.map((step) => (
+                <li key={step.label} className="flex items-center gap-2.5 text-xs">
+                  {step.state === 'done' && (
+                    <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white">
+                      <Check className="size-3" strokeWidth={3} />
+                    </span>
+                  )}
+                  {step.state === 'current' && (
+                    <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[#1047FA] ring-4 ring-blue-100">
+                      <span className="size-1.5 rounded-full bg-white" />
+                    </span>
+                  )}
+                  {step.state === 'next' && (
+                    <span className="size-5 shrink-0 rounded-full border-2 border-dashed border-neutral-300" />
+                  )}
+                  <span
+                    className={
+                      step.state === 'next' ? 'text-neutral-600' : 'font-semibold text-neutral-900'
+                    }
+                  >
+                    {step.label}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </div>
+
+          {/* Estimate */}
+          <div className="flex flex-col rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5 md:col-span-5">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-sm font-bold text-neutral-900">Estimate</p>
+              <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-bold text-[#1047FA]">
+                Version 2
+              </span>
+            </div>
+            <p className="mt-1 text-xs text-neutral-600">Parts and labour, sent by the garage</p>
+
+            <ul className="mt-3 divide-y divide-neutral-100 text-xs">
+              {ESTIMATE_LINES.map((line) => (
+                <li key={line.label} className="flex items-center justify-between gap-3 py-2">
+                  <span className="min-w-0 truncate text-neutral-700">{line.label}</span>
+                  <span className="shrink-0 font-semibold text-neutral-900 tabular-nums">
+                    {formatPKR(line.amount)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+
+            <div className="mt-1 flex items-center justify-between border-t border-neutral-200 pt-3">
+              <span className="text-sm font-bold text-neutral-900">Total</span>
+              <span className="text-lg font-extrabold text-neutral-900 tabular-nums">
+                {formatPKR(ESTIMATE_TOTAL)}
+              </span>
+            </div>
+
+            <div className="mt-auto grid grid-cols-2 gap-2 pt-4">
+              <span className="rounded-full bg-[#1047FA] py-2 text-center text-xs font-semibold text-white">
+                Approve
+              </span>
+              <span className="rounded-full border border-neutral-300 bg-white py-2 text-center text-xs font-semibold text-neutral-800">
+                Reject
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+interface ExampleDay {
+  day: string
+  date: string
+  selected?: boolean
+}
+
+interface ExampleSlot {
+  time: string
+  selected?: boolean
+  /** Shown when only one place is left in the slot (spec 10 W3). */
+  hint?: string
+}
+
+const SLOT_DAYS: ReadonlyArray<ExampleDay> = [
+  { day: 'Wed', date: '14' },
+  { day: 'Thu', date: '15' },
+  { day: 'Fri', date: '16', selected: true },
+  { day: 'Sat', date: '17' },
+  { day: 'Mon', date: '19' },
+]
+
+const SLOT_TIMES: ReadonlyArray<ExampleSlot> = [
+  { time: '9:00 am' },
+  { time: '10:00 am', selected: true },
+  { time: '11:00 am', hint: '1 left' },
+  { time: '12:00 pm' },
+  { time: '2:00 pm', hint: '1 left' },
+  { time: '4:00 pm' },
+]
+
+/** For car owners: the wizard's time step, which lists only slots with space left. */
+function SlotPickerPreview() {
+  return (
+    <div
+      role="img"
+      aria-label={`Example: choosing a time at ${EXAMPLE.shop}. Friday 16 October is selected and only times with space left are listed; 10:00 am is chosen, and 11:00 am and 2:00 pm have one place left.`}
+      className="w-full max-w-[514px] rounded-3xl border border-neutral-200 bg-white p-5 text-left shadow-xl shadow-neutral-900/5 sm:p-6"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[11px] font-bold tracking-wider text-[#1047FA] uppercase">
+            Step 3 of 5 · Time
+          </p>
+          <p className="mt-1 truncate text-base font-bold text-neutral-900">{EXAMPLE.shop}</p>
+          <p className="truncate text-xs text-neutral-600">{EXAMPLE.services}</p>
+        </div>
+        <ExampleTag />
+      </div>
+
+      <p className="mt-5 text-xs font-semibold text-neutral-800">October 2026</p>
+      <ul className="mt-2 grid grid-cols-5 gap-2">
+        {SLOT_DAYS.map((day) => (
+          <li
+            key={day.date}
+            className={cn(
+              'flex flex-col items-center rounded-2xl border py-2',
+              day.selected
+                ? 'border-[#1047FA] bg-[#1047FA] text-white'
+                : 'border-neutral-200 text-neutral-800',
+            )}
+          >
+            <span
+              className={cn('text-[11px]', day.selected ? 'text-blue-100' : 'text-neutral-600')}
+            >
+              {day.day}
+            </span>
+            <span className="text-sm font-bold">{day.date}</span>
+          </li>
+        ))}
+      </ul>
+
+      <ul className="mt-4 grid grid-cols-3 gap-2">
+        {SLOT_TIMES.map((slot) => (
+          <li
+            key={slot.time}
+            className={cn(
+              'flex min-h-12 flex-col items-center justify-center rounded-xl border px-1 py-1.5 text-center',
+              slot.selected
+                ? 'border-[#1047FA] bg-blue-50 text-[#1047FA] ring-1 ring-[#1047FA]'
+                : 'border-neutral-200 text-neutral-800',
+            )}
+          >
+            <span className="text-xs font-semibold">{slot.time}</span>
+            {slot.hint && (
+              <span className="text-[10px] font-semibold text-status-estimate-fg">{slot.hint}</span>
+            )}
+          </li>
+        ))}
+      </ul>
+
+      <p className="mt-4 flex items-center gap-1.5 text-[11px] text-neutral-600">
+        <Clock className="size-3.5 shrink-0" />
+        Shop local time (Asia/Karachi). Full slots are not shown.
+      </p>
+
+      <div className="mt-5 flex items-center justify-between gap-3 rounded-2xl bg-neutral-50 p-3">
+        <p className="min-w-0 truncate text-xs font-bold text-neutral-900">{EXAMPLE.slot}</p>
+        <span className="shrink-0 rounded-full bg-[#1047FA] px-4 py-2 text-xs font-semibold text-white">
+          Continue
+        </span>
+      </div>
+    </div>
+  )
+}
+
+const PARTS_CHECK: ReadonlyArray<{ part: string; inStock: boolean }> = [
+  { part: 'Engine oil 4 L', inStock: true },
+  { part: 'Oil filter', inStock: true },
+  { part: 'Ignition coil', inStock: false },
+]
+
+/** The default QC checklist (D46, spec 03 §3.6 labels). */
+const QC_CHECKLIST = [
+  'Road test',
+  'No warning lights',
+  'No leaks',
+  'Fluid levels OK',
+  'Customer complaint resolved',
+] as const
+
+/** For garages: the parts check with a purchase order, then a QC round that passed. */
+function PartsAndQcPreview() {
+  return (
+    <div
+      role="img"
+      aria-label={`Example: the parts check for job ${EXAMPLE.reference} shows engine oil and the oil filter in stock, and the ignition coil out of stock and on purchase order ${EXAMPLE.purchaseOrder}. Below it, QC round 2 passes all five checklist items after round 1 failed with an oil leak at the filter.`}
+      className="w-full max-w-[514px] space-y-4 text-left"
+    >
+      <div className="rounded-3xl border border-neutral-200 bg-white p-5 shadow-xl shadow-neutral-900/5 sm:p-6">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[11px] font-bold tracking-wider text-[#1047FA] uppercase">
+              Parts check
+            </p>
+            <p className="mt-1 truncate text-base font-bold text-neutral-900">
+              Job {EXAMPLE.reference}
+            </p>
+          </div>
+          <ExampleTag />
+        </div>
+
+        <ul className="mt-4 divide-y divide-neutral-100 text-xs">
+          {PARTS_CHECK.map((row) => (
+            <li key={row.part} className="flex flex-wrap items-center justify-between gap-2 py-2.5">
+              <span className="font-semibold text-neutral-800">
+                {row.part} <span className="font-normal text-neutral-600">× 1</span>
+              </span>
+              {row.inStock ? (
+                <Chip className="border-status-handover-border bg-success-subtle text-success-ink">
+                  In stock
+                </Chip>
+              ) : (
+                <span className="flex flex-wrap items-center gap-1.5">
+                  <Chip className="border-status-estimate-rejected-border bg-danger-subtle text-danger-ink">
+                    Out
+                  </Chip>
+                  <Chip className="border-status-intake-border bg-info-subtle text-info-ink">
+                    <Truck className="size-3" />
+                    {EXAMPLE.purchaseOrder} · Ordered
+                  </Chip>
+                </span>
+              )}
+            </li>
+          ))}
+        </ul>
+
+        <div className="mt-3">
+          <div className="flex items-center justify-between text-[11px] font-semibold text-neutral-700">
+            <span>Parts ready</span>
+            <span>2 of 3</span>
+          </div>
+          <div className="mt-1.5 h-2 rounded-full bg-neutral-100">
+            <div className="h-2 w-2/3 rounded-full bg-[#1047FA]" />
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-3xl border border-neutral-200 bg-white p-5 shadow-xl shadow-neutral-900/5 sm:ml-10 sm:p-6">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[11px] font-bold tracking-wider text-[#1047FA] uppercase">
+              QC inspection
+            </p>
+            <p className="mt-1 text-base font-bold text-neutral-900">Round 2</p>
+          </div>
+          <Chip className="border-status-handover-border bg-success-subtle text-success-ink">
+            <Check className="size-3" strokeWidth={3} />
+            Passed
+          </Chip>
+        </div>
+
+        <ul className="mt-4 grid gap-2 text-xs sm:grid-cols-2">
+          {QC_CHECKLIST.map((item) => (
+            <li key={item} className="flex items-center gap-2 text-neutral-800">
+              <span className="flex size-4 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white">
+                <Check className="size-2.5" strokeWidth={3} />
+              </span>
+              {item}
+            </li>
+          ))}
+        </ul>
+
+        <p className="mt-4 flex items-start gap-2 rounded-xl bg-danger-subtle p-3 text-[11px] leading-snug text-danger-ink">
+          <CircleAlert className="mt-px size-3.5 shrink-0" />
+          Round 1 failed: oil leak at the filter. The job went back to the technician with this
+          issue.
+        </p>
+      </div>
+    </div>
+  )
+}
+
+/** Spec 10 S-04: the screen each membership role lands on. */
+const ROLE_HOMES: ReadonlyArray<{ role: string; home: string; icon: LucideIcon }> = [
+  { role: 'Service Advisor', home: 'Bookings', icon: CalendarCheck },
+  { role: 'Technician', home: 'My jobs', icon: Wrench },
+  { role: 'Parts Person', home: 'Jobs awaiting parts', icon: PackageSearch },
+  { role: 'QC Inspector', home: 'QC queue', icon: ClipboardCheck },
+  { role: 'Owner', home: 'Shop overview', icon: LayoutDashboard },
+]
+
+/** For owners and teams: the shop switcher and where each role starts. */
+function WorkspacesPreview() {
+  return (
+    <div
+      role="img"
+      aria-label={`Example: an owner's shop switcher with ${EXAMPLE.shop} selected and ${EXAMPLE.otherShop} listed, and the screen each role starts on: Bookings for the Service Advisor, My jobs for the Technician, Jobs awaiting parts for the Parts Person, the QC queue for the QC Inspector and the shop overview for the Owner.`}
+      className="w-full max-w-[514px] overflow-hidden rounded-3xl border border-neutral-200 bg-white text-left shadow-xl shadow-neutral-900/5"
+    >
+      <div className="flex items-center gap-3 bg-[#111827] px-5 py-4 text-white">
+        <Logo tone="dark" size="sm" showText={false} />
+        <span className="min-w-0 truncate text-sm font-bold">{EXAMPLE.shop}</span>
+        <ChevronDown className="size-4 shrink-0 text-neutral-300" />
+        <span className="ml-auto shrink-0 rounded bg-white/15 px-2 py-0.5 text-[11px] font-bold tracking-wider uppercase">
+          Owner
+        </span>
+      </div>
+
+      <div className="p-5 sm:p-6">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-[11px] font-bold tracking-wider text-neutral-600 uppercase">
+            Your shops
+          </p>
+          <ExampleTag />
+        </div>
+        <ul className="mt-3 space-y-2 text-sm">
+          <li className="flex items-center justify-between gap-3 rounded-xl border border-blue-200 bg-blue-50/60 px-3 py-2.5">
+            <span className="min-w-0 truncate font-semibold text-neutral-900">{EXAMPLE.shop}</span>
+            <Check className="size-4 shrink-0 text-[#1047FA]" />
+          </li>
+          <li className="flex items-center justify-between gap-3 rounded-xl border border-neutral-200 px-3 py-2.5">
+            <span className="min-w-0 truncate font-semibold text-neutral-700">
+              {EXAMPLE.otherShop}
+            </span>
+            <span className="shrink-0 text-[11px] text-neutral-600">Owner</span>
+          </li>
+        </ul>
+
+        <p className="mt-6 text-[11px] font-bold tracking-wider text-neutral-600 uppercase">
+          Where each role starts
+        </p>
+        <ul className="mt-3 grid gap-2">
+          {ROLE_HOMES.map((item) => (
+            <li
+              key={item.role}
+              className="flex items-center gap-3 rounded-xl bg-neutral-50 px-3 py-2.5 text-xs"
+            >
+              <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-white text-[#1047FA] shadow-sm">
+                <item.icon className="size-4" />
+              </span>
+              <span className="min-w-0 flex-1 truncate font-semibold text-neutral-900">
+                {item.role}
+              </span>
+              <span className="shrink-0 text-neutral-600">{item.home}</span>
+            </li>
+          ))}
+        </ul>
+
+        <p className="mt-5 flex items-start gap-2 rounded-xl border border-neutral-200 p-3 text-[11px] leading-snug text-neutral-700">
+          <ShieldCheck className="mt-px size-3.5 shrink-0 text-emerald-600" />
+          {EXAMPLE.shop}’s staff can’t open {EXAMPLE.otherShop}’ bookings, stock or team.
+        </p>
+      </div>
+    </div>
+  )
+}
+
+/** A booking reference never breaks at its hyphen. */
+const REFERENCE = <span className="whitespace-nowrap">{EXAMPLE.reference}</span>
+
+/** Customer notifications, worded as in the notifications spec (titles and bodies). */
+const PHONE_NOTIFICATIONS: ReadonlyArray<{
+  id: string
+  title: ReactNode
+  body: ReactNode
+  icon: LucideIcon
+  unread: boolean
+}> = [
+  {
+    id: 'vehicle-ready',
+    title: 'Your vehicle is ready for pick-up',
+    body: (
+      <>
+        Booking {REFERENCE} at {EXAMPLE.shop} is ready for pick-up.
+      </>
+    ),
+    icon: CarFront,
+    unread: true,
+  },
+  {
+    id: 'estimate-sent',
+    title: <>Your estimate is ready — {REFERENCE}</>,
+    body: `${EXAMPLE.shop} sent estimate v2: ${formatPKR(ESTIMATE_TOTAL)}. Review and approve it in BayFlow.`,
+    icon: FileCheck,
+    unread: false,
+  },
+  {
+    id: 'booking-confirmed',
+    title: <>Booking confirmed — {REFERENCE}</>,
+    body: `${EXAMPLE.shop} confirmed your booking.`,
+    icon: CalendarCheck,
+    unread: false,
+  },
+]
+
+/** Closing band: BayFlow in a phone browser, with the ready-for-pick-up notification. */
+function PhonePreview() {
+  return (
+    <div
+      role="img"
+      aria-label={`Example: BayFlow open in a phone browser. One unread notification says your vehicle is ready for pick-up at ${EXAMPLE.shop}; older ones show the estimate and the booking confirmation.`}
+      className="w-full max-w-[300px] rounded-[2.5rem] border-[10px] border-neutral-900 bg-white text-left shadow-xl"
+    >
+      <div className="mx-auto mt-2 h-1.5 w-16 rounded-full bg-neutral-200" />
+
+      <div className="flex items-center justify-between border-b border-neutral-100 px-4 py-3">
+        <Logo size="sm" />
+        <span className="relative text-neutral-700">
+          <Bell className="size-5" />
+          <span className="absolute -top-1.5 -right-1.5 flex size-4 items-center justify-center rounded-full bg-[#1047FA] text-[9px] font-bold text-white">
+            1
+          </span>
+        </span>
+      </div>
+
+      <div className="space-y-2 p-3">
+        <p className="px-1 text-[11px] font-bold tracking-wider text-neutral-600 uppercase">
+          Notifications
+        </p>
+        <ul className="space-y-2">
+          {PHONE_NOTIFICATIONS.map((notification) => (
+            <li
+              key={notification.id}
+              className={cn(
+                'flex gap-2.5 rounded-2xl border p-3',
+                notification.unread ? 'border-blue-200 bg-blue-50/60' : 'border-neutral-100',
+              )}
+            >
+              <span
+                className={cn(
+                  'mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full',
+                  notification.unread
+                    ? 'bg-[#1047FA] text-white'
+                    : 'bg-neutral-100 text-neutral-600',
+                )}
+              >
+                <notification.icon className="size-3.5" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-neutral-900">{notification.title}</p>
+                <p className="mt-0.5 text-[11px] leading-snug text-neutral-600">
+                  {notification.body}
+                </p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="mx-3 mb-5 rounded-2xl border border-neutral-200 p-3">
+        <StatusBadge status="READY_FOR_PICKUP" audience="customer" size="md" />
+        <p className="mt-2 text-xs font-semibold text-neutral-900">{EXAMPLE.vehicle}</p>
+        <p className="text-[11px] text-neutral-600">
+          {EXAMPLE.shop} · {EXAMPLE.reference}
+        </p>
+      </div>
     </div>
   )
 }

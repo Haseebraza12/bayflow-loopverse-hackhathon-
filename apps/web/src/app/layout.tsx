@@ -15,17 +15,19 @@ const jetBrainsMono = JetBrains_Mono({
   variable: '--font-jetbrains-mono',
   display: 'swap',
 })
+// Handwritten accent words in the landing-page headings (`font-handwriting`).
 const caveat = Caveat({
   subsets: ['latin'],
   variable: '--font-caveat',
   display: 'swap',
 })
 
+// Wording from spec 10 P-01 (hero h1, subline and owner band); pages add "{Page} · BayFlow".
 export const metadata: Metadata = {
-  title: { default: 'GarageBox · Auto Repair Garage Management Software', template: '%s · GarageBox' },
+  title: { default: 'BayFlow · Book trusted car repair in minutes', template: '%s · BayFlow' },
   description:
-    'Take control of your auto repair business with GarageBox, the leading garage management software. Simplify job scheduling, invoicing, and inventory control.',
-  applicationName: 'GarageBox',
+    'Pick a garage and a time, approve your estimate online and track your car live. Garages run bookings, estimates, parts and QC in one place.',
+  applicationName: 'BayFlow',
 }
 
 export const viewport: Viewport = {
