@@ -136,18 +136,22 @@ def _field_name(loc: Sequence[object], error_type: str) -> str:
 
 
 def validation_field_errors(exc: RequestValidationError) -> list[FieldError]:
-    """Pydantic errors as `{field, message, code}`, without the submitted `input` or `ctx`."""
+    """Pydantic errors as `{field, message, code}`, without the submitted `input` or `ctx`.
+
+    Identical errors are reported once, in first-seen order. FastAPI caches a dependency's result
+    only when it succeeds, so on a route with both `require_shop_member` and `require_roles` a
+    malformed `shop_id` is validated twice and would otherwise be listed twice.
+    """
     field_errors: list[FieldError] = []
+    seen: set[tuple[str, str, str]] = set()
     for error in exc.errors():
         error_type = str(error.get("type", "value_error"))
         message = str(error.get("msg", "Invalid value.")).removeprefix(_VALUE_ERROR_PREFIX)
-        field_errors.append(
-            FieldError(
-                field=_field_name(tuple(error.get("loc", ())), error_type),
-                message=message,
-                code=error_type,
-            )
-        )
+        field = _field_name(tuple(error.get("loc", ())), error_type)
+        if (field, message, error_type) in seen:
+            continue
+        seen.add((field, message, error_type))
+        field_errors.append(FieldError(field=field, message=message, code=error_type))
     return field_errors
 
 

@@ -267,3 +267,14 @@ async def test_session_cookie_helpers_use_the_d8_attributes() -> None:
     cleared = Response()
     delete_session_cookie(cleared)
     assert "Max-Age=0" in cleared.headers["set-cookie"]
+
+
+async def test_a_malformed_shop_id_is_one_field_error_on_role_gated_routes(
+    db_client: httpx.AsyncClient, cast: Cast
+) -> None:
+    """`require_roles` re-resolves `require_shop_member`; the 422 must still list the error once."""
+    response = await db_client.get(
+        "/api/v1/shops/not-a-uuid/_probe/owner-only", headers=bearer(cast.owner)
+    )
+    assert response.status_code == 422
+    assert [error["field"] for error in response.json()["errors"]] == ["path.shop_id"]
