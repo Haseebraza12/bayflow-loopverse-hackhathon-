@@ -127,7 +127,7 @@ export function PublicFooter() {
           </div>
 
           {/* Col 2: Features */}
-          <div className="sm:col-span-3 lg:col-span-2">
+          <div className="sm:col-span-3 lg:col-span-4">
             <h4 className="mb-4 text-base font-bold text-foreground">Features</h4>
             <ul className="space-y-2.5 text-xs font-medium text-muted-foreground">
               {[
@@ -157,7 +157,7 @@ export function PublicFooter() {
           </div>
 
           {/* Col 3: Solutions */}
-          <div className="sm:col-span-3 lg:col-span-3">
+          <div className="sm:col-span-3 lg:col-span-4">
             <h4 className="mb-4 text-base font-bold text-foreground">Solutions</h4>
             <ul className="space-y-2.5 text-xs font-medium text-muted-foreground">
               {[
@@ -179,19 +179,7 @@ export function PublicFooter() {
             </ul>
           </div>
 
-          {/* Col 4: Resources */}
-          <div className="lg:col-span-1.5 sm:col-span-3">
-            <h4 className="mb-4 text-base font-bold text-foreground">Resources</h4>
-            <ul className="space-y-2.5 text-xs font-medium text-muted-foreground">
-              {['Pricing', 'FAQs', 'Blog', 'Support Center'].map((r) => (
-                <li key={r}>
-                  <Link href="#support" className="transition-colors hover:text-brand-blue-ink">
-                    {r}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
+
         </div>
       </div>
 

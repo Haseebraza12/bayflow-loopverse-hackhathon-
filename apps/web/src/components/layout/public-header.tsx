@@ -247,7 +247,7 @@ export function PublicHeader() {
             {companyOpen && (
               <div className="absolute top-full left-0 z-50 mt-3 w-64 rounded-2xl border border-border bg-card p-3 shadow-xl">
                 <div className="space-y-1">
-                  {['Available Countries', 'About Us', 'Careers', 'Contact Us'].map((item) => (
+                  {['About Us', 'Contact Us'].map((item) => (
                     <Link
                       key={item}
                       href="#offices"
@@ -283,7 +283,7 @@ export function PublicHeader() {
             {resourcesOpen && (
               <div className="absolute top-full left-0 z-50 mt-3 w-64 rounded-2xl border border-border bg-card p-3 shadow-xl">
                 <div className="space-y-1">
-                  {['Pricing Guide', 'Customer Stories', 'Help Center', 'Blog & Updates'].map(
+                  {['Customer Stories', 'Help Center', 'Blog & Updates'].map(
                     (res) => (
                       <Link
                         key={res}
@@ -300,13 +300,6 @@ export function PublicHeader() {
             )}
           </div>
 
-          {/* PRICING LINK */}
-          <Link
-            href="#pricing"
-            className="px-3 py-2 text-xs font-normal tracking-wider text-muted-foreground uppercase transition-colors hover:text-brand-blue-ink xl:text-sm"
-          >
-            Pricing
-          </Link>
         </nav>
 
         {/* Right Actions: emerald Sign In, or the bell and account menu once signed in */}
@@ -362,9 +355,6 @@ export function PublicHeader() {
               </Link>
               <Link href="#support" onClick={() => setMobileMenuOpen(false)}>
                 Support & Onboarding
-              </Link>
-              <Link href="#pricing" onClick={() => setMobileMenuOpen(false)}>
-                Pricing
               </Link>
             </div>
 
