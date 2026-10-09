@@ -1,7 +1,11 @@
-"""Pagination (glossary §9): `?limit=` (default 20, 1-100) and `?offset=` (>= 0).
+"""List envelopes (spec 03 §1.6, glossary §9).
 
-Every list endpoint returns `{"items": [...], "total": n, "limit": l, "offset": o}`; the query
-behind it uses a deterministic order and a `COUNT(*)` with the same filters (spec 01).
+Paginated collections return `Page[T]` = `{"items": [...], "total": n, "limit": l, "offset": o}`
+with `?limit=` (default 20, 1-100) and `?offset=` (>= 0); the query behind it uses a deterministic
+order and a `COUNT(*)` with the same filters (spec 01). Bounded lists (the children of one
+booking, PO or configuration) return `ItemList[T]` = `{"items": [...]}` in full, without
+pagination parameters. Every module uses these two classes, so OpenAPI has one schema per item
+type (`Page_BookingSummary_`, `ItemList_QcInspectionRead_`, ...).
 """
 
 from collections.abc import Sequence
@@ -44,3 +48,9 @@ class Page[T](BaseModel):
     @classmethod
     def build(cls, items: Sequence[T], *, total: int, params: PageParams) -> "Page[T]":
         return cls(items=list(items), total=total, limit=params.limit, offset=params.offset)
+
+
+class ItemList[T](BaseModel):
+    """A bounded list (spec 03 §1.6, §3.1): `{items}` in full, without pagination."""
+
+    items: list[T]

@@ -122,6 +122,14 @@ class PurchaseOrderStatus(StrEnum):
     RECEIVED = "RECEIVED"
 
 
+class StockState(StrEnum):
+    """Wire enum (spec 03 §3.9, D45): computed from available stock, never stored."""
+
+    OK = "OK"
+    LOW = "LOW"
+    OUT = "OUT"
+
+
 class QcResult(StrEnum):
     PASS = "PASS"
     FAIL = "FAIL"

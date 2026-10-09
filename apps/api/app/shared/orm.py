@@ -16,6 +16,7 @@ from enum import StrEnum
 
 from sqlalchemy import CheckConstraint, DateTime, Enum, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm.attributes import flag_modified
 
 from app.shared.clock import utcnow
 
@@ -43,6 +44,20 @@ class TimestampMixin(CreatedAtMixin):
         server_default=func.now(),
         sort_order=101,
     )
+
+
+def touch(row: TimestampMixin, now: datetime) -> None:
+    """Stamp a changed row with the action's single instant `now` (D63), unconditionally.
+
+    `TimestampMixin.updated_at` has `onupdate=utcnow` as a safety net, and SQLAlchemy leaves a
+    column out of the `UPDATE` when it is set to the value it already holds. When one action
+    updates a row twice (a receipt raises a part's `on_hand`, then its handler reserves the same
+    part; an executor writes a booking, then a handler touches it again), the second `UPDATE` would
+    omit `updated_at` and `onupdate` would read the clock a second time. `flag_modified` always
+    sends `now`. Every service write stamps its rows with this function.
+    """
+    row.updated_at = now
+    flag_modified(row, "updated_at")
 
 
 def enum_type(enum_class: type[StrEnum], column_name: str) -> Enum:
