@@ -25,6 +25,7 @@ export default function AdminShopsPage() {
   const [q, setQ] = useState('')
   const [status, setStatus] = useState<'ALL' | 'ACTIVE' | 'SUSPENDED'>('ALL')
   const [city, setCity] = useState('ALL')
+  const [listed, setListed] = useState<'ALL' | 'LISTED' | 'UNLISTED'>('ALL')
 
   const cities = useMemo(
     () => [...new Set(tenants.map((t) => t.shop.city))].sort((a, b) => a.localeCompare(b)),
@@ -38,6 +39,7 @@ export default function AdminShopsPage() {
         status === 'ALL' ? true : status === 'SUSPENDED' ? t.suspension : !t.suspension,
       )
       .filter((t) => city === 'ALL' || t.shop.city === city)
+      .filter((t) => listed === 'ALL' || (listed === 'LISTED') === t.shop.is_listed)
       .filter(
         (t) =>
           !needle ||
@@ -47,7 +49,7 @@ export default function AdminShopsPage() {
             .includes(needle),
       )
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-  }, [tenants, q, status, city])
+  }, [tenants, q, status, city, listed])
 
   const { rows, pager, reset } = usePaged(filtered)
 
@@ -99,6 +101,18 @@ export default function AdminShopsPage() {
               {c}
             </NativeSelectOption>
           ))}
+        </NativeSelect>
+        <NativeSelect
+          aria-label="Directory listing"
+          value={listed}
+          onChange={(event) => {
+            setListed(event.target.value as typeof listed)
+            reset()
+          }}
+        >
+          <NativeSelectOption value="ALL">Listed and unlisted</NativeSelectOption>
+          <NativeSelectOption value="LISTED">Listed</NativeSelectOption>
+          <NativeSelectOption value="UNLISTED">Unlisted</NativeSelectOption>
         </NativeSelect>
       </div>
 

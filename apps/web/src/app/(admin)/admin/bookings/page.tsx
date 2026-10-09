@@ -6,6 +6,7 @@ import { useMemo, useState } from 'react'
 
 import { AdminPageHeader, usePaged } from '@/components/admin/admin-ui'
 import { StatusBadge } from '@/components/status-badge'
+import { Input } from '@/components/ui/input'
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import {
@@ -29,22 +30,28 @@ export default function AdminBookingsPage() {
   const [q, setQ] = useState('')
   const [shopId, setShopId] = useState('ALL')
   const [phase, setPhase] = useState<'ALL' | StatusPhase>('ALL')
+  const [from, setFrom] = useState('')
+  const [to, setTo] = useState('')
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase()
-    return bookings
-      .filter((b) => shopId === 'ALL' || b.shopId === shopId)
-      .filter((b) => phase === 'ALL' || statusPhase(b.status) === phase)
-      .filter(
-        (b) =>
-          !needle ||
-          [b.reference, b.licensePlate, b.customerName, b.customerEmail]
-            .join(' ')
-            .toLowerCase()
-            .includes(needle),
-      )
-      .sort((a, b) => slotSortKey(b).localeCompare(slotSortKey(a)))
-  }, [bookings, q, shopId, phase])
+    return (
+      bookings
+        .filter((b) => shopId === 'ALL' || b.shopId === shopId)
+        .filter((b) => phase === 'ALL' || statusPhase(b.status) === phase)
+        // Slot dates are shop-local YYYY-MM-DD strings, so they compare as text (E-72 date_from/date_to).
+        .filter((b) => (!from || b.scheduledDate >= from) && (!to || b.scheduledDate <= to))
+        .filter(
+          (b) =>
+            !needle ||
+            [b.reference, b.licensePlate, b.customerName, b.customerEmail]
+              .join(' ')
+              .toLowerCase()
+              .includes(needle),
+        )
+        .sort((a, b) => slotSortKey(b).localeCompare(slotSortKey(a)))
+    )
+  }, [bookings, q, shopId, phase, from, to])
 
   const { rows, pager, reset } = usePaged(filtered)
 
@@ -100,6 +107,32 @@ export default function AdminBookingsPage() {
             </NativeSelectOption>
           ))}
         </NativeSelect>
+        <label className="flex flex-col gap-1 text-xs text-helper">
+          Slot from
+          <Input
+            type="date"
+            value={from}
+            max={to || undefined}
+            onChange={(event) => {
+              setFrom(event.target.value)
+              reset()
+            }}
+            className="w-40"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-xs text-helper">
+          Slot to
+          <Input
+            type="date"
+            value={to}
+            min={from || undefined}
+            onChange={(event) => {
+              setTo(event.target.value)
+              reset()
+            }}
+            className="w-40"
+          />
+        </label>
       </div>
 
       <div className="bg-layer">

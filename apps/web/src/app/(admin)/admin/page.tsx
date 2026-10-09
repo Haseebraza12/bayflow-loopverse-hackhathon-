@@ -2,11 +2,12 @@
 
 import { ArrowRight, CalendarCheck, ShieldAlert, Store, Timer, Users } from 'lucide-react'
 import Link from 'next/link'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 
 import { AdminPageHeader, StatTile, Tile } from '@/components/admin/admin-ui'
 import { AuditEventList } from '@/components/admin/audit-events'
 import { Button } from '@/components/ui/button'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { useMockStore } from '@/hooks/use-mock-store'
 import { useNowMinute } from '@/hooks/use-now'
 import { shopDateKey } from '@/lib/format'
@@ -72,7 +73,10 @@ export default function AdminOverviewPage() {
     }
   }, [users, tenants, bookings, audit, nowIso])
 
-  const maxEvents = Math.max(1, ...stats.activity.map((d) => d.events))
+  const [series, setSeries] = useState<'bookings' | 'events'>('bookings')
+  const valueOf = (d: (typeof stats.activity)[number]) =>
+    series === 'bookings' ? d.bookings : d.events
+  const maxValue = Math.max(1, ...stats.activity.map(valueOf))
 
   return (
     <div className="space-y-6">
@@ -127,9 +131,27 @@ export default function AdminOverviewPage() {
 
       <div className="grid gap-6 xl:grid-cols-3">
         <Tile
-          title="Activity, last 14 days"
-          description="Audit events per day (Asia/Karachi)"
+          title={series === 'bookings' ? 'Bookings, last 14 days' : 'Activity, last 14 days'}
+          description={
+            series === 'bookings'
+              ? 'New bookings per day across all shops (Asia/Karachi)'
+              : 'Audit events per day (Asia/Karachi)'
+          }
           className="xl:col-span-2"
+          actions={
+            <ToggleGroup
+              type="single"
+              variant="outline"
+              size="sm"
+              spacing={0}
+              value={series}
+              onValueChange={(value) => value && setSeries(value as typeof series)}
+              aria-label="Chart series"
+            >
+              <ToggleGroupItem value="bookings">Bookings</ToggleGroupItem>
+              <ToggleGroupItem value="events">Activity</ToggleGroupItem>
+            </ToggleGroup>
+          }
         >
           <div className="flex h-44 items-end gap-1.5" aria-hidden="true">
             {stats.activity.map((d) => (
@@ -137,8 +159,8 @@ export default function AdminOverviewPage() {
                 <div
                   className="w-full bg-brand-blue/85 transition-[height] duration-[240ms] ease-productive"
                   style={{
-                    height: `${(d.events / maxEvents) * 100}%`,
-                    minHeight: d.events ? 2 : 0,
+                    height: `${(valueOf(d) / maxValue) * 100}%`,
+                    minHeight: valueOf(d) ? 2 : 0,
                   }}
                   title={`${d.day}: ${d.events} events, ${d.bookings} new bookings`}
                 />
