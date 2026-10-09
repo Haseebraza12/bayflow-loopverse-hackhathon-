@@ -20,6 +20,7 @@ from pydantic import (
     ConfigDict,
     Field,
     PlainSerializer,
+    StrictInt,
     StringConstraints,
     ValidationError,
     field_validator,
@@ -167,7 +168,7 @@ class EstimateUpdate(BaseModel):
 
     lines: list[EstimateLineWrite] = Field(min_length=MIN_LINES, max_length=MAX_LINES)
     inspection_notes: InspectionNotes = None
-    expected_version: int | None = Field(default=None, ge=1)
+    expected_version: StrictInt | None = Field(default=None, ge=1)  # strict, like the action bodies
 
     @field_validator("inspection_notes")
     @classmethod
