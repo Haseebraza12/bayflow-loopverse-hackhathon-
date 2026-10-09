@@ -84,7 +84,12 @@ export interface MockBooking {
   vehicleModel: string
   vehicleYear: number
   licensePlate: string
+  /** W4 optional vehicle fields (spec 10 P-03). */
+  vehicleColor?: string
+  mileageKm?: number
   services: string[]
+  /** "Describe the problem" from the wizard (`customer_notes`, ≤ 2,000 characters). */
+  customerNotes?: string
   scheduledDate: string
   scheduledTime: string
   status: BookingStatus
@@ -238,7 +243,7 @@ export const INITIAL_SHOPS: MockShop[] = [
   },
 ]
 
-export const INITIAL_SERVICES: MockService[] = [
+const LAHORE_SERVICES: MockService[] = [
   {
     id: 'srv-oil-change',
     shopId: 'shop-lahore-auto-care',
@@ -299,6 +304,117 @@ export const INITIAL_SERVICES: MockService[] = [
     base_price: 7500,
     is_active: true,
   },
+]
+
+/**
+ * Spec 11 "Service catalogue" for the other five shops: the same nine services (Raza Auto Works,
+ * the newer branch, offers seven), with each shop's starting price. `null` is "Price after
+ * inspection"; a missing price means the shop doesn't offer it. Lahore Auto Care keeps the
+ * services above, which the mock bookings and the POS screens refer to.
+ */
+const CATALOGUE_SHOPS = [
+  'shop-raza-auto-works',
+  'shop-clifton-car-clinic',
+  'shop-margalla-motor-works',
+  'shop-pindi-auto-garage',
+  'shop-lyallpur-motors',
+] as const
+
+const CATALOGUE: ReadonlyArray<{
+  key: string
+  name: string
+  description: string
+  minutes: number
+  /** In CATALOGUE_SHOPS order. */
+  prices: ReadonlyArray<number | null | undefined>
+}> = [
+  {
+    key: 'oil-change',
+    name: 'Oil change',
+    description:
+      'Drain and refill engine oil, replace the oil filter, top up fluids. Oil and filter are quoted on the estimate.',
+    minutes: 45,
+    prices: [1100, 1100, 1150, 950, 900],
+  },
+  {
+    key: 'brake-failure',
+    name: 'Brake failure',
+    description: 'Diagnose and repair brake problems: pads, discs, fluid, lines and handbrake.',
+    minutes: 120,
+    prices: [2750, 2750, 2900, 2400, 2250],
+  },
+  {
+    key: 'check-engine-light',
+    name: 'Check engine light',
+    description: 'OBD-II scan, fault-code reading, sensor checks and a road test.',
+    minutes: 60,
+    prices: [2200, 2200, 2300, 1900, 1800],
+  },
+  {
+    key: 'tire-rotation',
+    name: 'Tire rotation',
+    description: 'Rotate tires, set pressures and check tread depth.',
+    minutes: 30,
+    prices: [900, 900, 900, 750, 700],
+  },
+  {
+    key: 'general-inspection',
+    name: 'General inspection',
+    description: '40-point check: brakes, suspension, fluids, lights, battery and tires.',
+    minutes: 60,
+    prices: [1650, 1650, 1750, 1450, 1350],
+  },
+  {
+    key: 'ac-service',
+    name: 'AC service',
+    description: 'Leak test, gas recharge, cabin filter check and condenser cleaning.',
+    minutes: 90,
+    prices: [undefined, 4950, 5200, 4300, 4050],
+  },
+  {
+    key: 'battery-replacement',
+    name: 'Battery replacement',
+    description:
+      'Battery and charging-system test; fit a new battery (battery quoted on the estimate).',
+    minutes: 30,
+    prices: [550, 550, 600, 500, 450],
+  },
+  {
+    key: 'wheel-alignment',
+    name: 'Wheel alignment',
+    description: 'Computerised four-wheel alignment and steering check.',
+    minutes: 45,
+    prices: [2200, 2200, 2300, 1900, 1800],
+  },
+  {
+    key: 'suspension-repair',
+    name: 'Suspension repair',
+    description:
+      'Diagnose knocks and vibration; replace links, bushes or shocks. Priced after inspection.',
+    minutes: 180,
+    prices: [undefined, null, null, null, null],
+  },
+]
+
+export const INITIAL_SERVICES: MockService[] = [
+  ...LAHORE_SERVICES,
+  ...CATALOGUE_SHOPS.flatMap((shopId, column) =>
+    CATALOGUE.flatMap((service) => {
+      const price = service.prices[column]
+      if (price === undefined) return []
+      return [
+        {
+          id: `srv-${shopId.slice('shop-'.length)}-${service.key}`,
+          shopId,
+          name: service.name,
+          description: service.description,
+          estimated_duration_minutes: service.minutes,
+          base_price: price,
+          is_active: true,
+        },
+      ]
+    }),
+  ),
 ]
 
 export const INITIAL_PARTS: MockPart[] = [
@@ -871,9 +987,7 @@ export function saveShop(updated: MockShop): void {
 export function getServices(shopId?: string): MockService[] {
   const services = getStoredData('services', INITIAL_SERVICES)
   if (shopId) {
-    return derive(services, `shop:${shopId}`, (all) =>
-      all.filter((s) => s.shopId === shopId || s.shopId === 'shop-lahore-auto-care'),
-    )
+    return derive(services, `shop:${shopId}`, (all) => all.filter((s) => s.shopId === shopId))
   }
   return services
 }
@@ -1028,8 +1142,13 @@ export function setCurrentUser(user: CurrentUserSession): void {
   }
 }
 
+/**
+ * Saves a wizard booking. `startSession` stands in for D32: an anonymous booking signs the new
+ * customer in; a signed-in user books as themselves and keeps their session.
+ */
 export function createBookingRecord(
   data: Omit<MockBooking, 'id' | 'reference' | 'createdAt' | 'updatedAt'>,
+  { startSession }: { startSession: boolean },
 ): MockBooking {
   const randNum = Math.floor(100 + Math.random() * 900)
   const id = `bk-${Date.now()}`
@@ -1044,6 +1163,7 @@ export function createBookingRecord(
   }
 
   saveBooking(newBooking)
+  if (!startSession) return newBooking
   setCurrentUser({
     name: data.customerName,
     email: data.customerEmail,

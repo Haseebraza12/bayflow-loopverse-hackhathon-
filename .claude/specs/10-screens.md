@@ -166,7 +166,7 @@ flowchart TD
 
 **W3 · Time**
 - A shadcn `Calendar` enables dates from today to today + 30 in shop time (D37), and only weekdays that have working hours.
-- The default date is today if the shop is open today, otherwise the next open day.
+- The default date is the first open day that still has a free slot: today while today has one, otherwise the next such day (so an evening visit never opens on an empty day). It shows in the summary only once the visitor reaches this step.
 - Selecting a date fetches E-09 with `date=YYYY-MM-DD`, computed by `shopDateKey` in the shop's timezone.
 - Times show as a `RadioGroup` of chips ("10:00 am") built from E-09's `slots[{slot_start, slot_end, remaining}]`. **Only free slots exist in the response:** the API omits full slots, so every returned slot has `remaining ≥ 1` (§7.3 "only available slots"; `remaining` = free places in the slot, D68). A slot with `remaining === 1` shows the hint "1 left".
 - No free slots (`slots: []`, also for past dates, closed days and dates beyond 30 days) → `Empty` "No free times on Fri 16 Oct" with a "Next open day" button.
