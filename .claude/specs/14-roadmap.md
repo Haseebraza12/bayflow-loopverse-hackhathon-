@@ -12,7 +12,7 @@ This spec turns the BayFlow blueprint into a build order that earns the most poi
 
 Each phase ends with something a judge could click on the live URL, and its exit criteria cite test IDs from spec 12.
 
-> **Status (D72, 2026-10-09).** Implementation has started, in parallel with the last spec work, at the owner's request. **PH0 is in progress now**: repo tooling and the local start/stop scripts, the API foundation, the web foundation and the pure state-machine domain with its exhaustive tests — the parts that depend only on the locked foundation (08, 17, 18) and the stable draft specs (01, 02, 07, 09). Module features (endpoints, services, screens; PH1 onwards) start once spec 03 and the module specs are written.
+> **Status (2026-10-09).** Implementation started in parallel with the last spec work, at the owner's request (D72). **PH0 is done** (details in PH0 below): the API foundation (D84 — `app.core`, `app.shared`, every model, one baseline migration incl. the bonus tables, `/health`), the web foundation, the pure state-machine domain with its exhaustive tests, the root tooling (compose, Makefile, CI, pre-commit, PR template, smoke script) and the start/stop scripts (D73). Integration was verified locally: `./start.sh` → `GET /health` 200 and the web app 200 → `./stop.sh` frees ports 3000/4000. Gates green: 1,371 API tests (1,131 state-machine), 67 Vitest tests, Ruff, mypy, the eight import contracts, Alembic upgrade / check / downgrade. **Not done yet:** the hosting half of PH0 (Railway, Vercel, the day-1 checklist, branch protection) — the README still says the live URL is "to be added after the first deploy" — so it moves to the start of PH1. **Next: PH1** — spec 03 and the module specs now exist, so module features can start.
 
 > **How to read this.**
 > - **Naming (D75):** phases are written **PH0 … PH10**; a bare **P0 / P1 / P2 / P3** is always a D36 *priority* (core / cheap extra / bonus / post-hackathon). The earlier "Phase P0 … P10" labels read like priorities ("Phase P1 builds P0 features"), so D75 renamed them. Tables use a "Phase" column for phases and a "Pri" column for priorities.
@@ -73,14 +73,14 @@ The estimate-rejected path (SM-08, SM-09) and the QC-fail loop (SM-10) are part 
 
 ## 2. Phases
 
-### PH0 — Bootstrap: tooling, foundations & walking skeleton *(in progress, D72)*
+### PH0 — Bootstrap: tooling, foundations & walking skeleton *(done 2026-10-09; hosting moved to PH1)*
 
 - **Goal:** An empty but real product is live — web on Vercel, API `/health` on Railway with PostgreSQL and the pre-deploy migration, CI gates green — and every foundation that depends only on the locked foundation (08, 17, 18) and the stable draft specs (01, 02, 07, 09) is in place, so module features can start the moment spec 03 and the module specs land (D72). Every environment risk the foundation specs flagged is checked on day 1.
 - **Deliverables**, in D72's order (the four tracks run side by side):
-  1. **Repo tooling + local dev scripts** (D5, D73): `apps/web`, `apps/api` (`apps/agent` is created in PH9). Root files: `README.md` skeleton, `.env.example` with every glossary §12 variable and a one-line comment, `docker-compose.yml` (PostgreSQL on host port **5434** via `POSTGRES_HOST_PORT`, + API + web), `Makefile` (targets per spec 07: `setup`, `up`, `db-up`, `migrate`, `seed`, `dev`, `test`, `lint`, `fmt`, `gen-api`, `smoke`), **`start.sh` / `stop.sh` / `start.bat` / `stop.bat`** (start the DB container, migrate, run the seed, start API :4000 + web :3000 with logs in `logs/` and PIDs in `.run/`; stop everything, free 3000/4000 and keep the DB volume — D73), `.gitattributes`, `.github/workflows/ci.yml` (jobs `api`, `web`, `contract`, `secrets` per spec 07; gates per spec 12 §6), `.github/pull_request_template.md`, `.gitignore`.
+  1. **Repo tooling + local dev scripts** (D5, D73): `apps/web`, `apps/api` (`apps/agent` is created in PH9). Root files: `README.md` skeleton, `.env.example` with every glossary §12 variable and a one-line comment, `docker-compose.yml` (PostgreSQL on host port **5434** via `POSTGRES_HOST_PORT`, + API + web), `Makefile` (targets per spec 07: `help`, `setup`, `up`, `down`, `db-up`, `migrate`, `seed`, `db-reset`, `api`, `web`, `dev`, `test`, `lint`, `fmt`, `gen-api`, `smoke`), **`start.sh` / `stop.sh` / `start.bat` / `stop.bat`** (start the DB container, migrate, run the seed, free ports 3000/4000 from any program except Docker/VM/SSH forwarders, start API :4000 + web :3000 with logs in `logs/` and PIDs in `.run/`; stop everything, free 3000/4000 and keep the DB volume — D73 amended), `.gitattributes`, `.editorconfig`, `.pre-commit-config.yaml`, `.github/workflows/ci.yml` (jobs `api`, `web`, `contract`, `secrets` per spec 07; gates per spec 12 §6), `.github/pull_request_template.md`, `.gitignore`, `scripts/smoke.sh`.
      - **Toolchain pins (D1, D11):** Node 24 LTS; **pnpm 10.34.6** via `"packageManager"` in `apps/web/package.json` (no root `package.json`, D5; Vercel supports pnpm 6–10); **TypeScript 5.9.3** and **ESLint 9.39.x**, because npm `latest` TypeScript 7 and ESLint 10 break the peer ranges of `openapi-typescript`, `typescript-eslint` and `eslint-config-next`'s plugins (spec 12 §1.2); `uv` with Python 3.12 and **`sqlalchemy[asyncio]`** (SQLAlchemy 2.1 ships `greenlet` only with that extra). Web scripts per D80: `lint` = `eslint . --max-warnings 0`, `typecheck` = `next typegen && tsc --noEmit`.
      - CI installs pnpm with the official `pnpm/action-setup` (reading `apps/web/package.json`) followed by `actions/setup-node` (spec 07, spec 12 §6).
-  2. **API foundation** (spec 01, 02): app factory and settings; `GET /health` checks the database; `app.core` (config with production guards, database, security: Argon2id hashing (D10) and JWT issue/decode with `now` passed in (D8, D63); problem+json errors for every glossary §10 code (D49); logging with redaction, middleware: CORS allowlist, security headers, `Cache-Control: no-store` on every `/api/*` response (D61), request ID); `app.shared` (auth dependencies incl. `require_shop_member` and `shop_scoped_router()` (D9, D20, D80), event bus, unit of work, pagination, `clock` (D63), `email` — the project `Email` type (D62), `enums` (D74)); SQLAlchemy models + Alembic migrations for **every core table** in spec 02 (one migration per module), with CHECKs, composite FKs, indexes and the ledgers' `seq` (D79); Dockerfile.
+  2. **API foundation** (spec 01, 02): app factory and settings; `GET /health` checks the database; `app.core` (config with production guards, database, security: Argon2id hashing (D10) and JWT issue/decode with `now` passed in (D8, D63); problem+json errors for every glossary §10 code (D49); logging with redaction, middleware: CORS allowlist, security headers, `Cache-Control: no-store` on every `/api/*` response (D61), request ID); `app.shared` (auth dependencies incl. `require_shop_member` and `shop_scoped_router()` (D9, D20, D80), event bus, unit of work, pagination, `clock` (D63), `email` — the project `Email` type (D62), `enums` (D74)); SQLAlchemy models for **every table** in spec 02 and **one** Alembic baseline revision (`23165172278b`) that creates them all — the bonus tables and `ix_users_phone` included — with CHECKs (enums through the `render_item` hook), composite FKs, indexes and the ledgers' `seq` (D79, D84); Dockerfile (`--no-server-header`).
   3. **Web foundation** (spec 09): Next.js 16 + Tailwind 4 + shadcn/ui on Radix (D1); design tokens; the route skeleton with placeholder pages; the `/api/*` rewrite to `API_BASE_URL` (D7); the typed client — `make gen-api` exports `apps/web/src/lib/api/openapi.json` and runs the web script `api:types` → `schema.d.ts` (D76) — behind the central `openapi-fetch` client (D50). A placeholder landing page.
   4. **State-machine domain** (`app/modules/bookings/domain/state_machine.py`, spec 08): the full `RULES` table for all 27 actions, `check`, `allowed_actions` (pure), with the exhaustive tests in `apps/api/tests/unit/bookings/` (spec 12 §3.2).
   - **Test infrastructure** (spec 12 §4.1, §4.2, §4.4): the `<db>_test` derivation, migrate-once, truncation, `NullPool`, the `clock` fixture with `SimulatedClock`.
@@ -94,7 +94,7 @@ The estimate-rejected path (SM-08, SM-09) and the QC-fail loop (SM-10) are part 
   1. **PostgreSQL version.** Run `SHOW server_version` on Railway and set the docker-compose and CI images to the same major (D12, DEP-05).
   2. **Pre-deploy runs migrations** and `alembic_version` exists in production (D13, DEP-06). A failing pre-deploy must stop the deploy.
   3. **`Set-Cookie` survives the Vercel rewrite** (D7 risk). Use a throwaway diagnostic route that sets a dummy httpOnly + Secure cookie; check the browser stores it for the web origin; then delete the route in the same PR. If it fails, switch to the D7 fallback (Bearer token held in memory) and record a decision in spec 17.
-  4. **WebSocket reaches Railway directly.** Use a throwaway diagnostic echo socket (`ping` → `pong`) that the browser opens over `wss` at the API host (D7, D14), then delete it in the same PR. The real `/api/v1/ws` ships with tickets, because spec 04's SEC-33 forbids an unauthenticated socket.
+  4. **WebSocket reaches Railway directly.** Use a throwaway diagnostic echo socket (`ping` → `pong`) that the browser opens over `wss` at the API host (D7, D14), then delete it in the same PR. The real `/api/v1/ws` ships with tickets, because spec 04's SEC-33 forbids an unauthenticated socket; it is P1 (D88), built in PH6, so this check only de-risks it.
   5. **Env vars** are set in Vercel and Railway: `COOKIE_SECURE=true`, `CLIENT_URL` = the Vercel URL, `API_BASE_URL` = the Railway URL. `.env.example` matches glossary §12.
   6. **CI** runs `api`, `web`, `contract` and `secrets` green on `main`.
   7. **No edge caching of `/api/*`** (D61): responses through the rewrite carry `Cache-Control: no-store` and never show a Vercel cache `HIT` (DEP-15 once `/api/v1/me` exists).
@@ -107,6 +107,9 @@ The estimate-rejected path (SM-08, SM-09) and the QC-fail loop (SM-10) are part 
   - Green: **SM-01 ★** and SM-19 (domain halves), QC-08, API-08.
   - *(P1)* DEV-01.
   - **Every team member has at least one merged commit.**
+- **Exit status (2026-10-09):**
+  - ✅ Met: deliverables 1–4 and the test infrastructure exist and are green locally (spec 12 §5 status); `alembic check` is clean on the full schema, bonus tables included (D84); **SM-01 ★**, SM-19 (domain halves), QC-08 and API-08 pass; *(P1)* DEV-01 passed by hand on Linux (`./start.sh` → `/health` 200, web 200 → `./stop.sh` frees 3000/4000).
+  - ⏳ Carried into PH1 (the hosting half): the live web URL, DEP-01, DEP-05, DEP-06, day-1 checklist items 3, 4 and 7, CI running green on GitHub with branch protection on, and a merged commit from every member (so far the repository holds one initial commit). They are PH1's first tasks and part of its exit criteria.
 - **Milestones:** the walking skeleton (deliverable 1, hosting, CI) is live at **CP1**; the foundation code (deliverables 2–4) is finished by **CP2** at the latest, overlapping PH1 as soon as spec 03 lands.
 - **Dependencies:** none beyond the locked foundation (08, 17, 18) and the stable draft specs (01, 02, 07, 09) (D72).
 - **Specs to read:** 00, 18, 17, 08, 07, 01 (repo layout, `app.core` / `app.shared`), 02 (schema), 09 (structure, tokens, client), 12 (§1, §2, §3.2, §4, §6).
@@ -115,8 +118,10 @@ The estimate-rejected path (SM-08, SM-09) and the QC-fail loop (SM-10) are part 
 
 ### PH1 — Identity, shops & team, tenancy on real routes, seed skeleton
 
-- **Goal:** Owners, staff and customers can authenticate, and tenancy is enforced on real routes through the PH0 dependency. This is the first module-feature phase: it starts once spec 03 and `modules/identity.md` / `modules/shops.md` are written (D72). The schema, `app.core` and `app.shared` already exist (PH0).
+- **Goal:** Owners, staff and customers can authenticate, and tenancy is enforced on real routes through the PH0 dependency. This is the first module-feature phase: it starts once spec 03 and `modules/identity.md` / `modules/shops.md` are written (D72) — both exist now. The schema, `app.core` and `app.shared` already exist (PH0).
 - **Deliverables:**
+  - **First, PH0's hosting half** (moved here, PH0 exit status): Railway (`api` + `Postgres` + pre-deploy + `/health`), Vercel, the day-1 checklist, branch protection on `main`.
+  - **Read port (D86):** shops' `ShopActivityReader` with `register_activity_reader`, bookings' `shop_activity_reader` (`has_future_bookings`, `count_open_jobs`) and the bookings `ShopGridChanging` handler, all wired in `create_app()` through `wire_modules()` (D89) — plain reads of bookings' own tables, built here with shops (`modules/shops.md` §13, `modules/bookings.md` §13); the veto has nothing to block until PH2 creates bookings.
   - **identity:** `register-owner`, login, logout — they set the cookie and return `{access_token, token_type, expires_in, user}` without memberships (D81); the 12–128-character password policy (D10).
   - **shops** (staff routes built with `shop_scoped_router()`, D80): `GET /api/v1/me` with every active membership and its server-computed `capabilities` (D66; served by the shops module, and the web calls it right after login, D81); create shop (+ `OWNER` membership, D17); working hours and slot settings on the midnight-anchored grid (D37 — the veto that blocks grid changes while future bookings exist arrives with bookings in PH2); service catalogue CRUD; team management (D18 new/existing e-mail, D19 deactivate/reactivate); membership list for the shop switcher.
   - **Rate limits** (D69, spec 04): login and owner registration (per-account failure limit first, per-IP ceiling second), shop creation, member creation.
@@ -127,7 +132,8 @@ The estimate-rejected path (SM-08, SM-09) and the QC-fail loop (SM-10) are part 
     - Owner team page and services page.
   - **Tests:** builders `make_user`, `make_shop`, `add_member`, `make_team`, `make_parts` (spec 12 §4.3).
 - **Exit criteria:**
-  - Green (SEC IDs are spec 04's): SEC-02 (sweep over the routes that exist so far), SEC-03–SEC-05, SEC-13–SEC-17, SEC-21–SEC-26, SEC-28–SEC-32, SEC-37–SEC-40, SEC-44–SEC-46, SEC-48, API-01 ★–API-05, **API-12 ★**, API-13, WEB-09, INV-21, INV-23, SEED-01, **SEED-02 ★**, SEED-05, **SEED-07 ★**, SEED-08, SEED-09, SEED-19.
+  - Green (SEC IDs are spec 04's): SEC-02 (sweep over the routes that exist so far), SEC-03–SEC-05, SEC-13–SEC-17, SEC-21–SEC-26, SEC-28–SEC-32, SEC-37–SEC-40, SEC-44–SEC-46, SEC-48, API-01 ★–API-05, **API-12 ★**, API-13, WEB-09, INV-21, INV-23, SEED-01, **SEED-02 ★**, SEED-05, **SEED-07 ★**, SEED-08, SEED-09, SEED-19, IDN-01, IDN-03–IDN-06, SHP-01–SHP-10; *(P1)* IDN-02.
+  - PH0's carried hosting criteria: DEP-01, DEP-05, DEP-06 pass; day-1 checklist items 3, 4 and 7 recorded; CI green on GitHub with branch protection on.
   - On the live URL: Fatima signs up, creates a shop, adds four staff; each staff member logs in and lands on their (empty) role dashboard; the shop switcher works across her two seeded shops.
   - DEP-03 passes (the real login cookie survives the rewrite). DEP-07 and DEP-15 pass.
 - **Dependencies:** PH0 foundations; spec 03 (auth, shops, team endpoints) and `modules/identity.md`, `modules/shops.md` written (D72).
@@ -150,7 +156,7 @@ The estimate-rejected path (SM-08, SM-09) and the QC-fail loop (SM-10) are part 
     - The credential rate limiter shared by login and the wizard, and the booking-creation limits (D69, spec 04).
   - **Tests:** `drive_booking_to` (extended by each later phase); the lock gate (spec 12 §3.5); the start of the action matrix.
 - **Exit criteria:**
-  - Green: **SEC-01 ★** (the brief §7.1 acceptance test, now that booking routes exist), SEC-07 (booking-action matrix so far), SEC-08, SEC-09, SEC-11, SEC-12, SEC-18–SEC-20, SEC-27, **SM-01 ★** (API half: the action matrix so far), **SM-03 ★** (domain + matrix so far), **SM-05 ★**, **SM-07 ★**, SM-15, SM-17, SM-19 (API half so far), CON-01, BK-01–BK-19, BK-21, BK-22, BK-26–BK-32, API-06, API-10; *(P1)* CON-05.
+  - Green: **SEC-01 ★** (the brief §7.1 acceptance test, now that booking routes exist), SEC-07 (booking-action matrix so far), SEC-08, SEC-09, SEC-11, SEC-12, SEC-18–SEC-20, SEC-27, **SM-01 ★** (API half: the action matrix so far), **SM-03 ★** (domain + matrix so far), **SM-05 ★**, **SM-07 ★**, SM-15, SM-17, SM-19 (API half so far), CON-01, BK-01–BK-19, BK-21, BK-22, BK-26–BK-32, BK-34–BK-36, BK-40–BK-42, SCH-02–SCH-07, API-06, API-10; *(P1)* CON-05, SCH-01.
   - SM-18 runs steps 0–4.
   - On the live URL: a booking created through Swagger appears for the SA, who confirms and assigns it.
 - **Dependencies:** PH1; spec 03 (booking endpoints) and `modules/bookings.md`, `modules/scheduling.md` written (D72).
@@ -190,7 +196,7 @@ The estimate-rejected path (SM-08, SM-09) and the QC-fail loop (SM-10) are part 
   - **Technician screens:** my assigned jobs; booking and vehicle detail; estimate editor (part, quantity, unit cost, labour) with stock hints; submit to SA.
   - *(P1)* `reassign-technician` (O4).
 - **Exit criteria:**
-  - Green: EST-01–EST-18, EST-20, **SM-08 ★**, SM-09, SM-14, SM-04 (technician rows), SEC-35.
+  - Green: EST-01–EST-18, EST-20–EST-27, BK-38, **SM-08 ★**, SM-09, SM-14, SM-04 (technician rows), SEC-35.
   - SM-18 runs steps 0–8.
   - On the live URL: Bilal, Imran and Ahmed click through steps 4–8, then repeat with a rejection (SM-08 path).
 - **Dependencies:** PH2 and PH3 (customer approval UI); `modules/estimates.md` written (D72).
@@ -206,12 +212,13 @@ The estimate-rejected path (SM-08, SM-09) and the QC-fail loop (SM-10) are part 
     - Parts catalogue (D44: new parts start at `on_hand = 0`) and the `ADJUST` service, both already built in PH1 for the seed. Stock ledger (`RECEIVE`, `RESERVE`, `RELEASE`, `CONSUME`, `ADJUST`; history and running balances ordered by `(created_at, seq)`, D79).
     - T13 `order-parts`, T14 `mark-parts-ready`, T15 PO receive (partial → `PARTIALLY_RECEIVED`; the `PurchaseOrderReceiving` pre-event locks the linked booking first, and received stock is reserved only while that booking is `PARTS_ORDERED`, D43), T16 `allocate-parts`, T22 release on cancel.
     - **Stock adjustment** (`POST …/parts/{part_id}/adjustments`, Parts Person only; going below `reserved` → 409 `INSUFFICIENT_STOCK`). It is P0, not an extra (D82): the only way to enter opening stock (D44) and to correct drift (D71).
-    - Parts changes without a status change (e.g. a partial receipt reserving stock) also push `booking.updated` once the WebSocket ships (D83).
+    - Parts changes without a status change (e.g. a partial receipt reserving stock) publish `BookingPartsChanged`, which pushes `booking.updated` once the P1 WebSocket ships (D83, D88).
+    - **Read port (D86):** inventory's `BookingRefReader` with `register_booking_ref_reader`, implemented by `bookings.service.get_booking_refs` and registered in `create_app()` and the seed's start-up through `wire_modules()` (D89), for the `BookingRef` on purchase orders and stock movements (`modules/inventory.md`).
     - Low/out flags (D45). Owner inventory summary.
   - **Parts Person screens:** inventory table (SKU, name, quantity, reorder level, cost); jobs awaiting parts (required vs available); create PO; receive, including partial; allocate; adjust stock.
   - *(P1)* `reassign-parts-person` (O5).
 - **Exit criteria:**
-  - Green: **INV-01 ★**, INV-02–INV-26 (INV-19 is the concurrency test), **SM-11 ★**, **SM-12 ★**, SM-13, SEC-06; *(P1)* CON-04.
+  - Green: **INV-01 ★**, INV-02–INV-34 (INV-19 is the concurrency test; INV-34's push half is P1), BK-33 and BK-37 (BK-33's push half is P1, D88), **SM-11 ★**, **SM-12 ★**, SM-13, SEC-06; *(P1)* CON-04.
   - The ledger invariant is asserted in every scenario test.
   - SM-18 runs steps 0–10.
   - On the live URL, Usman clicks through steps 8–10, and a partial delivery is demonstrable.
@@ -219,17 +226,19 @@ The estimate-rejected path (SM-08, SM-09) and the QC-fail loop (SM-10) are part 
 - **Specs to read:** `modules/inventory.md`, 08 (T12–T16, T22, parts reservations table), 02 (stock CHECKs), 10 (Parts screens).
 - **Effort:** **L — 9 %**.
 
-### PH6 — QC, notifications (bell, WebSocket, polling safety net), owner overview
+### PH6 — QC, notifications (bell + 15 s polling P0; WebSocket P1, D88), owner overview
 
 - **Goal:** The full lifecycle with the QC-fail loop works on the live URL, every role is notified at the right step, and the owner can oversee each shop. Reaching this goal is CP4.
 - **Deliverables:**
   - **qc module:**
     - QC queue; T18 `pick-qc` (first wins); default checklist (D46); T19 `pass-qc`; T20 `fail-qc` with an issue.
     - T17 `send-to-qc` resolves open issues (D47). O2 `start-repair`, O3 `notify-ready`, T21 `complete`.
+    - `GET …/qc/checklist`, the qc module's only route (spec 03 §4.11).
+    - *(P1, D87)* `reassign-qc-inspector` (operation `REASSIGN_QC_INSPECTOR`, SA/Owner, in `QC_IN_PROGRESS`; new inspector an active QC member, not the booking's technician; `QC_REQUESTED` to them), built together with the other reassign operations (O4 in PH4, O5 in PH5); it needs glossary §4, spec 08 O6, `app.shared.enums` and the state machine updated first. Until then the Owner reactivates a deactivated inspector to finish a stuck pick.
   - **notifications module:**
     - Event handlers for the 11 Minimum types, plus the 4 Extra types (P1). Recipients follow glossary §6, including the D26 SA → Owner fallback; every row stores `recipient_role` and a server-computed deep `link` (D67).
     - Bell with unread count, list, mark read. The unread count and the current view are **polled every 15 s, always** — with or without the socket (D14).
-    - *(P1)* WebSocket: the ticket endpoint in the notifications module (D70: `typ` = `ws`, 60 s; the client fetches a new ticket on every reconnect and treats any close the same way, since browsers report a rejected handshake as 1006), and pushes of `notification.created` / `booking.updated` after commit, only to users who can see the booking (D14, glossary §11).
+    - *(P1, D88 — brief §8.3 lists real-time updates as optional; the bonus calling needs it)* WebSocket: the ticket endpoint in the notifications module (D70: `typ` = `ws`, 60 s; the client fetches a new ticket on every reconnect and treats any close the same way, since browsers report a rejected handshake as 1006), and pushes of `notification.created` / `booking.updated` after commit, only to users who can see the booking (D14, glossary §11).
   - **reporting:** owner overview per shop (bookings by status, team list, inventory summary). *(P1)* multi-shop summary.
   - **Screens:**
     - QC: queue, pick, checklist/notes, pass, fail with issue.
@@ -237,7 +246,7 @@ The estimate-rejected path (SM-08, SM-09) and the QC-fail loop (SM-10) are part 
     - SA: notify ready, complete.
     - Bell in every dashboard. Owner overview + read-only access to the role views (D16).
 - **Exit criteria:**
-  - Green: QC-01–QC-11, **SM-06 ★**, **SM-10 ★**, **SM-16 ★**, **SM-18 ★** (steps 0–16), **SM-20 ★**, SM-02 (all rows), NOT-01, NOT-03–NOT-07, NOT-10, NOT-11, WEB-11, RPT-01, RPT-03, BK-23, BK-24, SEC-07 (complete), SEC-10, SEC-34; SEC-33 and NOT-12 as soon as the WebSocket ships; *(P1)* NOT-08, WEB-10.
+  - Green: QC-01–QC-11, **SM-06 ★**, **SM-10 ★**, **SM-16 ★**, **SM-18 ★** (steps 0–16), **SM-20 ★**, SM-02 (all rows), NOT-01, NOT-03–NOT-07, NOT-10, NOT-11, NOT-14, NOT-15, NOT-21, QC-12–QC-17, BK-39, WEB-11, RPT-01, RPT-03–RPT-08, BK-23, BK-24, SEC-07 (complete), SEC-10, SEC-34; *(P1, D88 — with the WebSocket)* SEC-33, NOT-08, NOT-12, NOT-16–NOT-18, NOT-20, WEB-10, and the push halves of BK-33 / INV-34; *(P1)* RPT-09.
   - **CP4 = DEP-09 passes:** the §7.8 judge path is clicked through on the live URL in two browsers, including the QC-fail loop, the estimate-rejected path, and refused cross-role and cross-shop attempts.
 - **Dependencies:** PH5; `modules/qc.md`, `modules/notifications.md`, `modules/reporting.md` written (D72).
 - **Specs to read:** `modules/qc.md`, `modules/notifications.md`, `modules/reporting.md`, 08 (T17–T21, O2, O3), 03 (realtime, notifications), 10 (QC Inspector screens QI-xx, Owner screens, bell), 18 §6 and §11.
@@ -265,7 +274,7 @@ The estimate-rejected path (SM-08, SM-09) and the QC-fail loop (SM-10) are part 
   - Every P0 SEED test green (SEED-01…SEED-14, SEED-16, SEED-17, SEED-19). DEP-01–DEP-10, DEP-14 and DEP-15 pass on the live URL.
   - A teammate who did not write the README follows it on a clean machine (`./start.sh`, `start.bat` on Windows, or `docker compose up`): app running and tests passing in **under 15 minutes** (brief §10 "let a stranger run it in minutes").
   - No open P0 bugs.
-  - *(P1)* SEC-41–SEC-43, SEC-47, API-11, WEB-08 / DEP-11, DEP-12, DEP-13, DEV-01 on every OS the team uses.
+  - *(P1)* SEC-41–SEC-43, SEC-47, API-11, WEB-08 / DEP-11, DEP-12, DEP-13, DEV-01 on every OS the team uses; NOT-09 and NOT-19 if e-mail ships.
 - **Dependencies:** PH6 (and PH3).
 - **Specs to read:** 11, 07 (README, env, deploy), 04 (headers, rate limits), 06 (demo script), 12 (§5 P0 list, §7, §8), 15.
 - **Effort:** **L — 9 %**.
@@ -281,7 +290,7 @@ The estimate-rejected path (SM-08, SM-09) and the QC-fail loop (SM-10) are part 
 - **Exit criteria:**
   - Brief §8 evidence: "Two browsers calling each other on the live site; call log entry".
   - Missed calls are recorded, and `CALL_MISSED` reaches the right side for each direction.
-  - Spec 05's calling tests CALL-01…CALL-16 are green, with spec 04's bonus SEC-49 (webhook) and SEC-50 (calls and tasks RBAC).
+  - Spec 05's calling tests CALL-01…CALL-16 are green, plus CALL-17…CALL-21 proposed by `modules/calls.md` (numbered in spec 12 §5; CALL-17 shares CALL-15's subject), with spec 04's bonus SEC-49 (webhook) and SEC-50 (calls and tasks RBAC). The realtime layer (P1, D88) must exist first: calling needs the socket.
   - All core DEP checks are still green: the bonus must not break the core.
 - **Dependencies:** PH7 exit (default gate), or CP4 for the one person the 4-person exception allows (§1.1).
 - **Specs to read:** 05, `modules/calls.md`, D57, D69, D78.
@@ -298,7 +307,7 @@ The estimate-rejected path (SM-08, SM-09) and the QC-fail loop (SM-10) are part 
   - **Demo video (3–5 min, §9.1 optional):** the judge path, then the bonus path from brief §6: Ahmed phones, the AI answers, a task appears for Bilal.
 - **Exit criteria:**
   - Brief §8 evidence: "Demo video or live demo of unanswered call, conversation, then summary and task in SA dashboard".
-  - Spec 05's AI Front Desk tests FD-01…FD-12 and agent tests AG-01…AG-03 are green (AG-04…AG-06 call a real LLM and are run by hand before recording), and spec 04's SEC-36 too (the AI cannot read another customer's data).
+  - Spec 05's AI Front Desk tests FD-01…FD-12 (plus FD-13…FD-15 from `modules/calls.md`, spec 12 §5) and agent tests AG-01…AG-03 are green (AG-04…AG-06 call a real LLM and are run by hand before recording), and spec 04's SEC-36 too (the AI cannot read another customer's data).
   - Core DEP checks are still green.
 - **Dependencies:** PH8 (same LiveKit rooms and call lifecycle).
 - **Specs to read:** 05, D58, D77, 18 §5 (bonus enums), §6, §11.
@@ -321,13 +330,13 @@ The estimate-rejected path (SM-08, SM-09) and the QC-fail loop (SM-10) are part 
 
 | Phase | Name | Size | % of effort | Priority content | Status / ends at |
 |---|---|---|---|---|---|
-| PH0 | Bootstrap: tooling + start/stop scripts, API foundation (schema, `app.core`, `app.shared`), web foundation, state-machine domain, walking skeleton | L | 14 | P0 (+P1 DEV-01) | **In progress (D72)** · CP1 (walking skeleton) · CP2 at the latest (foundations) |
-| PH1 | Identity, shops & team, tenancy on real routes, seed skeleton | M | 6 | P0 | CP2 (with PH2 under way) |
+| PH0 | Bootstrap: tooling + start/stop scripts, API foundation (schema, `app.core`, `app.shared`), web foundation, state-machine domain, walking skeleton | L | 14 | P0 (+P1 DEV-01) | **Done 2026-10-09** (foundations, scripts, local integration); hosting half moved to PH1 · CP1 (walking skeleton) |
+| PH1 | Identity, shops & team, tenancy on real routes, seed skeleton (+ PH0's hosting half) | M | 6 | P0 | **Next** · CP2 (with PH2 under way) |
 | PH2 | Action executor, booking creation, scheduling | L | 10 | P0 | — |
 | PH3 | Customer portal | L | 10 | P0 | — |
 | PH4 | SA + Technician flows, estimates | L | 12 | P0 (+P1 reassign technician) | — |
 | PH5 | Inventory, POs, Parts flows | L | 9 | P0 (+P1 reassign parts) | — |
-| PH6 | QC, notifications, owner overview | L | 10 | P0 (+P1 WebSocket push, Extra notifications, multi-shop summary) | CP3 (its API, with the PH4–PH5 APIs) · CP4 (its UI) |
+| PH6 | QC, notifications, owner overview | L | 10 | P0 (+P1 WebSocket push (D88), Extra notifications, multi-shop summary, reassign QC inspector (D87)) | CP3 (its API, with the PH4–PH5 APIs) · CP4 (its UI) |
 | PH7 | Hardening | L | 9 | P0 + remaining P1 | PH7 exit |
 | PH8 | Bonus: in-app calling | M | 5 | P2 | — |
 | PH9 | Bonus: AI Front Desk + video | M | 5 | P2 | CP5 |
@@ -343,7 +352,7 @@ Core (PH0–PH7) is 80 % of the effort. The bonus is 10 %. Submission plus buffe
 
 ```mermaid
 graph LR
-    PH0["PH0 Tooling + foundations + walking skeleton (in progress, D72)"] --> PH1["PH1 Identity + shops + tenancy"]
+    PH0["PH0 Tooling + foundations + walking skeleton (done 2026-10-09)"] --> PH1["PH1 Identity + shops + tenancy (next; + hosting)"]
     S03["Spec 03 + module specs (D72)"] -.-> PH1
     PH1 --> PH2["PH2 Executor + booking creation"]
     PH2 --> PH4["PH4 Estimates + SA/Tech"]
@@ -359,12 +368,12 @@ graph LR
     PH9 -.-> PH10
 ```
 
-**Critical path (backend-led):** PH0 → PH1 → PH2 → PH4 → PH5 → PH6 → PH7 → PH10. Every core transition sits on this chain, so **backend capacity decides the calendar until CP3**. Since D72 the chain has one more input: **PH0 is already in progress**, and PH1 cannot start until spec 03 and the identity/shops module specs exist — each later module phase likewise waits for its module spec, so finishing those specs is on the critical path too. The schedules (§4 below) staff the backend first and move everyone onto the UI after CP3.
+**Critical path (backend-led):** PH0 → PH1 → PH2 → PH4 → PH5 → PH6 → PH7 → PH10. Every core transition sits on this chain, so **backend capacity decides the calendar until CP3**. Since D72 the chain has one more input: each module phase waits for its module spec. **PH0 is done** (2026-10-09) and spec 03 plus every module spec now exist, so **PH1 is next** and starts with PH0's carried-over hosting half. The schedules (§4 below) staff the backend first and move everyone onto the UI after CP3.
 
 | While this runs … | … this can run in parallel | Why it's safe |
 |---|---|---|
-| PH0 (now, D72) | Repo tooling and scripts, API foundation, web foundation, and the state-machine domain + SM-01 exhaustive tests, side by side | Each depends only on the locked foundation (08, 17, 18) and the stable draft specs (01, 02, 07, 09) |
-| PH0 | Writing spec 03 and the module specs | Module features (PH1 onwards) start only once their spec exists (D72) |
+| PH0 (done, D72) | Repo tooling and scripts, API foundation, web foundation, and the state-machine domain + SM-01 exhaustive tests, side by side | Each depended only on the locked foundation (08, 17, 18) and the stable draft specs (01, 02, 07, 09) |
+| PH0 | Writing spec 03 and the module specs (done: spec 03 and all ten module specs exist) | Module features (PH1 onwards) start only once their spec exists (D72) |
 | PH1 | App shell, static landing layout (design tokens are PH0) | Specs 09/10; no data needed |
 | PH2 (booking API) | Booking wizard UI against generated types | Spec 03 fixes the contract; mock the client until the endpoint lands |
 | PH4 (estimates) | Stock ledger and PO flows (PH5 backend; the catalogue and `ADJUST` already exist from PH1) | Separate modules and tables (glossary §7); transitions T12–T16 are wired once PH4 lands |
@@ -394,7 +403,7 @@ This assumes about 38 working hours per person, with sleep staggered so someone 
 |---|---|---|---|---|---|
 | H0–H1 | Kickoff | Read 00 / 18 / 17 / 08; agree on the split (§4.5) | — | Public repo, invites, toolchain pins | — |
 | H1–H5 | PH0 | API skeleton, `/health`, Alembic baseline, Dockerfile | Next.js + Tailwind + shadcn, `/api/*` rewrite | Railway (API + PostgreSQL + pre-deploy + health), Vercel, CI, compose, Makefile, start/stop scripts, `.env.example`; day-1 checklist | **CP1 @ H5** |
-| H5–H12 | PH0 foundations → PH1 | Full schema migrations, `app.core` / `app.shared` (auth dependencies, problem+json, clock, `Email`), **state machine domain + SM-01** (PH0); identity, shops/team/services API, seed skeleton (PH1, once spec 03 is ready) | Tokens, route skeleton, typed client (PH0); app shell + shop switcher, login with demo panel, owner sign-up, team and services pages (PH1) | Branch protection on; contract job on | **CP2 @ H12** |
+| H5–H12 | PH0 foundations → PH1 | Full schema (one baseline migration, D84), `app.core` / `app.shared` (auth dependencies, problem+json, clock, `Email`), **state machine domain + SM-01** (PH0); identity, shops/team/services API, seed skeleton (PH1, once spec 03 is ready) | Tokens, route skeleton, typed client (PH0); app shell + shop switcher, login with demo panel, owner sign-up, team and services pages (PH1) | Branch protection on; contract job on | **CP2 @ H12** |
 | H12–H18 | PH2 (+ PH3) | Action executor; booking creation (D32, D35, D65); lists, detail, timeline; confirm/decline/assign/cancel; scheduling + slot lock (SM-07) | Landing, shop detail, booking wizard | DEP-02, DEP-03 | — |
 | H18–H24 | PH4 + PH5 + PH6 (backend) | Estimates (T05–T12); parts flows (T13–T16 + PO receive); QC (T17–T20); in-app notifications; SM-18 to step 16 | Customer dashboard (timeline, estimate approve/reject); SA bookings list | DEP-10 live replay | **CP3 @ H24** |
 | H24–H36 | PH4–PH6 (UI) | Backend developers join the UI: SA, Technician, Parts, QC screens; owner overview API; *(P1)* WebSocket push; full seed | Bell + notifications, owner overview, mobile layout, error and empty states | DEP-09 rehearsal | **CP4 @ H36** |
@@ -475,10 +484,11 @@ Record the chosen schedule and the real deadline in spec 16 at kickoff.
 Cut in this order. Drop item 1 first and go further down the list only when a checkpoint is missed (§6 below). Record every cut in spec 16. If a cut changes a decision, record it in spec 17.
 
 1. **P1 extras**, except items 4 and 5 below:
-   - `reassign-technician` / `reassign-parts-person` (O4, O5);
+   - `reassign-technician` / `reassign-parts-person` (O4, O5) and the planned `reassign-qc-inspector` (D87);
    - the 4 Extra notification types (NOT-02);
+   - the WebSocket push with its ticket endpoint and realtime client (P1 by D88; the 15 s polling, D14, is the P0 path and stays — but the bonus calling needs the socket);
    - Playwright smoke (WEB-08);
-   - N+1 guard, migration round-trip and coverage gate;
+   - N+1 guard and the domain coverage gate (the migration round trip already runs in CI inside pytest, spec 12 §6);
    - optional phone (D33);
    - the local-script check DEV-01 (the scripts themselves are PH0 tooling and stay, D73);
    - spec 04 Tier 2 security items (SEC-41–SEC-43) and SEC-47. Tier 1 items (rate limits, headers, CORS …) are never cut.
@@ -488,7 +498,7 @@ Cut in this order. Drop item 1 first and go further down the list only when a ch
 3. **In-app calling** (PH8).
 4. **Owner multi-shop summary** (RPT-02).
 5. **E-mail notifications** (NOT-09). The in-app bell stays.
-6. *Last resort, each needing a spec 17 entry:* WebSocket push → keep the 15 s polling fallback (D14); edited demo video → a raw screen recording of the judge path.
+6. *Last resort, needing a spec 17 entry:* edited demo video → a raw screen recording of the judge path. (The WebSocket push used to be here; D88 made it P1, so it is cut with item 1 and needs no new decision.)
 
 **Never cut:**
 - **Every §7.8 item:**
@@ -534,7 +544,7 @@ Cut in this order. Drop item 1 first and go further down the list only when a ch
 | Risk | Mitigation | Where |
 |---|---|---|
 | `Set-Cookie` lost through the Vercel rewrite (D7) | Day-1 check; fallback Bearer token in memory | PH0 |
-| WebSocket to Railway fails (D7, D14) | Day-1 check; the 15 s polling always runs anyway (D14) | PH0 |
+| WebSocket to Railway fails (D7, D14) | Day-1 check; the 15 s polling always runs anyway (D14) and is the P0 path — the socket is P1 (D88), needed only for the bonus calling | PH1 (day-1 check, carried from PH0), PH6 |
 | Local/CI vs Railway PostgreSQL drift (D12) | PostgreSQL 16 everywhere; `SHOW server_version` on day 1 (DEP-05) | PH0 |
 | Vercel caches `/api/*` responses that carry personal data (external-rewrite caching is on by default for projects created on or after 2026-04-06) | `Cache-Control: no-store` on every `/api/*` response (D61); API-13, DEP-15 | PH0 |
 | `*@bayflow.test` demo e-mails rejected by Pydantic's `EmailStr` | Resolved by D62: the project `Email` type (`test_environment=True`); API-12 and SEC-48 guard it | PH0 |
@@ -593,7 +603,7 @@ Cut in this order. Drop item 1 first and go further down the list only when a ch
 
 ## Dependencies
 
-- **Foundation:** [00-overview.md](00-overview.md) (scope tiers; the open question on duration and team size), [17-decisions.md](17-decisions.md) (in particular D1, D4–D14, D26, D36, D37, D41, D43, D44, D51, D52, D57–D83), [18-glossary.md](18-glossary.md) (names, env vars, demo cast, ID prefixes), [08-booking-state-machine.md](08-booking-state-machine.md) (worked-example trace, transitions per phase).
+- **Foundation:** [00-overview.md](00-overview.md) (scope tiers; the open question on duration and team size), [17-decisions.md](17-decisions.md) (in particular D1, D4–D14, D26, D36, D37, D41, D43, D44, D51, D52, D57–D88 — D84 the as-built foundation, D86 read ports, D87 the planned QC reassign, D88 realtime as P1), [18-glossary.md](18-glossary.md) (names, env vars, demo cast, ID prefixes), [08-booking-state-machine.md](08-booking-state-machine.md) (worked-example trace, transitions per phase).
 - **[12-quality-and-testing.md](12-quality-and-testing.md):** test IDs in every exit criterion, the ★ minimum proof set, CI gates, definition of done, DEP and DEV checks.
 - **Sibling specs per phase:** 01, 02, 03, 04 (SEC test IDs), 05 (CALL-xx / FD-xx / AG-xx tests, build steps B0–B7), 06, 07 (Makefile, CI, smoke script, pnpm pin, start/stop scripts), 09, 10 (screen IDs; QC Inspector screens are QI-xx), 11 (SEED-11…SEED-19, judge notes), `modules/*.md`.
 - **Used by:** 15 (requirement → phase → test), 16 (risks, chosen schedule, cut decisions), the README "Roadmap / status" note if the team adds one.
@@ -616,4 +626,4 @@ Cut in this order. Drop item 1 first and go further down the list only when a ch
 | Judge path | The §7.8 manual run on the live URL (DEP-09) — *pending* |
 | Minimum proof set (★) | The 21 spec 12 tests that must exist by CP3 and are never cut — *pending* |
 | Feature freeze | From CP5 on: only fixes, docs, video and submission — *pending* |
-| Non-demo smoke shop | The seeded shop that scripted live checks use (spec 07 smoke script, DEP-10, WEB-08), so Lahore Auto Care stays clean (spec 12 Open question 4; spec 11 to name it) — *pending* |
+| Non-demo smoke shop | The seeded shop that scripted live checks use (spec 07 smoke script, DEP-10, WEB-08), so Lahore Auto Care stays clean (spec 12 Open question 4) — spec 11 names it: Lyallpur Motors (`lyallpur-motors`); glossary entry *pending* |

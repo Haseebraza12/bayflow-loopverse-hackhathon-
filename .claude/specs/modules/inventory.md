@@ -34,7 +34,7 @@ Supplier records (`supplier_name` is free text), price changes at receipt, cance
 | D | What it means here |
 |---|---|
 | D3 | One transaction per action: booking status, stock, PO and audit rows commit together (spec 01 ADR, worked-example step 10). |
-| D16, D44 | Catalogue (create/edit parts, SKU, cost, reorder level) = Owner + Parts Person. Stock operations (adjust, create PO, receive, reserve, allocate) = Parts Person only. The Owner reads stock, POs and the ledger. |
+| D16, D44, D66 | Catalogue (create/edit parts, SKU, cost, reorder level) = Owner + Parts Person (`parts.manage`). Stock operations (adjust, create PO, receive, reserve, allocate) = Parts Person only (`stock.manage`). The Owner reads stock, POs and the ledger. The web shows these buttons only from the membership's capabilities. |
 | D20 | Every query and repository method takes `shop_id`; composite FKs make a cross-shop part, booking or PO reference impossible (SEC-45). |
 | D21 | Booking-scoped stock data is read only through bookings routes, which apply the visibility predicate first; QC inspectors never see stock (403). |
 | D24, D43 | Cancel releases reservations; open POs stay open. A receipt reserves for its linked booking **only while that booking is `PARTS_ORDERED`**; otherwise the stock stays general. |
@@ -46,17 +46,20 @@ Supplier records (`supplier_name` is free text), price changes at receipt, cance
 | D45 | `OUT` when available = 0, else `LOW` when available ≤ `reorder_level`, else `OK` (`StockState`). |
 | D50 | Ids are generated in Python before flushing, so event metadata and PO numbers are known in the same transaction. |
 | D63 | Nested functions receive the action's `now`; top-level use cases read `utcnow()` once, after their locks. All movements of one action share that instant. |
+| D71 | Shared demo stock drifts as judges replay the worked example; it is corrected through the product (an `ADJUST` by the Parts Person), never by the seed. |
 | D79 | `stock_movements.seq` breaks ties; history is ordered by `(created_at, seq)`. |
-| D82 | `POST …/parts/{part_id}/adjustments` is **P0** (spec 03 still marks it P1, see Open questions); going below `reserved` or 0 → 409 `INSUFFICIENT_STOCK`. |
-| D83 | A receipt that reserves stock for a booking without moving it must reach the booking's viewers as `booking.updated` (pushed by notifications from `PurchaseOrderReceived`). |
+| D82 | `POST …/parts/{part_id}/adjustments` is **P0** (specs 03 and 10 agree); going below `reserved` or 0 → 409 `INSUFFICIENT_STOCK`. |
+| D83 | A receipt that reserves stock for a booking without moving it must reach the booking's viewers as `booking.updated`: `reserve_received_for_booking` reports what it reserved, the bookings handler publishes `BookingPartsChanged` (glossary §7.1, `modules/bookings.md` §7.7) and notifications pushes (once the P1 WebSocket hub exists, D88; polling covers it before). |
+| D86 | Inventory sits below bookings and never imports it. It declares the read port `BookingRefReader` and its registration function `inventory.service.register_booking_ref_reader()`; bookings implements it with `get_booking_refs` and registers it from its own `service.register_ports()` — the same pattern as shops' `ShopActivityReader` with `shops.service.register_activity_reader` (glossary §7.1a). |
+| D89 | `router.py` exports `routers`; `app.main.wire_modules()` includes them and runs bookings' `register_ports()` at start-up, in tests and in the seed. Inventory has no `handlers.py` and never edits `app/main.py`. |
 
 ## Files
 
 | File | Contents |
 |---|---|
-| `router.py` | One `shop_scoped_router(tags=["inventory"])` (D80) with the nine routes of spec 03 §4.10; the dependency `BookingRefLookupDep` reads `request.app.state.booking_ref_lookup` (see "The booking-reference port"). |
+| `router.py` | One `shop_scoped_router(tags=["inventory"])` (D80) with the nine routes of spec 03 §4.10, exported as `routers` (D89). |
 | `schemas.py` | Spec 03 §3.4–§3.5: `PartCreate`, `PartUpdate`, `PartRead`, `PartRef`, `PartStockRef`, `StockAdjustmentCreate`, `StockAdjustmentRead`, `StockMovementRead`, `BookingPartRead`, `BookingPartsRead`, `PartsSummary`, `PurchaseOrderCreate`, `PurchaseOrderReceive`, `PurchaseOrderSummary`, `PurchaseOrderRead`, `PurchaseOrderItemRead`, `PurchaseOrderRef`, `PurchaseOrderReceiveRead`, and `BookingRef` (only PO responses use it, so its one definition lives here). Internal: `StockSummary`. |
-| `service.py` | Use cases and the functions other modules call (below); the `BookingRefLookup` protocol. |
+| `service.py` | Use cases and the functions other modules call (below); the `BookingRefReader` port and `register_booking_ref_reader()`. |
 | `repository.py` | `PartRepository`, `BookingPartRepository`, `StockMovementRepository` (`add` and list only, append-only), `PurchaseOrderRepository`; lock helpers such as `lock_parts(*, shop_id, part_ids)` = `SELECT … WHERE shop_id = :shop_id AND id = ANY(:ids) ORDER BY id FOR UPDATE` (spec 02 §7.1). |
 | `models.py` | Already implemented: `Part`, `BookingPart`, `PurchaseOrder`, `PurchaseOrderItem`, `StockMovement`. |
 | `events.py` | `PurchaseOrderReceiving`, `PurchaseOrderReceived`. |
@@ -77,11 +80,12 @@ Writes take the request's `UnitOfWork` (`uow`), reads an `AsyncSession` (`sessio
 | `create_part(uow, ctx, data: PartCreate)` | `PartRead` (`on_hand = reserved = 0`) | 409 `CONFLICT` (SKU) |
 | `update_part(uow, ctx, part_id, data: PartUpdate)` | `PartRead` | 404, 409 `CONFLICT` |
 | `adjust_stock(uow, ctx, *, part_id, quantity_delta, reason)` | `StockAdjustmentRead` | 404, 409 `INSUFFICIENT_STOCK` |
-| `list_part_movements(session, ctx, part_id, page, booking_refs)` *(P1)* | `Page[StockMovementRead]` | 404 |
-| `list_purchase_orders(session, ctx, *, statuses, booking_id, page, booking_refs)` | `Page[PurchaseOrderSummary]` | — |
+| `list_part_movements(session, ctx, part_id, page)` *(P1)* | `Page[StockMovementRead]` | 404 |
+| `list_purchase_orders(session, ctx, *, statuses, booking_id, page)` | `Page[PurchaseOrderSummary]` | — |
 | `create_purchase_order(uow, ctx, data: PurchaseOrderCreate, *, po_number=None)` | `PurchaseOrderRead` | 422 |
-| `get_purchase_order(session, ctx, po_id, booking_refs)` | `PurchaseOrderRead` | 404 |
-| `receive_purchase_order(uow, ctx, po_id, data: PurchaseOrderReceive, booking_refs)` | `PurchaseOrderReceiveRead` | 404, 409 `CONFLICT`, 409 `CONCURRENT_UPDATE`, 422 |
+| `get_purchase_order(session, ctx, po_id)` | `PurchaseOrderRead` | 404 |
+| `find_purchase_order_id(session, *, shop_id, po_number)` (seed support) | `UUID \| None` — another shop's number → `None` | — |
+| `receive_purchase_order(uow, ctx, po_id, data: PurchaseOrderReceive)` | `PurchaseOrderReceiveRead` | 404, 409 `CONFLICT`, 409 `CONCURRENT_UPDATE`, 422 |
 
 `po_number=` is keyword-only and internal: only the seed passes it (`PO-SEED01`, `PO-SEED02`, spec 11); it is absent from every HTTP schema.
 
@@ -92,7 +96,7 @@ Writes take the request's `UnitOfWork` (`uow`), reads an `AsyncSession` (`sessio
 | `create_booking_parts(uow, *, shop_id, booking_id, requirements: Sequence[PartQty], now)` | T12 | `None` | — |
 | `order_missing_parts(uow, *, shop_id, booking_id, actor_user_id, items: Sequence[PartQty] \| None, supplier_name, now)` | T13 | `OrderPartsResult(purchase_order_id, po_number, reserved)` | 409 `CONFLICT`, 422 |
 | `reserve_outstanding(uow, *, shop_id, booking_id, actor_user_id, now)` | T14 | `reserved: tuple[PartQty, …]` (recording it as metadata is optional; spec 08 lists none for T14) | 409 `INSUFFICIENT_STOCK` |
-| `reserve_received_for_booking(uow, *, shop_id, booking_id, purchase_order_id, received: Sequence[PartQty], actor_user_id, now)` | T15 (bookings handler) | `bool`: every `booking_parts` row now fully reserved | — |
+| `reserve_received_for_booking(uow, *, shop_id, booking_id, purchase_order_id, received: Sequence[PartQty], actor_user_id, now)` | T15 (bookings handler) | `ReceiptReservation(reserved: tuple[PartQty, …], all_reserved: bool)`: what this receipt reserved, and whether every `booking_parts` row is now fully reserved (bookings applies `RECEIVE_PARTS`, or publishes `BookingPartsChanged` when `reserved` is non-empty but not complete) | — |
 | `consume_reservations(uow, *, shop_id, booking_id, actor_user_id, now)` | T16 | `consumed` | 409 `INSUFFICIENT_STOCK` |
 | `release_reservations(uow, *, shop_id, booking_id, actor_user_id, now)` | T22 | `released` | — |
 
@@ -106,18 +110,21 @@ Writes take the request's `UnitOfWork` (`uow`), reads an `AsyncSession` (`sessio
 | `get_stock_summary(session, *, shop_id)` | reporting | `StockSummary` (`parts_count`, `low_stock_count`, `out_of_stock_count`, `stock_value`, `open_purchase_orders`, `low_stock: list[PartRead]`) |
 | `count_low_stock(session, *, shop_ids)` *(P1)* | reporting (owner summary) | `dict[UUID, int]` |
 
-**The booking-reference port.** `PurchaseOrderSummary.booking` is a `BookingRef` (`id`, `reference`, `status`, `version`) and `StockMovementRead.booking` needs the reference, but inventory may not import bookings (spec 01 rules 1, 3). The service therefore takes a `booking_refs: BookingRefLookup` argument:
+**The booking-reference port (D86).** `PurchaseOrderSummary.booking` is a `BookingRef` (`id`, `reference`, `status`, `version`) and `StockMovementRead.booking` needs the reference, but inventory may not import bookings (spec 01 rules 1, 3). Inventory therefore declares a read port, the same pattern as shops' `ShopActivityReader` with `shops.service.register_activity_reader` (`modules/shops.md` §5.3):
 
 ```python
+# app/modules/inventory/service.py
 class BookingRefData(Protocol):          # structural: any object with these attributes
     id: UUID; reference: str; status: BookingStatus; version: int
 
-class BookingRefLookup(Protocol):
+class BookingRefReader(Protocol):
     async def __call__(self, session: AsyncSession, *, shop_id: UUID,
                        booking_ids: Collection[UUID]) -> Mapping[UUID, BookingRefData]: ...
+
+def register_booking_ref_reader(reader: BookingRefReader) -> None: ...   # called by bookings.service.register_ports() (D89)
 ```
 
-`app.main.create_app()` (the composition root, allowed to import every module) sets `app.state.booking_ref_lookup = bookings.service.get_booking_briefs`; the router passes it on; the seed passes it explicitly. It is a read on the caller's session, so after the receipt's handlers ran it sees the booking's new status and version.
+Bookings' `service.register_ports()` registers `get_booking_refs` (`modules/bookings.md` §5.3), and `app.main.wire_modules()` runs it at start-up, in tests and in the seed (D89) — no import-time side effect (spec 01 rule 5). Until a reader is registered, a call raises `RuntimeError` (fail loud in a mis-wired test). Inventory maps the results to its own `BookingRef` schema, so the OpenAPI component is defined once. The reader runs on the caller's session, so after the receipt's handlers ran it sees the booking's new status and version.
 
 ## Endpoints
 
@@ -167,7 +174,7 @@ Served by **bookings** with this module's data (spec 03 §4.8, §5.2): `GET …/
 | `CONSUME` | q | −q | −q | the booking | NULL | T16 |
 | `ADJUST` | \|d\| | d | 0 | NULL | NULL (`note` = reason, required) | adjustment |
 
-These are exactly `ck_stock_movements_deltas` and `ck_stock_movements_links` (spec 02 §3.15). Each movement and its `parts` balance update are written together, under the part's row lock; `created_at` = the action's `now`; `actor_user_id` = the acting user (the customer on a customer cancel). Rows are never updated or deleted (repository has no update/delete; trigger `trg_stock_movements_append_only`). Invariants INV-1…INV-3 (spec 02 §6) hold after every function.
+These are exactly `ck_stock_movements_deltas` and `ck_stock_movements_links` (spec 02 §3.15). Each movement and its `parts` balance update are written together, under the part's row lock; `created_at` = the action's `now`; `actor_user_id` = the acting user (the customer on a customer cancel). Rows are never updated or deleted (repository has no update/delete; trigger `trg_stock_movements_append_only`). Invariants DI-1…DI-3 (spec 02 §6) hold after every function.
 
 ### Adjustment (D82)
 
@@ -183,22 +190,22 @@ Lock the part (`FOR UPDATE`, scoped by shop). `new_on_hand = on_hand + quantity_
    4. Write the `RESERVE` movements (no PO id) and update `parts.reserved` and `booking_parts.reserved_qty`.
    5. Insert the PO (`ORDERED`, `booking_id` set, `supplier_name`, `created_by_user_id` = actor, new number) and one item per short part (`ordered_qty` = requested or shortage, `unit_cost = parts.unit_cost`). Return `{purchase_order_id, po_number, reserved}` for the `ORDER_PARTS` metadata.
 3. **T14 `reserve_outstanding`.** Lock the parts; if any row's outstanding > its part's available → 409 `INSUFFICIENT_STOCK` naming the short parts, with nothing reserved (atomic, INV-10). Otherwise reserve every outstanding quantity. Zero rows pass trivially. Works from `PARTS_ORDERED` too (stock arrived another way, D43).
-4. **T15 `reserve_received_for_booking`** (called only by the bookings handler, only when the locked booking is `PARTS_ORDERED`): for each received `(part_id, q)` with a `booking_parts` row, reserve `min(q, outstanding)` — `RESERVE` with the PO id; the excess stays general stock. The parts are already locked by the receipt. Return whether every row of the booking now has `reserved_qty + consumed_qty = required_qty`.
+4. **T15 `reserve_received_for_booking`** (called only by the bookings handler, only when the locked booking is `PARTS_ORDERED`): for each received `(part_id, q)` with a `booking_parts` row, reserve `min(q, outstanding)` — `RESERVE` with the PO id; the excess stays general stock. The parts are already locked by the receipt. Return `ReceiptReservation(reserved, all_reserved)`: the `(part_id, qty)` reserved now, and whether every row of the booking has `reserved_qty + consumed_qty = required_qty`.
 5. **T16 `consume_reservations`.** Lock the parts; any row with `reserved_qty ≠ required_qty` → 409 `INSUFFICIENT_STOCK` (INV-12). Otherwise one `CONSUME` of `required_qty` per row; `consumed_qty = required_qty`, `reserved_qty = 0` (satisfies `ck_booking_parts_consume_all`). Worked example ends at filter 9/0, oil 7/0, coil 0/0 (INV-11).
 6. **T22 `release_reservations`.** Lock the parts of rows with `reserved_qty > 0`; one `RELEASE` per row; `reserved_qty = 0`. Called before bookings releases the slot (lock order). Linked POs are untouched; their later receipts become general stock (D24, INV-09). `DECLINE` (T03) needs no call: a `PENDING` booking has no rows.
 
 ### Purchase-order receipt (T15 trigger; spec 03 §5.3, spec 01 sequence diagram)
 
-`receive_purchase_order(uow, ctx, po_id, data, booking_refs)`:
+`receive_purchase_order(uow, ctx, po_id, data)` (`read_refs` below = the registered `BookingRefReader`):
 
 1. Read the PO header (`booking_id`, `status`) unlocked, scoped by shop; missing → 404. `booking_id` never changes after insert, so reading it before the lock is safe.
-2. If `booking_id` is set: `await uow.publish(PurchaseOrderReceiving(...))`; the bookings handler locks the booking first (D30, D43). Then read `before = booking_refs(...)[booking_id]` (the booking is locked, so its status cannot change except through this transaction).
+2. If `booking_id` is set: `await uow.publish(PurchaseOrderReceiving(...))`; the bookings handler locks the booking first (D30, D43). Then read `before = read_refs(...)[booking_id]` as an immutable snapshot of `status` and `version` (never the reader's live object) (the booking is locked, so its status cannot change except through this transaction).
 3. Lock the PO (`FOR UPDATE`, `populate_existing`). Read `now = utcnow()`.
 4. Validate, in this order: PO already `RECEIVED` → 409 `CONFLICT`; an `item_id` not on this PO → 422 (`items.N.item_id`, `invalid_reference`); `expected_received_qty` given and ≠ the stored `received_qty` → 409 `CONCURRENT_UPDATE` (a duplicated receipt, INV-07); `quantity` > outstanding → 422 (`items.N.quantity`, `exceeds_outstanding`); every quantity 0 → 422 (`items`, `nothing_to_receive`).
 5. Lock the parts with a quantity > 0 (ascending id). Per item: `RECEIVE` movement (+`on_hand`), `received_qty += q`.
 6. PO status from its items (spec 02 §6): all complete → `RECEIVED` + `received_at = now`; otherwise `PARTIALLY_RECEIVED`.
-7. `await uow.publish(PurchaseOrderReceived(..., received, occurred_at=now))`. Bookings: if the booking is `PARTS_ORDERED`, it calls `reserve_received_for_booking` and, when that returns true, applies `RECEIVE_PARTS` (event by this Parts Person, `actor_role` `PARTS_PERSON`, metadata `{purchase_order_id}`, its timestamps = `occurred_at`). Any other status (e.g. `CANCELLED`, or already `PARTS_READY`): nothing reserved, no event (INV-24). Notifications queues the D83 push.
-8. Build the response: `after = booking_refs(...)`; `receive_parts_applied = before.status == PARTS_ORDERED and after.status == PARTS_READY`; `purchase_order.booking` = `after` as `BookingRef`. General POs: `booking` null, `receive_parts_applied` false.
+7. `await uow.publish(PurchaseOrderReceived(..., received, occurred_at=now))`. Bookings: if the booking is `PARTS_ORDERED`, it calls `reserve_received_for_booking`; when `all_reserved` it applies `RECEIVE_PARTS` (event by this Parts Person, `actor_role` `PARTS_PERSON`, metadata `{purchase_order_id}`, its timestamps = `occurred_at`); when it reserved something without completing, it publishes `BookingPartsChanged` so notifications pushes `booking.updated` after commit (D83). Any other status (e.g. `CANCELLED`, or already `PARTS_READY`): nothing reserved, no event, no push (INV-24).
+8. Build the response: `after = read_refs(...)`; `receive_parts_applied = before.status == PARTS_ORDERED and after.status == PARTS_READY`; `purchase_order.booking` = `after` as `BookingRef`. General POs: `booking` null, `receive_parts_applied` false.
 9. `await uow.commit()`.
 
 A partial delivery leaves the booking `PARTS_ORDERED` with the received units reserved for it (SM-12, INV-05); the final delivery fires `RECEIVE_PARTS` in the same transaction (INV-06). A general-restock PO only raises `on_hand` (INV-08).
@@ -214,8 +221,8 @@ A partial delivery leaves the booking `PARTS_ORDERED` with the received units re
 
 | Event | Published when | Payload (frozen dataclass, `occurred_at` from the base) | Subscribers |
 |---|---|---|---|
-| `PurchaseOrderReceiving` | Receipt step 2, only for a booking-linked PO, before the PO or any part is locked | `shop_id`, `purchase_order_id`, `booking_id`, `actor_user_id` | bookings: lock the booking (D43) |
-| `PurchaseOrderReceived` | Receipt step 7, after the `RECEIVE` movements, item quantities and PO status are written | `shop_id`, `purchase_order_id`, `po_number`, `booking_id` (nullable), `received: tuple[PartQty, …]`, `actor_user_id`; `occurred_at` = the receipt's `now` | bookings: reserve + `RECEIVE_PARTS` while `PARTS_ORDERED`; notifications: after commit, `booking.updated` for a linked booking (D83) |
+| `PurchaseOrderReceiving` | Receipt step 2, only for a booking-linked PO, before the PO or any part is locked | `shop_id`, `purchase_order_id`, `booking_id`, `actor_user_id` (its `occurred_at` is read before the locks and is informational only: no row is written with it; every write uses the post-lock instant that `PurchaseOrderReceived.occurred_at` carries, D63) | bookings: lock the booking (D43) |
+| `PurchaseOrderReceived` | Receipt step 7, after the `RECEIVE` movements, item quantities and PO status are written | `shop_id`, `purchase_order_id`, `po_number`, `booking_id` (nullable), `received: tuple[PartQty, …]`, `actor_user_id`; `occurred_at` = the receipt's `now` | bookings: reserve + `RECEIVE_PARTS` while `PARTS_ORDERED`, or `BookingPartsChanged` after a partial delivery (D83; notifications reacts to that event, not to this one) |
 
 Subscribes to nothing. `BookingActionApplied` for the parts actions is published by bookings, not here.
 
@@ -274,7 +281,7 @@ Booking-action errors (404 visibility, 403 role/assignment, 409 status and versi
 | INV-31 | `on_order` and `stock_state` on `GET …/parts`, and the `stock_state` filter (`OUT` wins over `LOW`, reorder level 0) |
 | INV-32 | QC inspector: `GET …/parts` and `…/bookings/{id}/parts` → 403; estimate reads return `PartStockRef` with null stock fields |
 | INV-33 | PO-number collision: an injected generator returns a taken number first; the PO is created with the next one |
-| INV-34 | D83: a partial receipt pushes `booking.updated` to the booking's viewers (with notifications, server-side `TestClient`) |
+| INV-34 | D83: a partial receipt reports its reservations (`ReceiptReservation.reserved`) and the booking's viewers get `booking.updated` (with bookings' `BookingPartsChanged` and notifications; = `modules/bookings.md` BK-33) |
 
 ## Implementation checklist
 
@@ -284,7 +291,7 @@ Booking-action errors (404 visibility, 403 role/assignment, 409 status and versi
 4. Catalogue: `create_part`, `update_part`, `list_parts` + routes (needed by the seed in PH1, spec 14).
 5. `adjust_stock` + route (P0, D82; the seed's opening stock).
 6. Booking-action functions T12–T16, T22, called from the bookings executor (PH5).
-7. General PO create, list, detail; `BookingRefLookup` wiring in `create_app()` (`app.state.booking_ref_lookup`).
+7. General PO create, list, detail; `register_booking_ref_reader()` here, and bookings' `register_ports()` calling it with `get_booking_refs` (D89; `app/main.py` is not edited).
 8. Receipt + `events.py`; the bookings handlers exist on the other side (spec 01 event catalogue).
 9. `get_booking_parts`, `get_booking_parts_summary`, `get_parts_for_estimate`, `get_stock_summary`.
 10. P1: movements route, `count_low_stock`.
@@ -292,27 +299,28 @@ Booking-action errors (404 visibility, 403 role/assignment, 409 status and versi
 
 ## Dependencies (specs)
 
-- [17-decisions.md](../17-decisions.md) D3, D16, D20, D21, D24, D30, D31, D40–D45, D50, D63, D71, D79, D82, D83; [18-glossary.md](../18-glossary.md) §1, §5, §7, §9, §10.
+- [17-decisions.md](../17-decisions.md) D3, D16, D20, D21, D24, D30, D31, D40–D45, D50, D63, D71, D79, D82, D83, D86, D88, D89; [18-glossary.md](../18-glossary.md) §1, §5, §7, §9, §10.
 - [08-booking-state-machine.md](../08-booking-state-machine.md) T12–T16, T22, "Parts reservations", metadata.
 - [03-api-contracts.md](../03-api-contracts.md) §3.4, §3.5, §4.10, §5.2, §5.3; [02-data-model.md](../02-data-model.md) §3.13–§3.17, §6, §7, §8.
 - [01-architecture.md](../01-architecture.md) layers, event catalogue, receipt sequence; [04-auth-and-security.md](../04-auth-and-security.md) RBAC B.
 - [06-workflows.md](../06-workflows.md) P1–P8, E2, E3, E6, E7; [10-screens.md](../10-screens.md) PP-01…PP-05; [11-seed-data.md](../11-seed-data.md) inventory, POs; [12-quality-and-testing.md](../12-quality-and-testing.md) INV, CON.
-- Other modules: bookings (`get_booking_briefs`, handlers), estimates (`get_approved_part_requirements`), identity (`get_users_by_ids` for `UserRef`), [notifications.md](notifications.md) (D83 push), [reporting.md](reporting.md).
+- Other modules: [bookings.md](bookings.md) (`get_booking_refs`, the receipt handlers, `BookingPartsChanged`), estimates (`get_approved_part_requirements`), [identity.md](identity.md) (`get_users_by_ids` for `UserRef`), [shops.md](shops.md) (the same port pattern), [notifications.md](notifications.md) (D83 push), `reporting.md` (stock summary).
 
 ## Open questions
 
-1. **Booking-reference port.** Spec 01's catalogue lets inventory depend on nothing, yet spec 03 puts a `BookingRef` on PO responses. This spec injects `BookingRefLookup` from `create_app()` (`app.state.booking_ref_lookup`). Spec 01 should record the "read port wired by the composition root" pattern (shops' `MemberRead.open_jobs` has the same problem).
-2. **Adjustment priority.** D82 makes adjustments P0; spec 03 §4.1/§4.10 (and open question 6) and spec 10 PP-03 still say P1. Spec 03 and 10 should follow D82.
-3. **D83 push is ignored by clients.** A partial receipt writes no booking event, so the pushed `version` is unchanged, and spec 03 §6.4 / spec 09 §2.7 tell clients to ignore a `booking.updated` that is not newer. Proposal: clients invalidate the booking's child panels (parts, POs) on every `booking.updated`, even when the version is unchanged. See [notifications.md](notifications.md).
+1. ✅ **Resolved by D86: booking-reference port.** `BookingRefReader` + `inventory.service.register_booking_ref_reader()`, implemented by `bookings.service.get_booking_refs` and registered through bookings' `register_ports()`, which `wire_modules()` calls (D89; glossary §7.1a; spec 01 describes the mechanism, its open question 10).
+2. ✅ **Resolved by D82: adjustment priority.** Specs 03 (§4.1, §4.10) and 10 (E-46, PP-03) now mark adjustments P0.
+3. ✅ **Resolved by D83, spec 03 §6.4 and spec 09 §2.7: the D83 push.** Clients treat a `booking.updated` with an **equal** version as a parts-state change and refetch the booking, its lists and the parts views; only an older version is ignored.
 4. **POs that will never arrive.** There is no way to cancel or close a PO (brief statuses only). Its open quantity keeps counting in `on_order`. Acceptable for the hackathon?
-5. **`UserRef` home.** Actor names (`created_by`, `actor`) use spec 03's `UserRef`, assumed to be defined once in `identity.schemas` (the lowest module); `modules/identity.md` should confirm.
+5. ✅ **Resolved as built: `UserRef` home.** Actor names (`created_by`, `actor`) use spec 03's `UserRef`, defined once in `identity.schemas` (the lowest module; `modules/identity.md` §4 lists it, and estimates and qc already import it from there).
 
 ## Proposed glossary additions
 
 | Kind | Name | Meaning |
 |---|---|---|
 | Wire enum (already proposed by spec 03) | `StockState` = `OK`, `LOW`, `OUT` | Computed (D45), never stored; kept in `app.shared.enums` next to `AiLegStatus` |
-| Port | `BookingRefLookup` (`app.state.booking_ref_lookup`) | Read port through which inventory gets `BookingRef` data without importing bookings |
+| Port | ✅ merged (glossary §7.1a, D86) — `BookingRefReader`, `inventory.service.register_booking_ref_reader()`; implementation `bookings.service.get_booking_refs` | Read port through which inventory gets `BookingRef` data without importing bookings |
+| Return value | `ReceiptReservation` (`reserved`, `all_reserved`) | Result of `reserve_received_for_booking`, as `modules/bookings.md` §5.5 expects |
 | Domain value | `PartQty` (`part_id`, `qty`) | Requirements, reservations, receipts, consumption and releases; `PurchaseOrderReceived.received` |
 | Service functions | `get_booking_parts`, `get_booking_parts_summary` (batch signature), `count_low_stock`, `OrderPartsResult` | Refine spec 01's inventory surface |
 | Field error code | (none new) | Uses spec 03 §2.3 codes only |

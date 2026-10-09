@@ -1261,6 +1261,8 @@ Test IDs: `CALL-xx` for calling, `FD-xx` for the AI Front Desk API (D75; `AI-xx`
 | FD-11 | A6: an answered AI leg that ended 180 s ago without a summary gets a fallback summary and a `CALLBACK` task. |
 | FD-12 | Time window: data endpoints after `ai_ended_at` get 409; a summary more than 10 min after the end gets 409. |
 
+**Module-level additions** (proposed by [`modules/calls.md`](modules/calls.md), numbered in spec 12 §5): CALL-17 … CALL-20 and FD-13 … FD-15 are adopted here; their wording lives in `modules/calls.md` and spec 12. CALL-17 repeats CALL-15's subject (D77), so one implementation serves both. `modules/calls.md` also proposes CALL-21 (an active SA who was not rung accepts; the Owner of a shop with an active SA gets 403; §3.3), numbered in spec 12 §5. Phases: CALL-18, CALL-19 and CALL-21 in B1; CALL-20 and FD-15 in B3; FD-13 in B5; FD-14 in B6.
+
 ### 14.2 Agent tests (`apps/agent/tests`)
 
 | ID | Test |
@@ -1315,13 +1317,13 @@ This mirrors the brief's §6 bonus path. Spec 06 owns the core-flow demo; if one
 
 | Step | Work | Size | Done when |
 |---|---|---|---|
-| B0 | **Gate:** the P0 core works end to end on the live URL (D36). The only zero-risk prep allowed before this: create the LiveKit Cloud project, and an OpenAI key with prepaid credit. | — | Spec 14's phase PH7 exit criteria are met |
-| B1 | Calling backend: the `calls` module, migration for `call_logs`, `CallMediaGateway`, tokens, start/accept/decline/end, ring timer and sweeper, WebSocket pushes, `CALL_MISSED` | M | CALL-01 to CALL-12 and CALL-15 are green |
+| B0 | **Gate:** the P0 core works end to end on the live URL (D36), and the P1 realtime layer — WebSocket hub, `GET /api/v1/realtime/ticket`, `/api/v1/ws` — is live, because `call.incoming`, `call.updated`, `task.created` and presence all travel on it (D88). The only zero-risk prep allowed before this: create the LiveKit Cloud project, and an OpenAI key with prepaid credit. | — | Spec 14's phase PH7 exit criteria are met and the WebSocket passes spec 07's day-1 check #2 |
+| B1 | Calling backend: the `calls` module (its three tables already exist in the baseline migration, D84), `CallMediaGateway`, tokens, start/accept/decline/end, ring timer and sweeper, WebSocket pushes, `CALL_MISSED` | M | CALL-01 to CALL-12 and CALL-15 are green, with the module tests CALL-18, CALL-19 and CALL-21 (§14.1) |
 | B2 | Calling web: `CallProvider`, call button, incoming-call panel (D78), in-call bar, call log on the booking | M | CALL-16 is green, and **Evidence 1:** two browsers call each other on the live site, and the call log entry is visible |
-| B3 | Webhook endpoint and signature check, max-duration limits, rate limit, monthly cap | S | CALL-13 and CALL-14 are green |
+| B3 | Webhook endpoint and signature check, max-duration limits, rate limit, monthly cap | S | CALL-13, CALL-14, CALL-20 and FD-15 are green |
 | B4 | Agent skeleton: `apps/agent`, the Railway service and health check, dispatch at A1, `/session`, greeting, A4 fallback | S–M | An unanswered call on the live site is greeted by the AI |
-| B5 | Internal endpoints, `verify_caller`, all ten tools, the prompt | M | FD-01 to FD-09 and AG-01 are green |
-| B6 | Post-call: transcript, summary, tasks, notifications, `task.created`, migrations for `ai_call_summaries` and `tasks`, the AI tasks panel, mark-done | M | **Evidence 2:** the §14.3 script works end to end on the live site |
+| B5 | Internal endpoints, `verify_caller`, all ten tools, the prompt | M | FD-01 to FD-09, FD-13 and AG-01 are green |
+| B6 | Post-call: transcript, summary, tasks, notifications, `task.created` (the `ai_call_summaries` and `tasks` tables already exist in the baseline migration, D84), the AI tasks panel, mark-done | M | **Evidence 2:** the §14.3 script works end to end on the live site |
 | B7 | Hardening and demo: AG-04 to AG-06, three scripted runs, recording the video | S | Video recorded |
 
 Steps B1–B3 are spec 14's phase **PH8** (in-app calling); B4–B7 are phase **PH9** (AI Front Desk and demo video). Roadmap phases are written PH0…PH10 so they never read as the D36 priorities P0–P3 (D75).
@@ -1382,7 +1384,7 @@ Steps B1–B3 are spec 14's phase **PH8** (in-app calling); B4–B7 are phase **
 
 ## Dependencies
 
-- **Foundation:** [00-overview.md](00-overview.md), [18-glossary.md](18-glossary.md), [17-decisions.md](17-decisions.md) (D8, D9, D14, D16, D20, D21, D26, D29, D30, D33, D36, D37, D38, D41, D54, D57, D58, D59, D61, D63, D66, D67, D69, D70, D73, D74, D75, D77, D78), [08-booking-state-machine.md](08-booking-state-machine.md) (statuses, customer `allowed_actions`, estimate versions).
+- **Foundation:** [00-overview.md](00-overview.md), [18-glossary.md](18-glossary.md), [17-decisions.md](17-decisions.md) (D8, D9, D14, D16, D20, D21, D26, D29, D30, D33, D36, D37, D38, D41, D54, D57, D58, D59, D61, D63, D66, D67, D69, D70, D73, D74, D75, D77, D78, D84, D88), [08-booking-state-machine.md](08-booking-state-machine.md) (statuses, customer `allowed_actions`, estimate versions).
 - **Spec 01 (architecture):** module boundaries, the event bus, the WebSocket hub's `is_online` and send-to-user, the lifespan tasks (the sweeper), and the `CallMediaGateway` port.
 - **Spec 02 (data model):** the three tables and their constraints (§7).
 - **Spec 03 (API contracts):** the endpoints, schemas, realtime messages and error codes (§8). Spec 03 §3.8 and §4.14 copy this spec's bonus schemas and routes (this spec stays authoritative for them); its §1.8–§1.9 headers and rate-limit rules apply to the bonus routes too.

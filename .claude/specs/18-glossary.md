@@ -218,10 +218,14 @@ A module is the **only** code allowed to write its tables. Other modules call it
 | calls *(bonus)* | `app.modules.calls` | `call_logs`, `ai_call_summaries`, `tasks` |
 
 Cross-cutting packages (not modules):
-- `app.core` — `config`, `database`, `security` (`issue_token`, `decode_token`, `parse_duration`, `hash_password`, `verify_password`), `errors` (`ErrorCode`, `AppError`), `error_handlers`, `logging`, `middleware`.
-- `app.shared` — `auth` (`get_current_user`, `get_optional_user`, `require_shop_member`, `require_roles`, `shop_scoped_router()` (D80), `CurrentUser`, `ShopContext`), `tenancy` (re-exports the shop-scoping pieces of `auth` under one name), `event_bus`, `uow` (`UnitOfWork`), `pagination` (`Page`, `PageParams`), `repository`, `money` (`Money`), `clock` (`Clock`, `SystemClock`, `SimulatedClock`, `get_clock()`, `utcnow()`), `email` (the project `Email` type, D62), `phone` (the project `Phone` type, D84), `enums` (every stored enum as a `StrEnum`, D74).
+- `app.core` — `config`, `database`, `db_errors` (constraint name → error code), `security` (`issue_token(…, now)`, `decode_token(token, now, expected_typ)`, `parse_duration`, `hash_password`, `verify_password`), `errors` (`ErrorCode`, `AppError`), `error_handlers`, `logging`, `middleware`, `health`.
+- `app.shared` — `auth` (`get_current_user`, `get_optional_user`, `require_shop_member`, `require_roles`, `shop_scoped_router()` (D80), `CurrentUser`, `ShopContext`), `tenancy` (re-exports the shop-scoping pieces of `auth` under one name), `event_bus`, `uow` (`UnitOfWork`; `uow.app_state` = the app's `State`, D90), `pagination` (`Page`, `PageParams`, `ItemList`), `repository`, `money` (`Money`), `clock` (`Clock`, `SystemClock`, `SimulatedClock`, `get_clock()`, `utcnow()`), `email` (the project `Email` type, D62), `phone` (the project `Phone` type, D84), `timestamps` (`Timestamp`: UTC with `Z`), `enums` (every stored enum as a `StrEnum`, D74).
 
-A module package uses these file names, creating only the ones it needs: `router.py`, `schemas.py`, `service.py`, `repository.py`, `models.py`, `events.py`, `handlers.py`, `domain/` (e.g. `estimates` has no router of its own).
+Wiring (D89): `router.py` exports `routers: tuple[APIRouter, ...]`; `handlers.py` exports `register(bus)`; `service.py` may export `register_ports()`; `app.main.wire_modules()` loads them in `MODULES` order. A module package uses these file names, creating only the ones it needs: `router.py`, `schemas.py`, `service.py`, `repository.py`, `models.py`, `events.py`, `handlers.py`, `domain/` (e.g. `estimates` has no router of its own).
+
+### 7.1a Read ports (D86)
+
+`ShopActivityReader` (defined by shops, registered with `shops.service.register_activity_reader`, implemented by `bookings.service.shop_activity_reader`) and `BookingRefReader` (defined by inventory, implemented by `bookings.service.get_booking_refs`). Registered by `create_app()` at startup through `wire_modules()` (D89).
 
 ### 7.1 Domain events (in-process event bus, spec 01)
 
@@ -284,7 +288,7 @@ Key column names other specs rely on (full definitions in spec 02; bonus tables 
 | Code | HTTP | When |
 |---|---|---|
 | `VALIDATION_ERROR` | 422 | Request body/query fails validation |
-| `INVALID_SLOT` | 422 | Slot not on the shop's grid, in the past, outside working hours or beyond the booking horizon |
+| `INVALID_SLOT` | 422 | Slot not on the shop's grid, in the past, outside working hours or beyond the booking horizon; the 422 `errors[]` item for `slot_start` carries one reason code: `off_grid`, `in_past`, `beyond_horizon`, `closed_day`, `outside_hours` |
 | `ESTIMATE_EMPTY` | 422 | Submitting/sending an estimate with no lines |
 | `MEMBER_NOT_ELIGIBLE` | 422 | Assignee is not an active member with the required role in this shop |
 | `UNAUTHENTICATED` | 401 | Missing/invalid/expired token, or user deactivated |
@@ -379,6 +383,7 @@ Local dev ports (D73): web `3000`, API `4000`, PostgreSQL `5434` (host), Mailpit
 | TypeScript | components `PascalCase`; files `kebab-case.tsx`; hooks `useXxx`; API types generated from OpenAPI into `apps/web/src/lib/api/schema.d.ts` (never hand-written) |
 | URLs | lowercase `kebab-case` path segments; IDs (UUID) or shop slugs as path params; no trailing slash |
 | Git | Conventional Commits (`feat(bookings): …`, `fix(inventory): …`) |
+| Spec IDs | Spec 02's data invariants are `DI-1` … `DI-7` (spec 02 §6); test IDs are `<PREFIX>-nn` with two digits (spec 12 §5), so `INV-01` … is always an inventory test; roadmap phases `PH0` … `PH10`, QC Inspector screens `QI-xx`, AI Front Desk tests `FD-xx` (D75) |
 
 ---
 
@@ -422,8 +427,10 @@ Worked-example vehicle: 2016 Honda Civic, plate `LEA-1234`. Worked-example price
 
 - 2026-10-09 (implementation start): `app.shared.enums` (D74), `POSTGRES_HOST_PORT` and local dev ports (D73); ID prefixes PH (roadmap phases), QI (QC Inspector screens), FD (AI Front Desk tests) per D75.
 - 2026-10-09 (wave-2 findings): `seq` tie-breaker columns on `booking_events` and `stock_movements` (D79); wording of `CALL_BUSY`, `CALL_NOT_ACTIVE`, `CALLING_DISABLED`, `RATE_LIMITED`.
+- 2026-10-09 (module specs 1): read ports (D86), `INVALID_SLOT` reason codes, `app.core.db_errors`/`health`, `app.shared.timestamps`, token functions take `now`.
 - 2026-10-09 (API contract): `tasks.manage` only with the calls module; wording of `NOT_FOUND`, `CONCURRENT_UPDATE`, `INSUFFICIENT_STOCK`, `CONFLICT`; auth routes per D81.
 - 2026-10-09 (wave-2 findings 2): `shop_scoped_router()` (D80), `ShopGridChanging` event (D37), `get_clock()`/`utcnow()` (D63), module files "only as needed".
+- 2026-10-09 (final consistency sweep): ID prefix `DI` for spec 02's data invariants (`DI-1` … `DI-7`, formerly `INV-1` … `INV-7`, which collided with spec 12's inventory tests `INV-01` …), §13.
 
 ## Dependencies
 

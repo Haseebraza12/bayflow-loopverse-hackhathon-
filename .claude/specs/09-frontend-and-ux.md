@@ -8,7 +8,7 @@ Defines how `apps/web` is built and how it looks and behaves: web architecture (
 
 Why it matters: Product & UX is 15 % of the score (brief §10: "Clear landing page and booking wizard; role dashboards that show only relevant work"), and the 35 % core-flow score is earned only if a judge can drive the whole lifecycle through this UI on the live URL (§7.8).
 
-Rules of precedence: names come from [18-glossary.md](18-glossary.md); [17-decisions.md](17-decisions.md) wins every conflict (especially D1, D7, D8, D10, D11, D14, D16, D21, D27, D32–D41, D44, D48, D50, D52, D55, D56, D61, D62, D66–D68, D70, D73, D76, D78, D80–D83); paths, response shapes and request-field limits come from [03-api-contracts.md](03-api-contracts.md), the authoritative endpoint catalogue; booking buttons come from `allowed_actions` as defined in [08-booking-state-machine.md](08-booking-state-machine.md). Framework facts were checked against official docs and package sources on 2026-10-09 (see §8 Sources). Anything not checked is marked **(unverified)**.
+Rules of precedence: names come from [18-glossary.md](18-glossary.md); [17-decisions.md](17-decisions.md) wins every conflict (especially D1, D7, D8, D10, D11, D14, D16, D21, D27, D32–D41, D44, D48, D50, D52, D55, D56, D61, D62, D66–D68, D70, D73, D76, D78, D80–D83, D88); paths, response shapes and request-field limits come from [03-api-contracts.md](03-api-contracts.md), the authoritative endpoint catalogue; booking buttons come from `allowed_actions` as defined in [08-booking-state-machine.md](08-booking-state-machine.md). Framework facts were checked against official docs and package sources on 2026-10-09 (see §8 Sources). Anything not checked is marked **(unverified)**.
 
 ---
 
@@ -272,7 +272,7 @@ export async function unwrap<T>(
 
 **QueryClient** (`lib/api/query-client.ts`):
 - `getQueryClient()` returns a browser singleton and a new client per server request, using `environmentManager.isServer()` from `@tanstack/react-query` 5.104, as in TanStack's Next.js App Router guide.
-- It is provided by `app/providers.tsx` (`'use client'`), which also mounts `TooltipProvider`, `<Toaster/>` (§4.9) and the Query devtools (development builds only). `RealtimeProvider` (§2.12) is mounted there too once it exists. The P2 `CallProvider` is mounted in the shared authenticated layouts of the customer area and the POS (spec 05 §9.1, §4.13).
+- It is provided by `app/providers.tsx` (`'use client'`), which also mounts `TooltipProvider`, `<Toaster/>` (§4.9) and the Query devtools (development builds only). `RealtimeProvider` (§2.12) is mounted there too once it exists — it is P1 (D88), so the P0 app runs on polling alone. The P2 `CallProvider` is mounted in the shared authenticated layouts of the customer area and the POS (spec 05 §9.1, §4.13).
 
 | Option | Value | Why |
 |---|---|---|
@@ -449,6 +449,7 @@ class NetworkError extends Error {}    // fetch rejected: offline, DNS, CORS —
 - `field` is a dot path into the request body (`customer.email`, `lines.2.unit_price`, `working_hours.3.opens_at`). Query and path parameters keep a location prefix (`query.limit`, `path.booking_id`), and `""` means the body as a whole (missing or not JSON). Body paths become field errors; prefixed or empty paths go to the form-level `Alert`.
 - `message` is a human sentence and is shown as is. `code` is machine-readable: Pydantic's error type (`missing`, `string_too_long`, `extra_forbidden`, …) or a service code (`invalid_reference`, `not_whole_rupees`, `not_on_grid`, `invalid_range`, `hours_not_on_grid`, `duplicate`, `not_allowed`, `missing_shortage`, `below_shortage`, `not_short`, `exceeds_outstanding`, `nothing_to_receive`, `checklist_incomplete`, `checklist_item_failed`, `unchanged`). A screen may use `code` to choose friendlier copy ([10-screens.md](10-screens.md)).
 - 422 codes other than `VALIDATION_ERROR` carry the one field they concern: `INVALID_SLOT` → `slot_start`, `ESTIMATE_EMPTY` → `lines`, `MEMBER_NOT_ELIGIBLE` → `technician_user_id` or `parts_person_user_id`.
+- The `slot_start` error of `INVALID_SLOT` carries one reason `code` (glossary §10, spec 03 §2.3): `off_grid`, `in_past`, `beyond_horizon`, `closed_day` or `outside_hours`. The wizard's recovery is the same for all five (back to the time step, refetch availability, [10-screens.md](10-screens.md) P-03); `in_past` may say "That time has already started." An unknown QC checklist key fails the enum (`code` `enum` at `checklist.N.key`); a missing or repeated one is `checklist_incomplete`.
 - **Form field names equal API body field names** (snake_case, nested exactly like the request body, array items by index), so `form.setError(field, { type: code, message })` needs no mapping.
 - After a 422, focus the first invalid field. Multi-step forms also jump to the step that owns it (wizard, [10-screens.md P-03](10-screens.md)).
 
@@ -569,6 +570,8 @@ export const DEFAULT_SHOP_TZ = 'Asia/Karachi'
 - SKUs render in mono.
 
 ### 2.12 Realtime client (glossary §11, D14, D70)
+
+**Priority P1 (D88).** The socket only makes updates faster; the 15 s polling of §2.7 is the P0 path, so every screen must be correct without this client. It ships with the API's P1 WebSocket hub and before any P2 calling work, which depends on it.
 
 ```mermaid
 stateDiagram-v2
@@ -942,7 +945,7 @@ Both load through `next/font/google`, which self-hosts them so the browser makes
 | `RoleChip` | Membership role display name (glossary §2.1) on the navy header (white text on `#303C54`, 11.05 : 1). Shows the role tag (`SA`, `TECH`, …) below `sm`. |
 | `NotificationBell` | Icon button. `aria-label="Notifications, {n} unread"`. Unread badge in `cta` with white text, showing 1–99 or "99+". Opens `NotificationPanel` (§4.10). The count is a live query (§2.7). |
 | `UserMenu` | Name and e-mail. "My bookings" (`/bookings`). "Shop POS" (`/pos`, if the user has memberships). "Log out". The realtime status appears here below `lg`. |
-| `RealtimeIndicator` | Dot plus text, polite. `open` → "Live" (green). `connecting` or `waiting` → "Reconnecting…" (amber), with the tooltip "Live updates are reconnecting — this page still refreshes every 15 s." `stopped` happens only after logout or session expiry, so it is not shown. The 15 s polling runs in every state (D14), so the indicator is informational and never blocks the UI. |
+| `RealtimeIndicator` | P1 with the realtime client (D88; not rendered before it ships). Dot plus text, polite. `open` → "Live" (green). `connecting` or `waiting` → "Reconnecting…" (amber), with the tooltip "Live updates are reconnecting — this page still refreshes every 15 s." `stopped` happens only after logout or session expiry, so it is not shown. The 15 s polling runs in every state (D14), so the indicator is informational and never blocks the UI. |
 | `SkipLink` | The first focusable element in every layout: "Skip to main content", targeting `#main`. |
 
 ### 4.2 `StatusBadge`
@@ -1374,7 +1377,7 @@ Computed with the WCAG relative-luminance formula. Requirements: 4.5 : 1 for tex
 3. **shadcn base.** ✅ Resolved by D1: shadcn/ui initialised with Radix primitives (`-b radix`).
 4. **`capabilities` on memberships.** ✅ Resolved by D66: `GET /api/v1/me` returns server-computed `capabilities` per membership (glossary §2.4); the UI shows non-booking buttons only from them (§2.8).
 5. **Fonts.** Inter + JetBrains Mono are a proposal; the brief does not specify typography.
-6. **Light-only theme** for the hackathon: acceptable to the owner?
+6. ✅ **Resolved by D1 (amended): light theme only** for the hackathon, without `next-themes` (§3.11).
 7. **Staff status labels** (§3.3). ✅ Resolved: the labels and phases were merged into glossary §3 (and `StatusPhase`, §5).
 8. **Booking-creation idempotency.** Should the wizard send an `Idempotency-Key` header, so a network retry after a lost response cannot create a second booking? This needs API support (tracked as spec 03 Open question 2); until then the wizard disables its button while the request is pending.
 

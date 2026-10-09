@@ -3,7 +3,7 @@
 **Status:** Draft
 **Package:** `app.modules.qc`
 **Owns tables:** `qc_inspections`, `qc_issues` (glossary §7)
-**Priority:** P0 (brief §7.4, §5.3). No P1 or P2 parts.
+**Priority:** P0 (brief §7.4, §5.3). One planned P1 addition (D87, see In scope); nothing in P2.
 
 ## Purpose
 
@@ -20,7 +20,8 @@ The module does not change booking status and does not own the queue. The bookin
   - QC history of a booking for `GET …/bookings/{booking_id}/qc-inspections` (served by bookings).
   - Derived counts for booking summaries: `qc_round` and `open_qc_issues_count` (spec 03 §3.3).
   - Visibility helpers for D21: the bookings a QC inspector inspected, and the inspectors of a booking (realtime fan-out, glossary §11).
-- **P1, P2:** none. The AI Front Desk never receives QC issues (spec 05 §4.3).
+- **P1 (planned, D87):** when bookings ships `REASSIGN_QC_INSPECTOR`, this module needs one more nested write, e.g. `reassign_open_inspection(uow, *, shop_id, booking_id, new_inspector_user_id, now)`, that moves the open round (`result IS NULL`) to the new inspector — otherwise the new picker's `pass-qc` / `fail-qc` would hit the "open round's inspector ≠ caller → 500" rule of §"A QC round". The previous picker stays in the booking event's metadata.
+- **P2:** none. The AI Front Desk never receives QC issues (spec 05 §4.3).
 
 ## Out of scope
 
@@ -38,13 +39,15 @@ Per-shop or custom checklists, photos and attachments, issue severity or categor
 | D20 | `qc_inspections (shop_id, inspector_user_id)` → `shop_memberships (shop_id, user_id)` and the booking composite FKs keep QC rows inside one shop. |
 | D63 | `picked_at`, `completed_at`, `resolved_at` and issue `created_at` are the action's instant, passed in by bookings. |
 | D74, D75 | `QcResult`, `QcIssueStatus`, `QcChecklistKey` come from `app.shared.enums`; test IDs are `QC-xx`, QC Inspector screens `QI-xx`. |
+| D86 | QC sits below bookings and never imports it; bookings calls the functions below and passes everything they need. A future upward read would use a read port that bookings registers from its `register_ports()` at start-up (D89), like shops' `ShopActivityReader` (`shops.service.register_activity_reader`) and inventory's `BookingRefReader` (`inventory.service.register_booking_ref_reader`). |
+| D87 | Planned P1 `REASSIGN_QC_INSPECTOR` (bookings) un-sticks a pick held by a deactivated inspector; it needs the open-round move described under In scope. Until then the Owner reactivates the inspector. |
 
 ## Files
 
 | File | Contents |
 |---|---|
 | `router.py` | `shop_scoped_router(tags=["qc"])` with the one route `GET …/qc/checklist` (spec 03 §4.11). |
-| `schemas.py` | Spec 03 §3.6: `QcChecklistTemplateItem`, `QcChecklistItemWrite`, `QcChecklistItemRead`, `QcIssueRead`, `QcInspectionRead`. Internal: `QcCounts`, `FailRecorded`. |
+| `schemas.py` | Spec 03 §3.6: `QcChecklistTemplateItem`, `QcChecklistItemWrite`, `QcChecklistItemRead`, `QcIssueRead`, `QcInspectionRead`. Internal: `QcSummary`, `FailRecorded`. |
 | `service.py` | The functions below. |
 | `repository.py` | `QcInspectionRepository` (open round by booking, rounds by booking, counts, inspector ids), `QcIssueRepository` (open issues, resolve-all update); every method takes `shop_id`. |
 | `models.py` | Already implemented: `QcInspection`, `QcIssue`. |
@@ -69,7 +72,7 @@ Reads:
 |---|---|---|
 | `default_checklist()` | qc router | `list[QcChecklistTemplateItem]` in D46 order (pure) |
 | `list_booking_qc_history(session, *, shop_id, booking_id)` | bookings (`bookings_list_booking_qc_inspections`, after D21) | `list[QcInspectionRead]`, rounds ascending |
-| `get_booking_qc_counts(session, *, shop_id, booking_ids)` | bookings (lists and details; batch, API-11) | `dict[UUID, QcCounts(inspections, open_issues)]`, one entry per id (zeros included) |
+| `get_qc_summaries(session, *, shop_id, booking_ids)` | bookings (lists and details; batch, API-11) | `dict[UUID, QcSummary(inspections, open_issues)]`, one entry per id (zeros included) |
 | `list_inspected_booking_ids(session, *, shop_id, inspector_user_id)` | bookings (D21 predicate on lists for QC callers) | `frozenset[UUID]` |
 | `has_inspected(session, *, shop_id, booking_id, inspector_user_id)` | bookings (D21 on item routes and actions) | `bool` |
 | `list_inspector_ids(session, *, shop_id, booking_id)` | bookings (`list_booking_viewer_ids`, glossary §11) | `frozenset[UUID]` |
@@ -88,8 +91,8 @@ Served by **bookings** with this module's data (spec 03 §4.8, §5.2):
 
 | Route | `operationId` | qc function |
 |---|---|---|
-| `GET …/bookings?status=QC_PENDING&status=QC_IN_PROGRESS&sort=status_changed_at` (the QC queue, QI-01) | `bookings_list_shop_bookings` | `list_inspected_booking_ids`, `get_booking_qc_counts` |
-| `GET …/bookings/{booking_id}` | `bookings_get_shop_booking` | `has_inspected`, `get_booking_qc_counts` |
+| `GET …/bookings?status=QC_PENDING&status=QC_IN_PROGRESS&sort=status_changed_at` (the QC queue, QI-01) | `bookings_list_shop_bookings` | `list_inspected_booking_ids`, `get_qc_summaries` |
+| `GET …/bookings/{booking_id}` | `bookings_get_shop_booking` | `has_inspected`, `get_qc_summaries` |
 | `GET …/bookings/{booking_id}/qc-inspections` | `bookings_list_booking_qc_inspections` | `list_booking_qc_history` |
 | `POST …/actions/send-to-qc` (T17) | `bookings_send_to_qc` | `resolve_open_issues` |
 | `POST …/actions/pick-qc` (T18) | `bookings_pick_qc` | `open_inspection` |
@@ -198,28 +201,29 @@ Non-members get 404 on every route. A booking outside the caller's D21 set is 40
 2. `schemas.py` (`QcChecklistItemWrite` with the `QcChecklistKey` enum, item note ≤ 500).
 3. `repository.py` (open round, rounds with issues, batch counts, inspected ids, inspector ids, resolve-all update).
 4. Service write functions (T17–T20) and reads; `UserRef` names in one batch.
-5. `router.py` with the checklist route; include it in `create_app()`.
+5. `router.py` with the checklist route, exported as `routers` (`wire_modules()` includes it, D89).
 6. Bookings wiring (spec 14 PH6): executor calls for T17–T20; D21 predicate with `list_inspected_booking_ids` / `has_inspected`; `qc_round`, `open_qc_issues_count`; viewers with `list_inspector_ids`.
 7. Tests above, including the SM-06 lock-gate test and the SM-10 scenario.
 
 ## Dependencies (specs)
 
-- [17-decisions.md](../17-decisions.md) D16, D20, D21, D30, D46, D47, D63, D74, D75; [18-glossary.md](../18-glossary.md) §3, §4, §5, §6, §10, §11.
+- [17-decisions.md](../17-decisions.md) D16, D20, D21, D30, D46, D47, D63, D74, D75, D86, D87; [18-glossary.md](../18-glossary.md) §3, §4, §5, §6, §10, §11.
 - [08-booking-state-machine.md](../08-booking-state-machine.md) T17–T20, "QC loop", metadata, SM-06, SM-10.
 - [03-api-contracts.md](../03-api-contracts.md) §3.3 (derived fields, customer projection), §3.6, §4.8, §4.11, §5.2; [02-data-model.md](../02-data-model.md) §3.18, §3.19, §7.
 - [04-auth-and-security.md](../04-auth-and-security.md) RBAC C and D; [06-workflows.md](../06-workflows.md) Q1–Q5, E4; [10-screens.md](../10-screens.md) QI-01, QI-02, T-02; [12-quality-and-testing.md](../12-quality-and-testing.md) QC, SM.
-- Other modules: bookings (caller), identity (`get_users_by_ids`), [notifications.md](notifications.md) (QC notifications).
+- Other modules: [bookings.md](bookings.md) (the only caller; it expects exactly these function names, §5.5, and records `SEND_TO_QC` metadata `{resolved_qc_issue_ids}` from `resolve_open_issues`), [identity.md](identity.md) (`get_users_by_ids`), [notifications.md](notifications.md) (QC notifications).
 
 ## Open questions
 
-1. **Router.** Spec 01 says `qc` has no router; spec 03 §1.11 and §4.11 give it `GET …/qc/checklist`. This spec follows spec 03; spec 01's folder note should say so.
-2. **Unknown checklist key.** Spec 03 §5.2 says a missing, repeated **or unknown** key gives `checklist_incomplete`, but its §3.6 schema types `key` as `QcChecklistKey`, which makes Pydantic answer `enum` at `checklist.N.key` first. Both are 422 `VALIDATION_ERROR`; this spec keeps the typed enum (it becomes a TypeScript union for the QI-02 form). Spec 03's text should say "unknown → `enum`".
-3. **`FAIL_QC` event note.** Spec 08 does not say what note the `FAIL_QC` event carries. Storing the issue title there would let the `QC_FAILED` notification quote it without notifications reading qc tables; customers never see that note (spec 03 §3.3). Decision for `modules/bookings.md`.
+1. ✅ **Resolved in spec 01 (its open question 11): router.** `qc` has one router with `GET …/qc/checklist` (spec 03 §1.11, §4.11); spec 01's folder tree now says so.
+2. ✅ **Resolved in spec 03 (§2.3, §3.6, §5.2): unknown checklist key.** A missing or repeated key → `checklist_incomplete` (field `checklist`); an unknown key → `enum` at `checklist.N.key`, because `key` is typed `QcChecklistKey` (a TypeScript union for the QI-02 form).
+3. ✅ **Resolved by D92: `FAIL_QC` event note = the issue title.** Spec 08 does not say what note the `FAIL_QC` event carries, and `modules/bookings.md` currently writes none, so the `QC_FAILED` notification can only say "returned the job with an issue to fix". Storing the issue title as that note would let the technician's bell show it without notifications reading qc tables; customers never see that note (spec 03 §3.3). A small change for `modules/bookings.md`, if wanted.
+4. **`REASSIGN_QC_INSPECTOR` and the open round (D87, planned).** Moving the open `qc_inspections` round to the new inspector (In scope, P1) is the simplest fit with `uq_qc_inspections_one_open_per_booking`; recording who first picked it lives only in the booking event. Confirm when D87 is implemented.
 
 ## Proposed glossary additions
 
 | Kind | Name | Meaning |
 |---|---|---|
-| Service functions | `get_booking_qc_counts`, `list_inspected_booking_ids`, `has_inspected`, `list_inspector_ids` | Reads that let bookings compute `qc_round`, `open_qc_issues_count`, the D21 QC predicate and the glossary §11 QC viewers |
-| Internal values | `QcCounts` (`inspections`, `open_issues`), `FailRecorded` (`qc_inspection_id`, `qc_issue_id`) | Return types of the functions above and of `record_fail` |
-| File | `app/modules/qc/router.py` (checklist only) | Contradicts spec 01's "qc has no router"; spec 03 wins |
+| Service functions | `get_qc_summaries`, `list_inspected_booking_ids`, `has_inspected`, `list_inspector_ids` | Reads that let bookings compute `qc_round`, `open_qc_issues_count`, the D21 QC predicate and the glossary §11 QC viewers |
+| Internal values | `QcSummary` (`inspections`, `open_issues`), `FailRecorded` (`qc_inspection_id`, `qc_issue_id`) | Return types of the functions above and of `record_fail` |
+| File | `app/modules/qc/router.py` (checklist only) | ✅ spec 01 now lists it (its open question 11); glossary §7 says a module creates only the files it needs |

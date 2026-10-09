@@ -179,7 +179,7 @@ Every glossary §10 code, with its status and where this contract raises it.
 | Code | HTTP | Raised by |
 |---|---|---|
 | `VALIDATION_ERROR` | 422 | Any request schema failure (body, query, path), malformed JSON or wrong content type; service-level field rules (inactive service, part of another shop, unchecked QC item, quantity below a shortage or above what is outstanding, …) |
-| `INVALID_SLOT` | 422 | `POST /api/v1/bookings`: slot off the grid, in the past, outside working hours, ending after closing, on a closed day or beyond 30 days (D37) |
+| `INVALID_SLOT` | 422 | `POST /api/v1/bookings`: slot off the grid, in the past, outside working hours, ending after closing, on a closed day or beyond 30 days (D37); the one field error on `slot_start` names the reason (§2.3) |
 | `ESTIMATE_EMPTY` | 422 | `submit-estimate`, `send-estimate` with no lines |
 | `MEMBER_NOT_ELIGIBLE` | 422 | `assign-technician`, `assign-parts-person`, `reassign-*`: not an active member with the required role in this shop |
 | `UNAUTHENTICATED` | 401 | Missing, invalid or expired token; inactive user; wrong token type; bad agent service token; bad webhook signature |
@@ -212,10 +212,11 @@ Every glossary §10 code, with its status and where this contract raises it.
 
 - `field` — a dot path into the request body (`customer.email`, `lines.2.unit_price`). Query and path parameters keep their location prefix (`query.limit`, `path.booking_id`); `""` means the body as a whole (missing or not JSON). The web maps body paths straight onto form fields (spec 09 §2.9).
 - `message` — a human sentence (Pydantic's `msg` or the service's text). Pydantic's `input` and `ctx` are never returned, because they can echo a password (spec 04).
-- `code` — machine-readable: Pydantic's error `type` for schema errors (`missing`, `string_too_short`, `string_too_long`, `extra_forbidden`, `enum`, `uuid_parsing`, `json_invalid`, `greater_than_equal`, `less_than_equal`, `too_short`, `too_long`, `value_error`, …), or one of these service codes: `invalid_reference` (an id that is unknown, inactive or from another shop), `not_whole_rupees`, `not_on_grid`, `invalid_range`, `hours_not_on_grid`, `duplicate`, `not_allowed` (a field not permitted in this state, e.g. `inspection_notes` from an SA), `missing_shortage`, `below_shortage`, `not_short`, `exceeds_outstanding`, `nothing_to_receive`, `checklist_incomplete`, `checklist_item_failed`, `unchanged`.
-- 422 codes other than `VALIDATION_ERROR` carry the one field they concern: `INVALID_SLOT` → `slot_start`, `ESTIMATE_EMPTY` → `lines`, `MEMBER_NOT_ELIGIBLE` → `technician_user_id` or `parts_person_user_id`.
+- `code` — machine-readable: Pydantic's error `type` for schema errors (`missing`, `string_too_short`, `string_too_long`, `extra_forbidden`, `enum`, `uuid_parsing`, `json_invalid`, `greater_than_equal`, `less_than_equal`, `too_short`, `too_long`, `value_error`, …), or one of these service codes: `invalid_reference` (an id that is unknown, inactive or from another shop), `not_whole_rupees`, `not_on_grid` (a working-hours time off the slot grid), `invalid_range`, `hours_not_on_grid`, `duplicate`, `not_allowed` (a field not permitted in this state, e.g. `inspection_notes` from an SA), `missing_shortage`, `below_shortage`, `not_short`, `exceeds_outstanding`, `nothing_to_receive`, `checklist_incomplete` (a QC checklist key missing or repeated; an **unknown** key never gets this far: `key` is typed `QcChecklistKey`, §3.6, so Pydantic answers `enum` at `checklist.N.key`), `checklist_item_failed`, `unchanged`.
+- 422 codes other than `VALIDATION_ERROR` carry the one field they concern: `INVALID_SLOT` → `slot_start`, `ESTIMATE_EMPTY` → `lines` (field code `too_short`, as built), `MEMBER_NOT_ELIGIBLE` → `technician_user_id` or `parts_person_user_id`.
+- **`INVALID_SLOT` reason codes** (glossary §10; checked in this order by `scheduling.validate_slot`, the first failure answers): `off_grid` (the local wall time is not midnight + k × `slot_duration_minutes` with zero seconds, or it is not one of that day's grid instants, e.g. inside a DST gap), `in_past` (the slot does not start after now, D63), `beyond_horizon` (its local date is later than today + 30 days), `closed_day` (the shop is closed that weekday), `outside_hours` (it starts before opening or ends after closing). The field error is `{field: "slot_start", code: <reason>, message}`.
 
-Verified sample: a body with an invalid `shop_id`, a short nested password, an empty `service_ids` and an extra `status` produced four errors with `loc` `["body","shop_id"]` (`uuid_parsing`), `["body","customer","password"]` (`string_too_short`), `["body","service_ids"]` (`too_short`) and `["body","status"]` (`extra_forbidden`), all in one response.
+Verified sample: a body with an invalid `shop_id`, a short nested password, an empty `service_ids` and an extra `status` produced four Pydantic errors whose `loc` values `["body","shop_id"]` (`uuid_parsing`), `["body","customer","password"]` (`string_too_short`), `["body","service_ids"]` (`too_short`) and `["body","status"]` (`extra_forbidden`) the handler turns into the fields `shop_id`, `customer.password`, `service_ids` and `status`, all in one response. `loc` and `msg` are Pydantic's internal names; the wire shape is always `{field, message, code}`.
 
 ### 2.4 Framework and database errors
 
@@ -223,6 +224,7 @@ Verified sample: a body with an invalid `shop_id`, a short nested password, an e
 - Starlette's `HTTPException` — the handler is registered for Starlette's class, not FastAPI's subclass, so Starlette's own errors are caught too (FastAPI docs): 404 → `NOT_FOUND` (unknown path, trailing slash), 405 → `METHOD_NOT_ALLOWED` with `Allow` (verified), 401 → `UNAUTHENTICATED`, 403 → `FORBIDDEN`, 413 → `PAYLOAD_TOO_LARGE`, 429 → `RATE_LIMITED`; any other 4xx → 422 `VALIDATION_ERROR`; any 5xx → 500 `INTERNAL_ERROR`.
 - `AppError` (pure Python, `app.core.errors`) → the status of its code.
 - Anything unhandled → 500 `INTERNAL_ERROR` with a generic `detail` (`FastAPI(debug=False)`).
+- Text PostgreSQL cannot store → 422 `VALIDATION_ERROR` with `errors: []` and `detail` "Text must not contain NUL (\\u0000) characters or unpaired surrogates." (as built, `app.core.db_errors`). It covers a NUL character in a text value or a query parameter (SQLSTATE `22021`) or inside JSONB (`22P05`), and a lone UTF-16 surrogate, which asyncpg rejects before sending (a `22000` data error caused by `UnicodeEncodeError`; other `22000` errors stay 500). All of these pass Pydantic's `str`, so this one mapping protects every module's text fields and search parameters. A module may still reject them earlier with a field error, as estimates does.
 - Database integrity errors are mapped by constraint name (spec 02 §7.5–7.6): `uq_users_email` → 409 `EMAIL_ALREADY_REGISTERED`; `uq_parts_shop_id_sku`, `uq_shop_memberships_shop_id_user_id`, `uq_services_active_name`, `ck_purchase_order_items_quantities` → 409 `CONFLICT`; `uq_qc_inspections_one_open_per_booking` → 409 `ALREADY_PICKED`; `uq_estimates_*` → 409 `CONCURRENT_UPDATE`; `ck_parts_*` and `ck_booking_parts_quantities` → 409 `INSUFFICIENT_STOCK`; SQLSTATE `40P01` / `55P03` → 409 `CONCURRENT_UPDATE`; anything else, including the append-only trigger's `P0001`, → 500.
 
 ### 2.5 Examples
@@ -322,7 +324,7 @@ Notation: `name` type, separated by `·`. `T?` = may be `null` (the field is alw
 | `MemberRead` | `membership_id` uuid · `user` {`id` uuid, `full_name` string, `email` string, `phone` string?} · `role` MembershipRole · `is_active` bool · `open_jobs` int · `created_at` · `updated_at` | `open_jobs` = bookings not in `READY_FOR_PICKUP`, `COMPLETED` or `CANCELLED` where the member is the technician, the parts person or the current QC picker |
 | `MemberCreatedRead` | every `MemberRead` field + `account_created` bool | `false` = an existing account was attached and only the membership was created (D18) |
 | `RealtimeTicketRead` | `ticket` string · `expires_in` int | `expires_in` is 60 (D70) |
-| `HealthRead` | `status` `"ok"` or `"unavailable"` | `/health` only |
+| `HealthRead` | `status` `"ok"` or `"degraded"` · `database` `"ok"` or `"error"` | `/health` only (as built, D84) |
 
 Capabilities per role (D66, glossary §2.4), computed by the shops module and sorted alphabetically:
 
@@ -397,7 +399,7 @@ Event lists are ordered by `(created_at, seq)` (D79). `seq` is not exposed: it i
 | Schema | Fields | Notes |
 |---|---|---|
 | `QcChecklistTemplateItem` | `key` QcChecklistKey · `label` string | D46 order: `road_test` "Road test", `no_warning_lights` "No warning lights", `no_leaks` "No leaks", `fluid_levels` "Fluid levels OK", `complaint_resolved` "Customer complaint resolved" |
-| `QcChecklistItemWrite` (request) | `key` QcChecklistKey · `passed` bool · `note` string? ≤ 500 | A checklist is exactly the 5 keys, each once (`checklist_incomplete`) |
+| `QcChecklistItemWrite` (request) | `key` QcChecklistKey · `passed` bool · `note` string? ≤ 500 | A checklist is exactly the 5 keys, each once: a missing or repeated key → `checklist_incomplete` (field `checklist`); an unknown key fails the enum → `enum` (field `checklist.N.key`) |
 | `QcChecklistItemRead` | `key` · `label` · `passed` bool · `note`? | Stored on the inspection for pass and fail (D46) |
 | `QcIssueRead` | `id` · `qc_inspection_id` · `title` · `description` · `status` QcIssueStatus · `created_by` UserRef · `created_at` · `resolved_at`? · `resolved_by` UserRef? | |
 | `QcInspectionRead` | `id` · `round` int · `inspector` UserRef · `picked_at` · `completed_at`? · `result` QcResult? · `checklist` QcChecklistItemRead[]? · `notes`? · `issues` QcIssueRead[] | One row per QC round, in order; `result` `null` while in progress |
@@ -500,18 +502,20 @@ Auth: **public** = no credentials read · **optional** = session if present · *
 | `GET /api/v1/me/notifications/unread-count` | `notifications_get_unread_count` | session | 200 `UnreadCountRead` | P0 | S-01 bell · E-18 |
 | `POST /api/v1/me/notifications/{notification_id}/read` | `notifications_mark_notification_read` | session (own) | 204 | P0 | X-01 · E-19 |
 | `POST /api/v1/me/notifications/read-all` | `notifications_mark_all_notifications_read` | session | 204 | P0 | X-01 · E-20 |
-| `GET /api/v1/realtime/ticket` | `notifications_get_realtime_ticket` | session | 200 `RealtimeTicketRead` | P0 | RealtimeProvider · E-05 |
-| `WS /api/v1/ws?ticket=…` | — (not in OpenAPI) | ticket | 101 | P0 | §6 |
+| `GET /api/v1/realtime/ticket` | `notifications_get_realtime_ticket` | session | 200 `RealtimeTicketRead` | P1 (D88) | RealtimeProvider · E-05 |
+| `WS /api/v1/ws?ticket=…` | — (not in OpenAPI) | ticket | 101 | P1 (D88) | §6 |
 | `GET …/overview` | `reporting_get_overview` | O | 200 `OverviewRead` | P0 | O-01 · E-31 |
 | `GET /api/v1/me/owner-summary` | `reporting_get_owner_summary` | session | 200 `OwnerSummaryRead` | P1 | O-07 · E-32 |
 | P2 call, task, webhook and agent routes (25) | `calls_*` | §4.14 | §4.14 | P2 | B-01…B-04 · E-52…E-60 |
 
 OpenAPI therefore holds 76 core operations (26 of them booking-action routes) and 14 bonus operations; the webhook, the 10 agent routes and the WebSocket are excluded.
 
+**Realtime priority (D88).** The P0 freshness path is the bell and the current view kept fresh by polling every 15 s (D14, §6.6). The WebSocket hub, `GET /api/v1/realtime/ticket` and `/api/v1/ws` are **P1** (brief §8.3 lists real-time updates as optional); the P2 calling routes need them, so they ship before any bonus work. Every other route marked P0 above works without them.
+
 ### 4.2 System
 
 #### `GET /health` — `system_health` · public · P0
-- Runs `SELECT 1` with a 2 s timeout. **200** `{"status": "ok"}`; **503** `{"status": "unavailable"}`. Railway's deploy-time check (D13) and DEP-01. Never reads credentials. This infrastructure route is the one exception to problem+json (§2): its 503 is `HealthRead`. Sends `Cache-Control: no-store` and `X-Request-ID` like everything else.
+- Runs `SELECT 1` with a 2 s timeout. **200** `{"status": "ok", "database": "ok"}`; **503** `{"status": "degraded", "database": "error"}` (as built, D84). Railway's deploy-time check (D13) and DEP-01. Never reads credentials. This infrastructure route is the one exception to problem+json (§2): its 503 is `HealthRead`. Sends `Cache-Control: no-store` and `X-Request-ID` like everything else.
 
 ### 4.3 Identity (authentication)
 
@@ -547,13 +551,13 @@ The three `/api/v1/auth/*` routes are served by the `identity` module's router (
 - **200 `ItemList[string]`**: the distinct cities of directory shops (D64), alphabetical.
 
 #### `GET /api/v1/public/shops/{shop_slug}` — `shops_get_public_shop` · public · P0 · P-02, P-03 · E-08
-- **200 `ShopPublicDetail`**. A listed shop without active services is returned with `services: []` and `is_bookable: false`, so the page can say "not taking online bookings yet".
-- **Errors:** 404 for an unknown slug or `is_listed = false`.
+- **200 `ShopPublicDetail`**. A listed shop without active services is returned with `services: []` and `is_bookable: false`, so the page can say "not taking online bookings yet" (D64; it is absent from the directory and booking creation answers 404).
+- **Errors:** 404 for an unknown slug or `is_listed = false` (D64).
 
 #### `GET /api/v1/public/shops/{shop_slug}/availability` — `scheduling_get_availability` · public · P0 · P-03 W3 · E-09
 - **Query:** `date` (required, `YYYY-MM-DD` in the shop's timezone).
 - **200 `AvailabilityRead`** with the grid slots of that day (D37: anchored at local midnight, stepping by `slot_duration_minutes`, inside working hours, ending by closing time) that start after now (the injected clock, D63), lie within 30 days, and still have `remaining > 0`. Full slots are omitted (brief §7.3 "shows only available slots"; spec 12 BK-11). Past dates, dates beyond the horizon and closed days return `slots: []`.
-- **Errors:** 404 (unknown or unlisted shop); 422 (malformed date). The wizard polls it every 15 s while on the time step (§6.6).
+- **Errors:** 404 (unknown or unlisted shop; a listed shop without an active service still answers 200, D64); 422 (malformed date). The wizard polls it every 15 s while on the time step (§6.6).
 
 ### 4.6 Booking creation (`CREATE`, spec 08 T01)
 
@@ -564,7 +568,7 @@ The three `/api/v1/auth/*` routes are served by the `identity` module's router (
   - `vehicle` `VehicleWrite` (§3.3).
 - **201 `BookingCreatedRead`** + `Set-Cookie: bf_session` in every successful case (D32: a booking always logs the customer in; with a session the token is re-issued).
 - **Account rule (D32, spec 04):** A, a valid session → booked for that user (`account_created: false`). B, new e-mail → user created (`account_created: true`). C, existing active account + correct password → reused (`false`; Argon2 rehash if needed). D, wrong password or inactive account → 409 `EMAIL_ALREADY_REGISTERED`, **nothing is created**, and it counts as a failed password check.
-- **Order of checks:** 422 schema → 404 shop unknown, unlisted or without an active service (D64; spec 12 BK-15) → 422 `VALIDATION_ERROR` when a service is unknown, inactive or of another shop (`service_ids.N`, `invalid_reference`) → 422 `INVALID_SLOT` (`slot_start`) when the slot is off the grid, not after now, outside working hours, ends after closing, falls on a closed day or is beyond 30 days → account rule (409, or 429 for the account; Argon2 never holds a row lock) → one transaction: read the shop row `FOR SHARE` and re-check the slot rules against it (D37: a concurrent change of `slot_duration_minutes` or `timezone` holds that row `FOR UPDATE`, so the two never interleave; a slot that is off the new grid → 422 `INVALID_SLOT`; spec 02 §7.2), create the user (case B), upsert the vehicle on its normalised registration key (D35), lock the slot counter (409 `SLOT_FULL` when `booked_count ≥ slot_capacity`) and increment it, insert the booking (`reference` `BF-XXXXXX`, `version` 1, `mileage_km` snapshot, D65), snapshot the services (D34), write the `CREATE` event → commit → set the cookie. Any failure rolls back everything, so case B never leaves an orphan account.
+- **Order of checks:** 422 schema → 404 shop unknown, unlisted or without an active service (D64; spec 12 BK-15) → 422 `VALIDATION_ERROR` when a service is unknown, inactive or of another shop (`service_ids.N`, `invalid_reference`) → 422 `INVALID_SLOT` (`slot_start`, reason `off_grid`, `in_past`, `beyond_horizon`, `closed_day` or `outside_hours`, §2.3) when the slot is off the grid, not after now, beyond 30 days, on a closed day, or starts before opening or ends after closing → account rule (409, or 429 for the account; Argon2 never holds a row lock) → one transaction: read the shop row `FOR SHARE` and re-check the slot rules against it (D37: a concurrent change of `slot_duration_minutes` or `timezone` holds that row `FOR UPDATE`, so the two never interleave; a slot that is off the new grid → 422 `INVALID_SLOT` with reason `off_grid`; spec 02 §7.2), create the user (case B), upsert the vehicle on its normalised registration key (D35), lock the slot counter (409 `SLOT_FULL` when `booked_count ≥ slot_capacity`) and increment it, insert the booking (`reference` `BF-XXXXXX`, `version` 1, `mileage_km` snapshot, D65), snapshot the services (D34), write the `CREATE` event → commit → set the cookie. Any failure rolls back everything, so case B never leaves an orphan account.
 - **Errors:** 401 (credentials sent but invalid); 404; 409 `EMAIL_ALREADY_REGISTERED`; 409 `SLOT_FULL`; 422 `INVALID_SLOT`; 422; 429 (per IP when anonymous, per user with a session, per account for cases C and D).
 - **Notifications:** `BOOKING_CREATED` → the SAs of the shop (D26). After commit: `notification.created` to them and `booking.updated` to the customer and the booking's viewers.
 
@@ -720,8 +724,8 @@ The three `/api/v1/auth/*` routes are served by the `identity` module's router (
 #### `POST /api/v1/me/notifications/read-all` — `notifications_mark_all_notifications_read` · session · P0 · X-01 · E-20
 - **204**; marks every unread notification of the caller.
 
-#### `GET /api/v1/realtime/ticket` — `notifications_get_realtime_ticket` · session · P0 · RealtimeProvider · E-05
-- Served by the notifications module, which owns the WebSocket hub (D70, spec 01). **200 `RealtimeTicketRead`**: a JWT with exactly `sub`, `iat`, `exp = iat + 60`, `typ = "ws"` (D70). It creates no server state; a new ticket is fetched for every connect attempt. **401** means the session has expired (spec 09 session-expired flow). Protocol in §6.
+#### `GET /api/v1/realtime/ticket` — `notifications_get_realtime_ticket` · session · P1 (D88) · RealtimeProvider · E-05
+- Served by the notifications module, which owns the WebSocket hub (D70, spec 01). P1 like the hub and `/api/v1/ws` (D88): the P0 bell needs only the polled routes above. **200 `RealtimeTicketRead`**: a JWT with exactly `sub`, `iat`, `exp = iat + 60`, `typ = "ws"` (D70). It creates no server state; a new ticket is fetched for every connect attempt. **401** means the session has expired (spec 09 session-expired flow). Protocol in §6.
 
 ### 4.13 Reporting
 
@@ -747,7 +751,7 @@ Built only after P0 works end to end on the live URL (D36). With `CALL_PROVIDER_
 | `GET …/bookings/{booking_id}/calls` | `calls_list_booking_calls` | SA, O | — | 200 `Page[CallRead]` | 403, 404 |
 | `GET …/calls` | `calls_list_shop_calls` | SA, O | query `status`, `direction`, `ai_handled`, `booking_id`, paging | 200 `Page[CallRead]` | 403 |
 | `GET …/calls/{call_id}` | `calls_get_call` | SA, O | — | 200 `CallDetailRead` | 404 |
-| `POST …/calls/{call_id}/accept` | `calls_accept_call` | SA, O of the shop | none | 200 `CallStartRead` | 404, 403, 409 `CALL_ALREADY_ANSWERED` / `CALL_NOT_ACTIVE` |
+| `POST …/calls/{call_id}/accept` | `calls_accept_call` | an eligible callee of the customer → shop call: an active SA of the shop, or the Owner only when the shop has no active SA (spec 05 §3.3, C2); being rung is not required | none | 200 `CallStartRead` | 404, 403, 409 `CALL_ALREADY_ANSWERED` / `CALL_NOT_ACTIVE` |
 | `POST …/calls/{call_id}/decline` | `calls_decline_call` | an eligible callee of the customer → shop call: an active SA of the shop, or the Owner only when the shop has no active SA (spec 05 §3.3, C3); being rung is not required (spec 05 CALL-15) | none | 200 `CallRead` | 404, 403, 409 `CALL_NOT_ACTIVE` |
 | `POST …/calls/{call_id}/end` | `calls_end_call` | a participant | none | 200 `CallRead` (idempotent) | 404, 403 |
 | `GET …/tasks` | `calls_list_tasks` | SA, O (`tasks.manage`) | query `status` (`OPEN` default, `DONE`), `kind` (repeatable), paging | 200 `Page[TaskRead]`, urgent first, then newest | 403 |
@@ -895,12 +899,12 @@ Eligibility (used by `assign-*` and `reassign-*`): the user has an **active** me
 
 #### `pass-qc` [T19] — QI-02
 - **`PassQcRequest`:** `checklist` QcChecklistItemWrite[] (**required**: the five D46 keys, each once) · `notes`? ≤ 2000 · `expected_version`?.
-- Errors: 403 `NOT_ASSIGNED` for a QC inspector who isn't the picker (SEC-10); 422 `VALIDATION_ERROR` with `checklist`/`checklist_incomplete` when a key is missing, repeated or unknown, and with `checklist.N.passed`/`checklist_item_failed` when any item is not passed ("use fail-qc"; spec 12 QC-01).
+- Errors: 403 `NOT_ASSIGNED` for a QC inspector who isn't the picker (SEC-10); 422 `VALIDATION_ERROR` with `checklist`/`checklist_incomplete` when a key is missing or repeated, with `checklist.N.key`/`enum` when a key is unknown (the schema types `key` as `QcChecklistKey`, §3.6, so Pydantic rejects it before the service runs), and with `checklist.N.passed`/`checklist_item_failed` for every item that is not passed ("use fail-qc"; spec 12 QC-01).
 - Effects: inspection `result = PASS`, `completed_at`, checklist and notes stored; `qc_inspector_user_id` kept (D47). Notification `QC_PASSED` → SAs (extra). The customer sees "Ready for pick-up" at once (D27).
 
 #### `fail-qc` [T20] — QI-02
 - **`FailQcRequest`:** `issue_title` 1–120 · `issue_description` 1–2000 · `checklist`? (if present: the five keys, each once; any values) · `notes`? ≤ 2000 · `expected_version`?.
-- Errors: 403 `NOT_ASSIGNED`; 422.
+- Errors: 403 `NOT_ASSIGNED`; 422 (a checklist, when sent, follows the same key rules as `pass-qc`: `checklist_incomplete` for a missing or repeated key, `enum` for an unknown one).
 - Effects: inspection `result = FAIL` with checklist and notes; a `qc_issues` row (`OPEN`); `qc_inspector_user_id` cleared; back to the **same** technician (D47); metadata `{qc_inspection_id, qc_issue_id}`. Notification `QC_FAILED` → the technician.
 
 #### `notify-ready` [O3] — SA-02
@@ -949,6 +953,8 @@ Eligibility (used by `assign-*` and `reassign-*`): the user has an **active** me
 
 ## 6. Realtime protocol (glossary §11, D14, D70)
 
+**Priority (D88):** everything in §6.1–§6.5 — the ticket, the socket and the hub — is **P1**; the bonus calling (P2) depends on it. The P0 product stays current through the §6.6 polling alone, so no P0 screen may depend on a push arriving.
+
 ### 6.1 Ticket
 
 `GET /api/v1/realtime/ticket` (session, through the web rewrite) → `{"ticket": "<jwt>", "expires_in": 60}`. The ticket is an HS256 JWT with exactly `sub`, `iat`, `exp = iat + 60` and `typ = "ws"`; it is only good for the handshake and is useless as a session token (401). The client fetches a new one for **every** connect attempt. A **401 from this endpoint means the session has expired**: the client stops reconnecting and runs the session-expired flow (spec 09). Tickets may be reused within their 60 s in Tier 1; single use is Tier 2 (D70). Server logs redact the query string value (`ticket=[redacted]`, spec 04).
@@ -992,7 +998,7 @@ Client → server: `{"type": "ping"}` only; the server answers `pong`. Any other
 
 ### 6.6 Polling fallback (D14)
 
-While the tab is visible the web polls every 15 s, even with the socket open:
+While the tab is visible the web polls every 15 s, even with the socket open. This polling is the **P0** freshness path (D88); the socket only makes updates faster:
 
 | Endpoint | Where |
 |---|---|
@@ -1451,17 +1457,18 @@ The membership dependency answers 404 before the booking is read. Putting the sa
 | 04 | Login and registration bodies `{access_token, token_type, expires_in, me}` | `{access_token, token_type, expires_in, user}` without memberships; the web calls `GET /api/v1/me` next (D81) — ✅ aligned in spec 04 |
 | 04 | WebSocket ticket served by the identity module (Tier 1 table) | The notifications module, which runs the hub (D70) — ✅ aligned in spec 04 |
 | 04 | Request-body size cap as a Tier 2 item ("e.g. 1 MiB") | Part of the contract: 64 KiB, 256 KiB for the agent summary route (§1.10) — ✅ aligned in spec 04 (Tier 1) |
-| 06 | B4 `GET /api/v1/shops/{shop_id}/ai-call-summaries`; `PATCH …/tasks/{task_id}` `{status: "DONE"}` | `GET …/calls` (+ `GET …/calls/{call_id}` for summary and transcript); `POST …/tasks/{task_id}/mark-done` `{note?}` (spec 05) |
-| 06 | P7: adjusting below reserved → 422 | 409 `INSUFFICIENT_STOCK` |
-| 06, 09, 10 | Vehicle field `colour` | `color` (spec 02 column) |
-| 07 | Smoke test: `GET /api/v1/public/shops/$SHOP_B` by UUID; `slots[].available`, `.start`; booking `.id`, `.status` | `/api/v1/public/shops/{shop_slug}` (D68); `slots[].remaining`, `.slot_start`; `.booking.id`, `.booking.status` |
-| 09, 10 | `GET /api/v1/me` with nested `user {…}` and `shop {…}`, `is_active` per membership | Flat (spec 04): `{id, email, full_name, phone, memberships: [{membership_id, shop_id, shop_name, shop_slug, role, capabilities}]}` |
-| 09 | Field errors `{field or loc, message or msg}` | Always `{field, message, code}` (§2.3) |
-| 09, 10 | UI limits: full name 2–100; notes ≤ 1000; year ≥ 1950; make/model ≤ 50; service name 2–100, description ≤ 500, duration 15–480; capacity ≤ 20; password ≥ 8 | API limits: 1–120; ≤ 2000; ≥ 1900; ≤ 60; 1–120, ≤ 1000, 5–10 080; ≤ 50; ≥ 12. The UI may stay stricter, never looser (password must be ≥ 12) |
-| 10 | Spec 10 §8.1 renames above (availability slot fields, bare arrays, status-count maps, `stock`, `booking_status`, `picked_by`, call responses) | As listed in §8.1 |
-| 10 | E-46 stock adjustment (PP-03 dialog, endpoint table) is P1 | P0 (D82) |
-| 11 | Service argument `initial_password` for `add_member` | HTTP field `password` (service argument names stay spec 11's choice) |
-| 12 | API-05 "every list uses the pagination envelope" | Collections use `Page`; bounded lists return `{items}` (§1.6) |
+| 06 | B4 `GET /api/v1/shops/{shop_id}/ai-call-summaries`; `PATCH …/tasks/{task_id}` `{status: "DONE"}` | `GET …/calls` (+ `GET …/calls/{call_id}` for summary and transcript); `POST …/tasks/{task_id}/mark-done` `{note?}` (spec 05) — ✅ aligned in spec 06 |
+| 06 | P7: adjusting below reserved → 422 | 409 `INSUFFICIENT_STOCK` — ✅ aligned in spec 06 |
+| 06, 09, 10 | Vehicle field `colour` | `color` (spec 02 column) — ✅ aligned in specs 06, 09 and 10 |
+| 07 | Smoke test: `GET /api/v1/public/shops/$SHOP_B` by UUID; `slots[].available`, `.start`; booking `.id`, `.status` | `/api/v1/public/shops/{shop_slug}` (D68); `slots[].remaining`, `.slot_start`; `.booking.id`, `.booking.status` — ✅ aligned in spec 07 (its open question 7) |
+| 09, 10 | `GET /api/v1/me` with nested `user {…}` and `shop {…}`, `is_active` per membership | Flat (spec 04): `{id, email, full_name, phone, memberships: [{membership_id, shop_id, shop_name, shop_slug, role, capabilities}]}` — ✅ aligned in specs 09 §2.8 and 10 (E-04) |
+| 09 | Field errors `{field or loc, message or msg}` | Always `{field, message, code}` (§2.3) — ✅ aligned in spec 09 §2.9 |
+| 09, 10 | UI limits: full name 2–100; notes ≤ 1000; year ≥ 1950; make/model ≤ 50; service name 2–100, description ≤ 500, duration 15–480; capacity ≤ 20; password ≥ 8 | API limits: 1–120; ≤ 2000; ≥ 1900; ≤ 60; 1–120, ≤ 1000, 5–10 080; ≤ 50; ≥ 12. The UI may stay stricter, never looser (password must be ≥ 12) — ✅ spec 09 §2.10 now uses spec 03's limits exactly, and spec 10 follows it |
+| 10 | Spec 10 §8.1 renames above (availability slot fields, bare arrays, status-count maps, `stock`, `booking_status`, `picked_by`, call responses) | As listed in §8.1 — ✅ aligned in spec 10 |
+| 10 | E-46 stock adjustment (PP-03 dialog, endpoint table) is P1 | P0 (D82) — ✅ aligned in spec 10 |
+| 10 | E-05 realtime ticket and the WebSocket are P0 | P1 (D88) — ✅ aligned in spec 10 |
+| 11 | Service argument `initial_password` for `add_member` | HTTP field `password` — ✅ spec 11's assumed-functions table now uses the module specs' signatures |
+| 12 | API-05 "every list uses the pagination envelope" | Collections use `Page`; bounded lists return `{items}` (§1.6) — ✅ aligned in spec 12 API-05 |
 | 12 | † codes | Confirmed: BK-15 404; BK-20 year 1900 … current year + 1; EST-07 422; EST-14 409 `STALE_ESTIMATE`; INV-04 422; INV-07 422 (`exceeds_outstanding`) and 409 `CONFLICT` (already `RECEIVED`); QC-01 422; RPT-03 403; API-05 422 |
 | 12 | SM-03 / SEC-07 at the API level | Cells for slugs outside the caller's family are 404 (no route); domain-level SM-03 stays 403 |
 | 01 | `GET /api/v1/me` in the shops router | Unchanged; also tagged `shops` (`shops_get_me`, §1.11). The `/api/v1/auth/*` routes stay in the identity router (tag `identity`) and return the token fields + `user`, no memberships (D81) |
@@ -1493,7 +1500,7 @@ The membership dependency answers 404 before the booking is read. Putting the sa
 
 ## Dependencies
 
-- **Depends on:** the brief; [00-overview.md](00-overview.md); [18-glossary.md](18-glossary.md) (§3–§11); [17-decisions.md](17-decisions.md) (D7–D10, D14, D16–D21, D23–D47, D61–D71, D73, D76, D77, D79–D83); [08-booking-state-machine.md](08-booking-state-machine.md) (rules, guards, error order, `allowed_actions`, metadata); [01-architecture.md](01-architecture.md) (layers, routers, events incl. `BookingPartsChanged`, after-commit pushes, middleware); [02-data-model.md](02-data-model.md) (columns, lengths, constraint names, derived values); [04-auth-and-security.md](04-auth-and-security.md) (auth flows, RBAC, rate limits, WebSocket ticket); [05-calling-and-ai-front-desk.md](05-calling-and-ai-front-desk.md) (every bonus route and schema).
+- **Depends on:** the brief; [00-overview.md](00-overview.md); [18-glossary.md](18-glossary.md) (§3–§11); [17-decisions.md](17-decisions.md) (D7–D10, D14, D16–D21, D23–D47, D61–D71, D73, D76, D77, D79–D84, D86, D88); [08-booking-state-machine.md](08-booking-state-machine.md) (rules, guards, error order, `allowed_actions`, metadata); [01-architecture.md](01-architecture.md) (layers, routers, events incl. `BookingPartsChanged`, after-commit pushes, middleware); [02-data-model.md](02-data-model.md) (columns, lengths, constraint names, derived values); [04-auth-and-security.md](04-auth-and-security.md) (auth flows, RBAC, rate limits, WebSocket ticket); [05-calling-and-ai-front-desk.md](05-calling-and-ai-front-desk.md) (every bonus route and schema).
 - **Used by:** every `modules/*.md`; [09-frontend-and-ux.md](09-frontend-and-ux.md) and [10-screens.md](10-screens.md) (generated types, field names); [06-workflows.md](06-workflows.md); [07-deployment-and-docs.md](07-deployment-and-docs.md) (smoke test, OpenAPI export); [11-seed-data.md](11-seed-data.md) (the seed calls the services behind these routes); [12-quality-and-testing.md](12-quality-and-testing.md) (API, SEC, BK, EST, INV, QC, NOT, RPT and the † codes); 14, 15.
 
 ## Open questions
@@ -1501,9 +1508,9 @@ The membership dependency answers 404 before the booking is read. Putting the sa
 1. ✅ **Resolved by D81: where the auth routes live.** `/api/v1/auth/*` belong to the `identity` module (tag `identity`); login and owner registration return `{access_token, token_type, expires_in, user}` (`SessionRead`) and set the cookie, with no memberships. The web calls `GET /api/v1/me` right after (spec 09 §2.8); that route is served and tagged by `shops` (`shops_get_me`, §1.11, §4.3, §4.4).
 2. **Booking-creation idempotency.** Should `POST /api/v1/bookings` honour an `Idempotency-Key` header (in memory for 10 minutes, keyed with the e-mail or user), so a retry after a lost response can't create a second booking (spec 09 open question 8)? Cheap; P1 if wanted.
 3. **Membership items carry no city, logo or timezone.** Spec 04's flat six fields leave the switcher's city (spec 10 S-01) and the POS time zone to `GET /api/v1/shops/{shop_id}`. Adding `shop_city` and `shop_timezone` would save a request per shop; it needs spec 04 to agree.
-4. **Bounded lists.** Spec 12 API-05 should read "every collection" instead of "every list" (§1.6, §8.3).
-5. **`/health`.** Its 503 body is `HealthRead`, not problem+json; API-01 should exempt it.
-6. ✅ **Resolved by D82: stock adjustments are P0** — the only way to enter opening stock (D44) and to correct drift (D71); below `reserved` or below 0 → 409 `INSUFFICIENT_STOCK` (§4.10). Spec 10 still lists E-46 as P1 (§8.3).
+4. ✅ **Resolved in spec 12: bounded lists.** API-05 now says "collections" use the pagination envelope and bounded lists return `{items}` (§1.6, §8.3).
+5. ✅ **Resolved in spec 12: `/health`.** API-01 exempts `/health`'s 503, whose body is `HealthRead`, not problem+json. The body itself is D84's `{"status": "degraded", "database": "error"}`, which specs 07 and 12 (API-01, API-08) now quote too.
+6. ✅ **Resolved by D82: stock adjustments are P0** — the only way to enter opening stock (D44) and to correct drift (D71); below `reserved` or below 0 → 409 `INSUFFICIENT_STOCK` (§4.10). Spec 10 now agrees (§8.3).
 7. ✅ **Resolved by D83: partial PO receipts push `booking.updated`.** A receipt that reserves stock for a `PARTS_ORDERED` booking without completing it writes no booking event, but the bookings module publishes `BookingPartsChanged` and the notifications module pushes `booking.updated` with the unchanged `version` (§5.3, §6.4; spec 01).
 
 ## Proposed glossary additions
@@ -1516,7 +1523,8 @@ The membership dependency answers 404 before the booking is read. Putting the sa
 | Response fields | `account_created`, `is_bookable`, `has_future_bookings`, `open_jobs`, `service_names`, `status_changed_at`, `estimate_summary`, `parts_summary`, `line_count`, `open_qc_issues_count`, `qc_round`, `last_event`, `estimate_revision_in_progress`, `cancelled_by_customer`, `by_customer`, `booking_version`, `created_new_version`, `outstanding_qty`, `shortage_qty`, `on_order`, `stock_state`, `receive_parts_applied`, `round` (QC inspection), `stock_value`, `needs_sa_action`, `in_progress` |
 | Request fields | `expected_received_qty` (PO receipt); `slot_start`/`slot_end` in availability slots |
 | Query parameters | `q`, `city`, `date`, `date_from`, `date_to`, `status`, `sort`, `active`, `unread_only`, `include_inactive`, `stock_state`, `role`, `is_active`, `booking_id`, `technician_user_id`, `parts_person_user_id` |
-| Field error codes (§2.3) | `invalid_reference`, `not_whole_rupees`, `not_on_grid`, `invalid_range`, `hours_not_on_grid`, `duplicate`, `not_allowed`, `missing_shortage`, `below_shortage`, `not_short`, `exceeds_outstanding`, `nothing_to_receive`, `checklist_incomplete`, `checklist_item_failed`, `unchanged` |
+| Field error codes (§2.3) | `invalid_reference`, `not_whole_rupees`, `not_on_grid` (working-hours times only), `invalid_range`, `hours_not_on_grid`, `duplicate`, `not_allowed`, `missing_shortage`, `below_shortage`, `not_short`, `exceeds_outstanding`, `nothing_to_receive`, `checklist_incomplete`, `checklist_item_failed`, `unchanged` |
+| `INVALID_SLOT` reason codes (§2.3) | ✅ merged (glossary §10): `off_grid`, `in_past`, `beyond_horizon`, `closed_day`, `outside_hours` |
 | OpenAPI conventions | Tag = the module whose router serves the route (`identity` for `/auth/*`, `shops` for `/me`, D81), plus `system` for `/health`; `operationId = <tag>_<function name>` (customer action routes `bookings_my_<slug>`); 4xx/5xx documented as `application/problem+json` |
 | Problem members | `type` always `about:blank`; `title` = HTTP reason phrase; `instance` = request path |
 | Headers | `WWW-Authenticate: Bearer` on 401, `Retry-After` on 429, `Allow` on 405 |

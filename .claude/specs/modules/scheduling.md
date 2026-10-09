@@ -23,7 +23,7 @@ Brief sections satisfied:
 | **P0** | `GET /api/v1/public/shops/{shop_slug}/availability?date=` (D68). Pure slot-grid maths in the shop's timezone (D37, D38). Slot validation for booking creation (422 `INVALID_SLOT`). `reserve_slot` (insert-if-missing, `SELECT … FOR UPDATE`, capacity check, increment; 409 `SLOT_FULL`) and `release_slot` (decrement) for `bookings`. |
 | **P1** | Nothing extra (the CON-03 and CON-05 concurrency tests are P1 in spec 12). |
 | **P2** | `list_open_slots` (up to 12 open slots over 1–7 days) and `is_slot_open` for the AI Front Desk's `available-slots` route and reschedule requests (spec 05); they never hold or book a slot. |
-| **Out of scope** | Stored slot rows; per-service slot lengths (`services.estimated_duration_minutes` is informational); bays or technician capacity; holidays and per-date exceptions; overnight hours; buffers between slots; holding a slot during the wizard; rescheduling (spec 08 has no such action); repairing counters (INV-4 is asserted by tests, never "fixed" by a job). |
+| **Out of scope** | Stored slot rows; per-service slot lengths (`services.estimated_duration_minutes` is informational); bays or technician capacity; holidays and per-date exceptions; overnight hours; buffers between slots; holding a slot during the wizard; rescheduling (spec 08 has no such action); repairing counters (DI-4 is asserted by tests, never "fixed" by a job). |
 
 ## 3. Key decisions
 
@@ -38,6 +38,7 @@ Brief sections satisfied:
 | D63 | "Now" is `utcnow()` from the injected clock (frozen in tests, scripted in the seed). |
 | D64, D68 | Public routes use the slug; free places in a slot are called `remaining` (never "available"). Availability answers for any **listed** shop (spec 03 §4.5); bookability (≥ 1 active service) is checked by booking creation. |
 | D71 | A full slot (e.g. the worked example's Friday 10:00, capacity 2) is accepted shared-data drift; testers pick another slot. |
+| D86 | Scheduling sits below bookings and never imports it (bookings calls `validate_slot`, `reserve_slot`, `release_slot`). A future upward read would use a read port that bookings registers from its `register_ports()` at start-up (D89), like shops' `ShopActivityReader` (`shops.service.register_activity_reader`) and inventory's `BookingRefReader` (`inventory.service.register_booking_ref_reader`); it needs none today. |
 
 ## 4. Files
 
@@ -46,7 +47,7 @@ Brief sections satisfied:
 | `models.py` | `SlotCounter` (exists; spec 02 §3.6): PK `(shop_id, slot_start)`, `booked_count ≥ 0` (`ck_slot_counters_booked_count_non_negative`), `created_at`, `updated_at`. |
 | `domain/slots.py` | Pure grid maths: `BOOKING_HORIZON_DAYS = 30`, `GridSlot`, `SlotProblem`, `day_slots()`, `is_offered()`, `slot_problem()`. Imports `shops.domain.grid` (`ScheduleConfig`, `WorkingDay`, `minutes_of`) and the standard library only. |
 | `repository.py` | `SlotCounterRepository(ShopScopedRepository)`: `counts_between(*, shop_id, first, last)`, `insert_if_missing(*, shop_id, slot_start, now)`, `lock(*, shop_id, slot_start)`, `increment(*, shop_id, slot_start, now)`, `decrement(*, shop_id, slot_start, now)`. |
-| `schemas.py` | `SlotRead` (`slot_start`, `slot_end`, `remaining`), `AvailabilityRead` (`shop_id`, `date`, `timezone`, `slot_duration_minutes`, `slots`). |
+| `schemas.py` | `SlotRead` (`slot_start`, `slot_end` as `app.shared.timestamps.Timestamp`, `remaining`), `AvailabilityRead` (`shop_id`, `date`, `timezone`, `slot_duration_minutes`, `slots`). |
 | `service.py` | `list_availability`, `validate_slot`, `reserve_slot`, `release_slot`; P2 `list_open_slots`, `is_slot_open`. |
 | `router.py` | `APIRouter(prefix="/api/v1/public/shops", tags=["scheduling"])`: `GET /{shop_slug}/availability` → function `get_availability`. |
 
@@ -59,7 +60,7 @@ No `events.py` or `handlers.py`.
 | `list_availability` | `(session, *, shop_slug: str, day: date) → AvailabilityRead` | read | 404 `NOT_FOUND` (unknown or unlisted slug) | scheduling router |
 | `validate_slot` | `(config: ScheduleConfig, *, slot_start: datetime, now: datetime) → GridSlot` | none (pure wrapper) | 422 `INVALID_SLOT` (field `slot_start`) | `bookings.create_booking` (early check, before the account rule) |
 | `reserve_slot` | `(uow, *, config: ScheduleConfig, slot_start: datetime, now: datetime) → GridSlot` | nested; **`config` must have been read under the shop's `FOR SHARE` lock in this transaction** | 422 `INVALID_SLOT`, 409 `SLOT_FULL` | `bookings.create_booking` (T01) |
-| `release_slot` | `(uow, *, shop_id: UUID, slot_start: datetime, now: datetime) → None` | nested; called while the booking row is locked | 500 if the counter row is missing (INV-4 broken) | bookings `DECLINE` (T03), `CANCEL` (T22) |
+| `release_slot` | `(uow, *, shop_id: UUID, slot_start: datetime, now: datetime) → None` | nested; called while the booking row is locked | 500 if the counter row is missing (DI-4 broken) | bookings `DECLINE` (T03), `CANCEL` (T22) |
 | `list_open_slots` *(P2)* | `(session, *, shop_id, date_from: date, days: int, limit: int = 12) → list[SlotRead]` | read | — | calls (agent `available-slots`) |
 | `is_slot_open` *(P2)* | `(session, *, shop_id, slot_start: datetime) → bool` | read | — | calls (reschedule request: "each start must still be available") |
 
@@ -127,12 +128,14 @@ The requested `slot_start` (an aware timestamp; naive values are rejected by the
 
 | Order | Rule | Field-error `code` | Message |
 |---|---|---|---|
-| 1 | Local wall time is `00:00 + k × step` (minutes since local midnight divisible by the step) with zero seconds and microseconds | `not_on_grid` | "This time is not one of the shop's slot start times." |
+| 1 | Local wall time is `00:00 + k × step` (minutes since local midnight divisible by the step) with zero seconds and microseconds | `off_grid` | "This time is not one of the shop's slot start times." |
 | 2 | `slot_start > now` | `in_past` | "This time slot has already started." |
 | 3 | Local date ≤ `today_local + 30` | `beyond_horizon` | "Bookings open at most 30 days ahead." |
 | 4 | The weekday is open | `closed_day` | "The shop is closed on this day." |
 | 5 | `opens_at ≤ start` and `start + step ≤ closes_at` (wall-clock minutes) | `outside_hours` | "This time is outside the shop's working hours." |
-| 6 | Consistency: the instant equals one element of `day_slots(config, local date)` (only fails in a DST gap or on the second occurrence of an ambiguous wall time) | `not_on_grid` | as rule 1 |
+| 6 | Consistency: the instant equals one element of `day_slots(config, local date)` (only fails in a DST gap or on the second occurrence of an ambiguous wall time) | `off_grid` | as rule 1 |
+
+The reason codes are glossary §10's (`off_grid`, `in_past`, `beyond_horizon`, `closed_day`, `outside_hours`; spec 03 §2.3). `not_on_grid` is a different code: it belongs to working-hours validation in shops (`working_hours.N.opens_at`), never to `INVALID_SLOT`.
 
 Returns `GridSlot(slot_start, slot_start + step)`. BK-08 covers rules 1–5 with a frozen clock; SCH-01 covers rule 6.
 
@@ -157,7 +160,7 @@ return slot
 
 ### 7.6 Freeing a place (`release_slot`)
 
-`UPDATE slot_counters SET booked_count = booked_count − 1, updated_at = :now WHERE shop_id = :shop_id AND slot_start = :slot_start RETURNING booked_count`. Exactly one row must be updated: every non-cancelled booking incremented its counter in the same transaction that created it (INV-4), so a missing row is a bug and raises (500), and the CHECK stops the count going below 0. Counter rows are never deleted; a fully freed slot keeps a row with `booked_count = 0`, which is offered again.
+`UPDATE slot_counters SET booked_count = booked_count − 1, updated_at = :now WHERE shop_id = :shop_id AND slot_start = :slot_start RETURNING booked_count`. Exactly one row must be updated: every non-cancelled booking incremented its counter in the same transaction that created it (DI-4), so a missing row is a bug and raises (500), and the CHECK stops the count going below 0. Counter rows are never deleted; a fully freed slot keeps a row with `booked_count = 0`, which is offered again.
 
 ### 7.7 P2 helpers (spec 05)
 
@@ -184,7 +187,7 @@ None published, none subscribed. Grid changes are guarded by `shops` (`ShopGridC
 | `VALIDATION_ERROR` | 422 | Malformed `date` query parameter |
 | `INVALID_SLOT` | 422 | `validate_slot` / `reserve_slot`: off the grid, not after now, beyond 30 days, closed day, outside hours or ending after closing (field `slot_start`, §7.4 codes) |
 | `SLOT_FULL` | 409 | `reserve_slot` when `booked_count ≥ slot_capacity` |
-| `INTERNAL_ERROR` | 500 | `release_slot` found no counter row, or the decrement violated `ck_slot_counters_booked_count_non_negative` (both mean INV-4 was broken) |
+| `INTERNAL_ERROR` | 500 | `release_slot` found no counter row, or the decrement violated `ck_slot_counters_booked_count_non_negative` (both mean DI-4 was broken) |
 
 ## 11. Concurrency & transactions
 
@@ -196,7 +199,7 @@ None published, none subscribed. Grid changes are guarded by `shops` (`ShopGridC
 
 ## 12. Tests
 
-Spec 12 IDs this module must make pass: **SM-07 ★** (lock gate + ungated burst), **BK-08** (each `INVALID_SLOT` case, frozen clock), **BK-09** (capacity 2 → third booking 409), **BK-10** (cancel/decline free the place; never below 0), **BK-11** (only on-grid, future, ≤ 30-day slots with `remaining > 0`), **BK-12** (timezone and `Z` serialisation), **BK-27** (slug addressing, `remaining`, no `available` key), **BK-30** (midnight-anchored grid; U + A), **SEED-03** (bookable slots in the next 7 days for every seeded shop), **SEED-17**, **CON-03** *(P1)*, **CON-05** *(P1)*, the slot invariant of `assert_invariants` (INV-4), **DEP-08** (Friday slots open), **FD-06** *(P2)*.
+Spec 12 IDs this module must make pass: **SM-07 ★** (lock gate + ungated burst), **BK-08** (each `INVALID_SLOT` case, frozen clock), **BK-09** (capacity 2 → third booking 409), **BK-10** (cancel/decline free the place; never below 0), **BK-11** (only on-grid, future, ≤ 30-day slots with `remaining > 0`), **BK-12** (timezone and `Z` serialisation), **BK-27** (slug addressing, `remaining`, no `available` key), **BK-30** (midnight-anchored grid; U + A), **SEED-03** (bookable slots in the next 7 days for every seeded shop), **SEED-17**, **CON-03** *(P1)*, **CON-05** *(P1)*, the slot invariant of `assert_invariants` (DI-4), **DEP-08** (Friday slots open), **FD-06** *(P2)*.
 
 Proposed additional tests:
 
@@ -208,27 +211,27 @@ Proposed additional tests:
 | SCH-04 | A | Capacity lowered below `booked_count` → slot omitted (no negative `remaining`); raising it again reopens the slot |
 | SCH-05 | A | Availability of a listed shop with no active service returns its slots (spec 03 §4.5); an unlisted shop → 404 |
 | SCH-06 | I | `release_slot` on a missing counter raises (500); a double release cannot drive the count below 0 |
-| SCH-07 | U | Reason precedence of §7.4 (e.g. an off-grid time in the past → `not_on_grid`; a past on-grid time on a closed day → `in_past`; an on-grid time after closing → `outside_hours`) |
+| SCH-07 | U | Reason precedence of §7.4 (e.g. an off-grid time in the past → `off_grid`; a past on-grid time on a closed day → `in_past`; an on-grid time after closing → `outside_hours`) |
 
 ## 13. Implementation checklist
 
-1. `domain/slots.py`: `GridSlot`, `SlotProblem` (`not_on_grid`, `in_past`, `beyond_horizon`, `closed_day`, `outside_hours`), `day_slots`, `is_offered`, `slot_problem`, `BOOKING_HORIZON_DAYS`; unit tests BK-30, SCH-01, SCH-02, SCH-03, SCH-07. Depends only on `shops.domain.grid` and the standard library (pure-domain contract).
+1. `domain/slots.py`: `GridSlot`, `SlotProblem` (`off_grid`, `in_past`, `beyond_horizon`, `closed_day`, `outside_hours`; glossary §10), `day_slots`, `is_offered`, `slot_problem`, `BOOKING_HORIZON_DAYS`; unit tests BK-30, SCH-01, SCH-02, SCH-03, SCH-07. Depends only on `shops.domain.grid` and the standard library (pure-domain contract).
 2. Schemas `SlotRead`, `AvailabilityRead` (timestamps with `Z`; `date` as `YYYY-MM-DD`).
 3. `SlotCounterRepository` with the statements of §7.5–§7.6 (`with_for_update()`, `on_conflict_do_nothing`), all keyed by `shop_id`.
 4. Service: `list_availability`, `validate_slot` (raises `InvalidSlot` with the field error), `reserve_slot`, `release_slot`.
-5. Router `get_availability` (operationId `scheduling_get_availability`); include it in `create_app()`.
+5. Router `get_availability` (operationId `scheduling_get_availability`), exported as `routers` (`wire_modules()` includes it, D89).
 6. Concurrency tests with the lock gate on the counter row (SM-07) and the ungated burst; CON-03 later.
 7. P2 helpers only when the bonus starts (D36).
 
 ## 14. Dependencies (specs)
 
-[17-decisions.md](../17-decisions.md) (D20, D24, D30, D37, D38, D51, D63, D64, D68, D71), [18-glossary.md](../18-glossary.md) (§1 Slot, Slot capacity, §5 `Weekday`, §9, §10), [02-data-model.md](../02-data-model.md) §3.6, §6 (slot availability, INV-4), §7.4, [03-api-contracts.md](../03-api-contracts.md) §1.5, §3.2, §4.5, §4.6, [08-booking-state-machine.md](../08-booking-state-machine.md) (T01, T03, T22), [05-calling-and-ai-front-desk.md](../05-calling-and-ai-front-desk.md) (P2 `available-slots`), [10-screens.md](../10-screens.md) P-03 W3, [12-quality-and-testing.md](../12-quality-and-testing.md) §3.5. Uses `modules/shops.md` (`get_listed_shop`, `get_schedule_config`, `shops.domain.grid`). Used by `modules/bookings.md`.
+[17-decisions.md](../17-decisions.md) (D20, D24, D30, D37, D38, D51, D63, D64, D68, D71, D86), [18-glossary.md](../18-glossary.md) (§1 Slot, Slot capacity, §5 `Weekday`, §9, §10), [02-data-model.md](../02-data-model.md) §3.6, §6 (slot availability, DI-4), §7.4, [03-api-contracts.md](../03-api-contracts.md) §1.5, §3.2, §4.5, §4.6, [08-booking-state-machine.md](../08-booking-state-machine.md) (T01, T03, T22), [05-calling-and-ai-front-desk.md](../05-calling-and-ai-front-desk.md) (P2 `available-slots`), [10-screens.md](../10-screens.md) P-03 W3, [12-quality-and-testing.md](../12-quality-and-testing.md) §3.5. Uses `modules/shops.md` (`get_listed_shop`, `get_schedule_config`, `shops.domain.grid`). Used by `modules/bookings.md`.
 
 ## Open questions
 
 1. **What "within 30 days" means.** This spec counts whole local days (`slot date ≤ today + 30` in shop time), matching the wizard calendar. The alternative (`slot_start ≤ now + 30 × 24 h`) would hide the afternoon of day 30. Confirm in D37's wording.
-2. **`INVALID_SLOT` field-error codes.** Spec 03 §2.3 lists only `not_on_grid` among the service codes; this spec adds `in_past`, `beyond_horizon`, `closed_day`, `outside_hours` so tests and the UI can tell the cases apart (proposed below).
-3. **Spec 02 §7.2 lock list.** Its `CREATE` row still reads "vehicle row (upsert) → `slot_counters` row"; amended D37 adds the shop row `FOR SHARE` as T01's first lock. Spec 02 should list it.
+2. ✅ **Resolved by glossary §10 and spec 03 §2.3: `INVALID_SLOT` field-error codes** — `off_grid`, `in_past`, `beyond_horizon`, `closed_day`, `outside_hours` (the off-grid reason is `off_grid`; `not_on_grid` stays the working-hours code).
+3. ✅ **Resolved in spec 02 §7.2: lock list.** Its `CREATE` row now starts with the shop row `SELECT … FOR SHARE` (D37) before the vehicle upsert and the slot counter.
 
 ## Proposed glossary additions
 
@@ -236,5 +239,5 @@ Proposed additional tests:
 |---|---|---|
 | Constant | `BOOKING_HORIZON_DAYS = 30` (`scheduling.domain.slots`) | The D37 horizon, inclusive, in local days |
 | Value objects | `GridSlot`, `SlotProblem` | A computed slot (`slot_start`, `slot_end`) and the reason a requested slot is invalid |
-| Field-error codes (spec 03 §2.3) | `in_past`, `beyond_horizon`, `closed_day`, `outside_hours` | Reasons carried by 422 `INVALID_SLOT` next to the existing `not_on_grid` |
+| Field-error codes (spec 03 §2.3) | ✅ merged (glossary §10) — `off_grid`, `in_past`, `beyond_horizon`, `closed_day`, `outside_hours` | Reasons carried by 422 `INVALID_SLOT` |
 | Service functions | `scheduling.service.validate_slot`; P2 `list_open_slots`, `is_slot_open` | Additions to spec 01's scheduling catalogue |

@@ -44,14 +44,16 @@ Brief sections satisfied:
 | D63 | `last_login_at`, `created_at`, `updated_at`, and the JWT `iat`/`exp` come from `app.shared.clock.utcnow()`. Rate-limit windows are the documented exception (system time inside `limits`). |
 | D69 | Failed password checks are limited per normalised e-mail (5 per 15 min, moving window, cleared on success, unknown e-mails counted like known ones); per-IP ceilings on login (30/min) and owner registration (20/h). |
 | D81 | Identity owns `/api/v1/auth/*`. `login` and `register-owner` return `{access_token, token_type, expires_in, user}` and set the cookie; they do **not** include memberships. |
+| D84 | As built: `Password` = `Secret[Annotated[str, StringConstraints(min_length=12, max_length=128)]]` in `app.core.security` (422 code `string_too_short`); the project `Phone` type lives in `app.shared.phone`. |
+| D86 | Identity is the lowest module and imports no other module. It never needs a read port: modules above it call its look-ups directly; read ports such as shops' `ShopActivityReader` (`shops.service.register_activity_reader`) and inventory's `BookingRefReader` (`inventory.service.register_booking_ref_reader`) exist only for reads that go **up** the module graph. |
 
 ## 4. Files
 
 | File | Contents |
 |---|---|
 | `models.py` | `User` (exists; spec 02 §3.1): `email` varchar(254) unique, `password_hash`, `full_name`, `phone`, `is_active`, `last_login_at`; checks `ck_users_email_lowercase`, `ck_users_email_shape`, `ck_users_full_name_not_blank`; P2 index `ix_users_phone`. |
-| `repository.py` | `UserRepository(Repository)` (exists, extend): `get(user_id)` (fresh read, `populate_existing`), `get_by_email(email)`, `get_many(user_ids)`, `find_ids_by_name(q, limit)`, `add(user)`. Translates `uq_users_email` violations into `EmailAlreadyRegistered`. Users are global, so no `shop_id` argument. |
-| `schemas.py` | `UserRead` (exists: `id`, `email`, `full_name`, `phone`, `is_active`; never `password_hash`); `OwnerRegistrationCreate`, `SessionCreate` (requests, `extra="forbid"`); `SessionToken` (`access_token`, `token_type = "bearer"`, `expires_in`); `SessionRead` (`SessionToken` + `user: UserRead`). |
+| `repository.py` | `UserRepository(Repository)` (exists, extend): `get(user_id)` (fresh read, `populate_existing`), `get_by_email(email)`, `get_many(user_ids)`, `find_ids_by_name(q, limit)`, `add(user)`. A `uq_users_email` violation surfaces as 409 `EMAIL_ALREADY_REGISTERED` through the global constraint map (`app.core.db_errors.CONSTRAINT_CODES`, already in code). Users are global, so no `shop_id` argument. |
+| `schemas.py` | The internal `UserRecord` other modules receive (`UserRead` + `is_active`; never `password_hash`; Open question 1); the wire schema `UserRead` of spec 03 §3.2 (`id`, `email`, `full_name`, `phone` — no `is_active`), used by `SessionRead.user`; `UserRef` (spec 03 §3.1, used by other modules for actors and authors); `OwnerRegistrationCreate`, `SessionCreate` (requests, `extra="forbid"`); `SessionToken` (`access_token`, `token_type = "bearer"`, `expires_in`); `SessionRead` (`SessionToken` + `user: UserRead`). |
 | `service.py` | The use cases and look-ups of §5. Never imports `app.shared.auth` (spec 01 rule 8). |
 | `router.py` | `APIRouter(prefix="/api/v1/auth", tags=["identity"])` with `register_owner`, `login`, `logout`; slowapi per-IP decorators; sets/clears the cookie through `app.shared.auth` helpers. |
 
@@ -65,13 +67,13 @@ Every function takes the request's `UnitOfWork` (`uow`, writes) or `AsyncSession
 |---|---|---|---|---|
 | `register_owner` | `(uow, *, email: str, full_name: str, password: SecretStr, phone: str \| None) → SessionRead` | top-level | 409 `EMAIL_ALREADY_REGISTERED` | identity router; seed Phase A (ignores the token) |
 | `login` | `(uow, *, email: str, password: SecretStr) → SessionRead` | top-level | 401 `INVALID_CREDENTIALS`, 429 `RATE_LIMITED` | identity router |
-| `authenticate` | `(uow, *, email: str, password: SecretStr) → UserRead` | nested | 401 `INVALID_CREDENTIALS`, 429 `RATE_LIMITED` (with `Retry-After`) | `login`; `bookings.create_booking` (wizard cases C/D) |
-| `create_user` | `(uow, *, email: str, full_name: str, password: SecretStr, phone: str \| None) → UserRead` | nested; **call without holding row locks** (Argon2) | 409 `EMAIL_ALREADY_REGISTERED` (race on `uq_users_email`) | `register_owner`; `shops.add_member` (new e-mail); `bookings.create_booking` (case B) |
+| `authenticate` | `(uow, *, email: str, password: SecretStr) → UserRecord` | nested | 401 `INVALID_CREDENTIALS`, 429 `RATE_LIMITED` (with `Retry-After`) | `login`; `bookings.create_booking` (wizard cases C/D) |
+| `create_user` | `(uow, *, email: str, full_name: str, password: SecretStr, phone: str \| None) → UserRecord` | nested; **call without holding row locks** (Argon2) | 409 `EMAIL_ALREADY_REGISTERED` (race on `uq_users_email`) | `register_owner`; `shops.add_member` (new e-mail); `bookings.create_booking` (case B) |
 | `issue_session` | `(user_id: UUID) → SessionToken` | none (pure; reads the clock and settings) | — | `register_owner`, `login`; `bookings.create_booking` (D32 token in the body) |
-| `get_active_user` | `(session, user_id) → UserRead \| None` | read | — | `app.shared.auth.get_current_user` / `get_optional_user` (exists, D9); `shops` (eligibility, `/me`) |
-| `get_user` | `(session, user_id) → UserRead \| None` (any status) | read | — | bookings, calls (P2) |
-| `get_users_by_ids` | `(session, user_ids: Collection[UUID]) → dict[UUID, UserRead]` (any status, one query) | read | — | shops (team list, `/me`), bookings, estimates, inventory, qc, notifications, reporting (names for `UserRef`) |
-| `find_user_by_email` | `(session, email: str) → UserRead \| None` | read | — | `shops.add_member`, `bookings.create_booking` |
+| `get_active_user` | `(session, user_id) → UserRecord \| None` | read | — | `app.shared.auth.get_current_user` / `get_optional_user` (exists, D9); `shops` (eligibility, `/me`) |
+| `get_user` | `(session, user_id) → UserRecord \| None` (any status) | read | — | bookings, calls (P2) |
+| `get_users_by_ids` | `(session, user_ids: Collection[UUID]) → dict[UUID, UserRecord]` (any status, one query) | read | — | shops (team list, `/me`), bookings, estimates, inventory, qc, notifications, reporting (names for `UserRef`) |
+| `find_user_by_email` | `(session, email: str) → UserRecord \| None` | read | — | `shops.add_member`, `bookings.create_booking` |
 | `find_user_ids_by_name` | `(session, *, q: str, limit: int = 1000) → list[UUID]` (case-insensitive substring on `full_name`, `%`/`_` escaped) | read | — | `bookings.list_staff_bookings` (`q` matches the customer name, spec 03 §4.8) |
 | `set_phone_if_empty` | `(uow, *, user_id, phone: str) → bool` (True when written) | nested | — | `bookings.create_booking` (cases A, C; D33) |
 | `set_user_active` *(internal, not over HTTP)* | `(uow, *, user_id, is_active: bool) → bool` (True when changed) | top-level | 404 `NOT_FOUND` (unknown id) | seed Phase R (D60) |
@@ -82,7 +84,7 @@ Spec 01's catalogue lists `register_owner`, `create_user`, `authenticate`, `get_
 
 ## 6. Endpoints
 
-Full schemas and errors: [spec 03 §4.3](../03-api-contracts.md) (with the D81 correction in Open question 1). All three routes are **public**: they never read credentials (spec 03 §1.2).
+Full schemas and errors: [spec 03 §4.3](../03-api-contracts.md) (D81). All three routes are **public**: they never read credentials (spec 03 §1.2).
 
 | operationId | Method + path | Auth · roles | Success | Pri | Screens |
 |---|---|---|---|---|---|
@@ -90,20 +92,20 @@ Full schemas and errors: [spec 03 §4.3](../03-api-contracts.md) (with the D81 c
 | `identity_login` | `POST /api/v1/auth/login` | public | 200 `SessionRead` + `Set-Cookie: bf_session` | P0 | P-04, P-03 inline login · E-01 |
 | `identity_logout` | `POST /api/v1/auth/logout` | public (no body) | 204 + clearing `Set-Cookie` | P0 | S-01 user menu, X-04 · E-02 |
 
-`GET /api/v1/me` (`identity_get_me`) keeps the `identity` OpenAPI tag but is **served by the `shops` router** (`shops.service.get_me`), because it combines the user with memberships and capabilities (spec 01, D66, D81). See `modules/shops.md`.
+`GET /api/v1/me` is **served and tagged by the `shops` module** (`shops_get_me`, `shops.service.get_me`), because it combines the user with memberships and capabilities (spec 01, D66, D81; spec 03 §1.11). See `modules/shops.md`.
 
 Request bodies (spec 03 §4.3, `extra="forbid"` everywhere):
 
-- `OwnerRegistrationCreate`: `full_name` 1–120 (trimmed, not blank) · `email` Email · `password` `Password` (12–128, `SecretStr`, never trimmed) · `phone`? `Phone`.
+- `OwnerRegistrationCreate`: `full_name` 1–120 (trimmed, not blank) · `email` Email · `password` `Password` (12–128, `Secret[str]`, never trimmed, D84) · `phone`? `Phone`.
 - `SessionCreate`: `email` Email · `password` `SecretStr` 1–128.
 
-Response `SessionRead` (D81): `access_token` · `token_type` `"bearer"` · `expires_in` (seconds; 604800 for `7d`) · `user` `UserRead` (`id`, `email`, `full_name`, `phone`, `is_active` — always `true` here). No memberships.
+Response `SessionRead` (D81, spec 03 §3.2): `access_token` · `token_type` `"bearer"` · `expires_in` (seconds; 604800 for `7d`) · `user` `UserRead` (`id`, `email`, `full_name`, `phone`). No memberships.
 
 ## 7. Domain rules and algorithms
 
 ### 7.1 Passwords (D10)
 
-- Request type `Password = Annotated[SecretStr, Field(min_length=12, max_length=128)]` from `app.core.security` for every **new** password (register-owner, `create_user` callers, `set_password`). Login uses `SecretStr` 1–128.
+- Request type `Password = Secret[Annotated[str, StringConstraints(min_length=12, max_length=128)]]` from `app.core.security` (as built, D84; a short value reports `string_too_short`) for every **new** password (register-owner, `create_user` callers, `set_password`). Login uses `SecretStr` 1–128.
 - `hash_password` / `verify_password` (`app.core.security`): Argon2id via `PasswordHash.recommended()`, run in a worker thread behind a 4-slot semaphore. `verify_password(pw, None)` verifies against a lazily computed dummy hash and returns `(False, None)`.
 - A stored hash pwdlib cannot parse (corrupted row) is treated as a failed check and logged at WARNING with the user id (never the hash).
 - Passwords and hashes never appear in logs, responses (SEC-44) or exception messages; `SecretStr` masks reprs.
@@ -125,20 +127,19 @@ Every e-mail input is the `Email` type: stripped, validated with `validate_email
 
 ```
 key = email                                    # already normalised by the Email type
-if not account_limiter().test(FAILED_PASSWORD_LIMIT, "failed-password", key):
-    raise RateLimited(headers={"Retry-After": retry_after_seconds(...)})   # before any DB or hash work
+if not account_limiter().hit(FAILED_PASSWORD_LIMIT, "failed-password", key):   # reserve the attempt atomically,
+    raise RateLimited(headers={"Retry-After": retry_after_seconds(...)})   # before any await, DB or hash work
 user = repo.get_by_email(key)                  # fresh read, no row lock
 valid, new_hash = await verify_password(password, user.password_hash if user else None)   # exactly ONE Argon2 call
 if user is None or not valid or not user.is_active:
-    account_limiter().hit(FAILED_PASSWORD_LIMIT, "failed-password", key)
-    raise InvalidCredentials                    # identical body for unknown / wrong / inactive (SEC-22)
+    raise InvalidCredentials                    # already counted above; identical body for unknown / wrong / inactive (SEC-22)
 account_limiter().clear(FAILED_PASSWORD_LIMIT, "failed-password", key)
 now = utcnow(); user.last_login_at = now
 if new_hash: user.password_hash = new_hash     # transparent Argon2 parameter upgrade (OWASP)
 commit → issue_session(user.id) → SessionRead
 ```
 
-- The `test` → work → `hit` order means a blocked account gets 429 **even with the right password** (spec 04), and the 429 is not an enumeration signal because unknown e-mails are counted the same way.
+- **The attempt is reserved with one atomic `hit()` before the first `await`** (fixed 2026-10-09 after review): a `test()` → await → `hit()` order let a burst of parallel attempts all pass `test()` before any of them was counted (30 concurrent guesses gave 30 Argon2 checks). Now at most 5 attempts per 15 minutes reach the database or Argon2 whatever the concurrency; success `clear`s the counter, so a correct password still resets it. A blocked account gets 429 **even with the right password** (spec 04), and the 429 is not an enumeration signal because unknown e-mails are counted the same way. SEC-27 includes a concurrent-burst test.
 - The per-IP ceiling `LOGIN_IP_LIMIT` (30/min) runs first, as a route decorator; it is only a secondary control because many visitors share Vercel's egress IPs (D69).
 - An inactive user with the correct password still records a failure: login and the wizard (case D) treat "inactive" exactly like "wrong password".
 - A user whose memberships are all inactive logs in normally (they may be a customer, spec 03 §4.3).
@@ -150,12 +151,12 @@ commit → issue_session(user.id) → SessionRead
 ### 7.6 Session token and cookie (D8, D81)
 
 - `issue_session(user_id)`: `issue_token(user_id, "session", utcnow())` → `SessionToken(access_token, "bearer", expires_in=settings.jwt_lifetime_seconds)`.
-- The router sets the cookie through `app.shared.auth.set_session_cookie(response, token)` *(proposed helper next to the existing `session_cookie_clearing_headers()`)*: `bf_session=<jwt>; HttpOnly; Max-Age=<jwt_lifetime_seconds>; Path=/; SameSite=lax` (+ `Secure` when `COOKIE_SECURE=true`), host-only (no `Domain`). The bookings router uses the same helper after `POST /api/v1/bookings`.
+- The router sets the cookie through `app.shared.auth.set_session_cookie(response, token)` (already in code, next to `delete_session_cookie` and `session_cookie_clearing_headers()`): `bf_session=<jwt>; HttpOnly; Max-Age=<jwt_lifetime_seconds>; Path=/; SameSite=lax` (+ `Secure` when `COOKIE_SECURE=true`), host-only (no `Domain`). The bookings router uses the same helper after `POST /api/v1/bookings`.
 - The web ignores the body token unless the D7 Bearer fallback is active; it routes from `GET /api/v1/me` (spec 09 §2.8).
 
 ### 7.7 Logout
 
-`POST` only (a `GET` is 405 `METHOD_NOT_ALLOWED`, SEC-30). No body, no authentication, idempotent: always 204 with `session_cookie_clearing_headers()` (`bf_session=""; Max-Age=0; Path=/; SameSite=lax; HttpOnly` + `Secure`). A copied Bearer token stays valid until `exp` (stateless JWT; accepted, spec 04).
+`POST` only (a `GET` is 405 `METHOD_NOT_ALLOWED`, SEC-30). No body, no authentication, idempotent: always 204, with the cookie expired by `delete_session_cookie(response)` (`bf_session=""; Max-Age=0; Path=/; SameSite=lax; HttpOnly` + `Secure`). A copied Bearer token stays valid until `exp` (stateless JWT; accepted, spec 04).
 
 ### 7.8 Create user (`create_user`)
 
@@ -167,7 +168,7 @@ Identity contains no list of demo accounts and no demo password (D52). The seed'
 
 ### 7.10 Phone (`Phone` type, D33)
 
-The project `Phone` type (spec 03 §1.5; proposed location `app.shared.phone`): 7–20 characters of digits, spaces and hyphens with an optional leading `+`, stored without spaces and hyphens (`"+92 300 1234567"` → `"+923001234567"`). `set_phone_if_empty` writes only when `users.phone IS NULL` and never overwrites (D33, BK-05).
+The project `Phone` type (spec 03 §1.5; location `app.shared.phone`, D84, glossary §7): 7–20 characters of digits, spaces and hyphens with an optional leading `+`, stored without spaces and hyphens (`"+92 300 1234567"` → `"+923001234567"`). `set_phone_if_empty` writes only when `users.phone IS NULL` and never overwrites (D33, BK-05).
 
 ## 8. Events
 
@@ -178,7 +179,7 @@ None published, none subscribed. Identity is the bottom of the module graph; use
 | Route / function | Who |
 |---|---|
 | register-owner, login, logout | Anyone (public). Register-owner and the wizard are the only ways a user is created besides an Owner adding staff (spec 04 SEC-16). |
-| `UserRead` outside identity | Other modules receive `UserRead` (never `password_hash`) and decide what to expose: e.g. bookings shows a customer's e-mail and phone only to `OWNER` / `SERVICE_ADVISOR` (spec 03 §3.3); calls never shows them (brief §8.1). |
+| `UserRecord` outside identity | Other modules receive `UserRecord` (never `password_hash`) and decide what to expose: e.g. bookings shows a customer's e-mail and phone only to `OWNER` / `SERVICE_ADVISOR` (spec 03 §3.3); calls never shows them (brief §8.1). |
 | Internal functions (§7.9) | Not reachable over HTTP; only `app.scripts.seed` calls them (import-linter `seed-through-services` keeps the seed on the service layer). |
 
 ## 10. Errors
@@ -218,12 +219,12 @@ Proposed additional tests (module-local IDs for spec 12 to number):
 
 ## 13. Implementation checklist
 
-1. Add `app.shared.phone.Phone` (the spec 03 §1.5 type) and `app.shared.auth.set_session_cookie(response, token)` (cookie attributes per D8, mirroring `session_cookie_clearing_headers()`).
-2. Schemas: `OwnerRegistrationCreate`, `SessionCreate` (`extra="forbid"`), `SessionToken`, `SessionRead`; keep `UserRead` as implemented.
-3. Repository: `get_by_email`, `get_many`, `find_ids_by_name`, `add`; map `uq_users_email` (`app.shared.repository.constraint_name`) to `EmailAlreadyRegistered`.
+1. Use `app.shared.phone.Phone` (the spec 03 §1.5 type; already built, D84). Reuse the existing `set_session_cookie` / `delete_session_cookie` of `app.shared.auth` (D8 attributes).
+2. Schemas: `OwnerRegistrationCreate`, `SessionCreate` (`extra="forbid"`), `SessionToken`, `SessionRead`; separate the internal `UserRecord` (with `is_active`) from the wire `UserRead` of spec 03 §3.2 (Open question 1; as built).
+3. Repository: `get_by_email`, `get_many`, `find_ids_by_name`, `add`; the `uq_users_email` race maps to 409 through `app.core.db_errors` (no local translation needed).
 4. Service: `create_user` → `authenticate` (limiter + single verify + rehash) → `issue_session` → `register_owner`, `login` → look-ups (`get_user`, `get_users_by_ids`, `find_user_by_email`, `find_user_ids_by_name`, `set_phone_if_empty`) → internal `set_user_active`, `password_matches`, `set_password`.
 5. Router `/api/v1/auth` with `@limiter.limit(LOGIN_IP_LIMIT)` / `@limiter.limit(REGISTER_OWNER_IP_LIMIT)` (route decorator above the limiter decorator; endpoints take `request: Request`), cookie set/clear, `tags=["identity"]` so operation IDs are `identity_register_owner`, `identity_login`, `identity_logout`.
-6. Include the router in `create_app()`; regenerate the OpenAPI snapshot and web types (`make gen-api`, D76).
+6. Export the router as `routers` from `router.py` (`app.main.wire_modules()` includes it, D89; `app/main.py` is not edited); regenerate the OpenAPI snapshot and web types (`make gen-api`, D76).
 7. Tests: §12 list, builders `make_user` (spec 12 §4.3) through `create_user`.
 
 ## 14. Dependencies (specs)
@@ -232,16 +233,16 @@ Proposed additional tests (module-local IDs for spec 12 to number):
 
 ## Open questions
 
-1. **D81 vs specs 03 and 04.** Spec 03 §3.2 still defines `SessionRead.me` (`MeRead`), §1.11/§4.4/§8.3 say the `shops` module serves `/api/v1/auth/*`, and spec 04's endpoint summary and login step 7 return `me`. D81 (and spec 09 §2.8) win: identity serves `/auth/*`, and the body is `{access_token, token_type, expires_in, user}`. This spec uses `user: UserRead` (`id`, `email`, `full_name`, `phone`, `is_active`); spec 03 §3.2, §4.3, §8.1 (E-01) and Open question 1, and spec 04 should be corrected to match.
-2. **`last_login_at` scope.** Proposed: set whenever a password is verified successfully or a new account starts a session (register-owner, login, wizard cases B and C); not on wizard case A (the session already exists).
+1. ✅ **Resolved as built: `UserRead` on the wire vs the internal user.** The D81 part: specs 03 (§3.2, §4.3, §8.1 E-01) and 04 say identity serves `/api/v1/auth/*` and the body is `{access_token, token_type, expires_in, user}`. The rest: `identity.schemas.UserRead` is spec 03 §3.2's wire schema (`id`, `email`, `full_name`, `phone`; also the base of `MeRead`), and the internal `UserRecord` (a subclass that adds `is_active`) is what the look-ups return to other modules and `app.shared.auth` — the same split as shops' internal `MembershipRecord` — so OpenAPI matches spec 03.
+2. ✅ **Resolved (accepted by the coordinator, 2026-10-09): `last_login_at` scope.** As proposed: set whenever a password is verified successfully or a new account starts a session (register-owner, login, wizard cases B and C); not on wizard case A (the session already exists).
 3. **`find_user_ids_by_name` bound.** Staff booking search by customer name needs user ids from identity (the bookings module may not join `users`). A cap of 1,000 ids is plenty for a hackathon; confirm, or drop "customer name" from `q`.
 
 ## Proposed glossary additions
 
 | Kind | Name | Meaning |
 |---|---|---|
-| Shared type | `app.shared.phone.Phone` | The project phone type of spec 03 §1.5 (glossary §7 lists `app.shared` contents without it) |
-| Shared helper | `app.shared.auth.set_session_cookie(response, token)` | Sets `bf_session` with the D8 attributes; used by the identity and bookings routers |
-| Schema | `SessionToken` (`access_token`, `token_type`, `expires_in`); `SessionRead.user` (D81, replaces spec 03's `me`) | Token part shared by `SessionRead` and `BookingCreatedRead` |
+| Shared type | ✅ merged — `app.shared.phone.Phone` (glossary §7, D84) | The project phone type of spec 03 §1.5 |
+| Shared helpers (already in code, missing from glossary §7) | `app.shared.auth.set_session_cookie(response, token)`, `delete_session_cookie(response)`, `session_cookie_clearing_headers()` | Set / expire `bf_session` with the D8 attributes; used by the identity and bookings routers and by `get_current_user` |
+| Schema | `SessionToken` (`access_token`, `token_type`, `expires_in`); `SessionRead.user` (D81; ✅ spec 03 §3.2 uses it); internal `UserRecord` (Open question 1, as built) | Token part shared by `SessionRead` and `BookingCreatedRead` |
 | Service functions | `identity.service`: `login`, `issue_session`, `get_user`, `find_user_ids_by_name`; internal-only `set_user_active`, `password_matches`, `set_password` (D60) | Additions to spec 01's identity catalogue |
 | Limiter identifiers | `"failed-password", <email>` | Namespaced keys in the shared `account_limiter()` storage |

@@ -49,21 +49,24 @@ Brief sections satisfied:
 | D68 | Public routes address shops by slug. |
 | D69 | Shop creation: 10 per user per day; member creation: 30 per shop per hour → 429 `RATE_LIMITED`. |
 | D80 | Staff routes are built with `app.shared.auth.shop_scoped_router()`. |
-| D81 | `GET /api/v1/me` is served by this module's router (tag `identity`); login returns no memberships, so the web always calls `/me` after it. |
+| D81 | `GET /api/v1/me` is served and tagged by this module (operation `shops_get_me`, spec 03 §1.11); login returns no memberships, so the web always calls `/me` after it. |
+| D86 | Shops declares the read port `ShopActivityReader` and `shops.service.register_activity_reader()` (§5.3); bookings implements it (`bookings.service.shop_activity_reader`) and registers it from its own `service.register_ports()` (glossary §7.1a). Shops never imports bookings. Inventory follows the same pattern with `BookingRefReader` and `inventory.service.register_booking_ref_reader()`. |
+| D89 | `router.py` exports `routers` (the four routers of §4); `app.main.wire_modules()` includes them and runs bookings' `register_ports()` at start-up. Shops has no `handlers.py` and never edits `app/main.py`. |
+| D87 | A QC pick held by a deactivated inspector is un-stuck by the planned P1 bookings operation `REASSIGN_QC_INSPECTOR`, which uses `require_eligible_member(…, role=QC_INSPECTOR)`; until it ships, the Owner reactivates the inspector. |
 
 ## 4. Files
 
 | File | Contents |
 |---|---|
 | `models.py` | `Shop`, `ShopWorkingHours`, `ShopMembership`, `Service` (exist; spec 02 §3.2–§3.5) with their checks, `uq_shops_slug`, `uq_shop_working_hours_shop_id_weekday`, `uq_shop_memberships_shop_id_user_id`, `uq_shop_memberships_one_owner_per_shop`, `uq_services_shop_id_id`, `uq_services_active_name`, `ix_shops_listed_city_name`, `ix_shop_memberships_user_active`, `ix_shop_memberships_shop_role_active`. |
-| `repository.py` | `ShopRepository` (get, get_for_update, get_for_share, get_by_slug, slug look-up, directory page + count, cities, briefs), `WorkingHoursRepository` (list for shops, upsert 7 rows), `MembershipRepository` (exists: `get_active`; add: get_for_update by `(shop_id, membership_id)`, list by shop with filters, active ids by role, owner id, by user), `ServiceRepository` (page, active by ids, duplicate-name check, active services of many shops). Every shop-data method takes keyword-only `shop_id`. Maps `uq_shops_slug` (retry), `uq_shop_memberships_shop_id_user_id` and `uq_services_active_name` (409 `CONFLICT`). |
+| `repository.py` | `ShopRepository` (get, get_for_update, get_for_share, get_by_slug, slug look-up, directory page + count, cities, briefs), `WorkingHoursRepository` (list for shops, upsert 7 rows), `MembershipRepository` (exists: `get_active`; add: get_for_update by `(shop_id, membership_id)`, list by shop with filters, active ids by role, owner id, by user), `ServiceRepository` (page, active by ids, duplicate-name check, active services of many shops). Every shop-data method takes keyword-only `shop_id`. `uq_shops_slug` is caught locally (savepoint retry, §7.3); `uq_shop_memberships_shop_id_user_id` and `uq_services_active_name` already map to 409 `CONFLICT` through the global constraint map (`app.core.db_errors`). |
 | `schemas.py` | Requests: `ShopCreate`, `ShopUpdate`, `WorkingHoursWrite`, `WorkingHoursUpdate`, `MemberCreate`, `MemberUpdate`, `ServiceCreate`, `ServiceUpdate`. Responses (spec 03 §3.2): `ShopRead`, `WorkingHoursRead`, `ShopPublicSummary`, `ShopPublicDetail`, `ServiceRead`, `MemberRead`, `MemberCreatedRead`, `MeRead`, `MembershipRead`. Internal: `MembershipRecord` (today's internal `MembershipRead`: `id`, `shop_id`, `user_id`, `role`, `is_active`), `ShopBrief`, `ServiceSnapshot`, `MemberRef`, `TeamMember`. |
 | `events.py` | `ShopGridChanging` (glossary §7.1). |
 | `domain/capabilities.py` | `Capability` (`StrEnum`: `shop.manage`, `team.manage`, `services.manage`, `parts.manage`, `stock.manage`, `tasks.manage`), `CAPABILITY_ROLES`, `capabilities_for(role, *, tasks_enabled)`. |
 | `domain/grid.py` | Value objects `WorkingDay`, `ScheduleConfig`; `minutes_of`, `is_on_grid`, `week_problems`, `hours_fit_grid` (D37). Pure; scheduling's slot maths imports it. |
 | `domain/slugs.py` | `slugify(name)`, `slug_candidates(base)`. |
 | `service.py` | Use cases and look-ups of §5; the `ShopActivityReader` port. Never imports `app.shared.auth` (spec 01 rule 8). |
-| `router.py` | Four routers: `public_router` (`/api/v1/public`, tag `shops`), `me_router` (`/api/v1`, tag `identity`), `shops_router` (`/api/v1/shops`, `POST` only), `shop_router = shop_scoped_router(tags=["shops"])`. |
+| `router.py` | Four routers, exported as `routers` (D89): `public_router` (`/api/v1/public`, tag `shops`), `me_router` (`/api/v1`, tag `shops`, so `GET /me` is `shops_get_me`), `shops_router` (`/api/v1/shops`, `POST` only), `shop_router = shop_scoped_router(tags=["shops"])`. |
 
 No `handlers.py`: shops subscribes to nothing.
 
@@ -120,10 +123,10 @@ class ShopActivityReader(Protocol):
     async def count_open_jobs(self, session: AsyncSession, *, shop_id: UUID,
                               user_ids: Collection[UUID]) -> Mapping[UUID, int]: ...
 
-def register_activity_reader(reader: ShopActivityReader) -> None: ...   # called by app.main.create_app()
+def register_activity_reader(reader: ShopActivityReader) -> None: ...   # called by bookings.service.register_ports() (D89)
 ```
 
-`create_app()` calls `shops.service.register_activity_reader(bookings.service.shop_activity_reader)` next to `register_event_handlers` (no import-time side effect, spec 01 rule 5). Until a reader is registered, calling it raises `RuntimeError` (fail loud in a mis-wired test, never silently report "no bookings"). The real guard for grid changes is still the `ShopGridChanging` veto; `has_future_bookings` is only the UI hint that locks the duration field (O-04).
+Bookings' `service.register_ports()` calls `shops.service.register_activity_reader(shop_activity_reader)`, and `app.main.wire_modules()` runs it at start-up, in tests and in the seed (D89; no import-time side effect, spec 01 rule 5). Until a reader is registered, calling it raises `RuntimeError` (fail loud in a mis-wired test, never silently report "no bookings"). The real guard for grid changes is still the `ShopGridChanging` veto; `has_future_bookings` is only the UI hint that locks the duration field (O-04).
 
 ## 6. Endpoints
 
@@ -134,7 +137,7 @@ Full schemas and validation: [spec 03 §3.2, §4.4, §4.5, §4.9](../03-api-cont
 | `shops_list_public_shops` | `GET /api/v1/public/shops` | public | 200 `Page[ShopPublicSummary]` | P0 | P-01, P-03 W1 · E-06 |
 | `shops_list_public_cities` | `GET /api/v1/public/cities` | public | 200 `ItemList[string]` | P0 | P-01 · E-07 |
 | `shops_get_public_shop` | `GET /api/v1/public/shops/{shop_slug}` | public | 200 `ShopPublicDetail` | P0 | P-02, P-03 · E-08 |
-| `identity_get_me` | `GET /api/v1/me` | session | 200 `MeRead` | P0 | every screen · E-04 |
+| `shops_get_me` | `GET /api/v1/me` | session | 200 `MeRead` | P0 | every screen · E-04 |
 | `shops_create_shop` | `POST /api/v1/shops` | session (any user, D17) | 201 `ShopRead` | P0 | S-03, O-05 · E-21 |
 | `shops_get_shop` | `GET …` | member (any role) | 200 `ShopRead` | P0 | O-04, S-01 · E-22 |
 | `shops_update_shop` | `PATCH …` | O (`shop.manage`) | 200 `ShopRead` | P0 | O-04 · E-23 |
@@ -185,7 +188,7 @@ Validation of a submitted week (`week_problems(days, step)`), each problem a `(f
 - A closed day stores `opens_at = closes_at = NULL`; times sent for a closed day are ignored.
 - Because both times are on the grid and `closes_at > opens_at`, every open day has at least one full slot, and the last slot ends exactly at `closes_at`.
 - Example (BK-30): 45-minute slots → 09:00 (12 × 45) and 18:00 (24 × 45) are valid, 09:30 is `not_on_grid`.
-- `ShopCreate` validates the week against its own `slot_duration_minutes` (model validator); `replace_working_hours` validates against the shop's current duration; `update_shop` changing the duration checks `hours_fit_grid(current days, new step)`.
+- `create_shop` validates the week against the body's own `slot_duration_minutes` in the service (as built: every problem is reported at once on exact `working_hours.N.<field>` paths, so it runs after the creation rate limit and an invalid week counts against it); `replace_working_hours` validates against the shop's current duration; `update_shop` changing the duration checks `hours_fit_grid(current days, new step)`.
 
 ### 7.2 Create a shop (`create_shop`, D17)
 
@@ -220,7 +223,7 @@ Lock the shop row `FOR UPDATE`; validate the 7 entries against the shop's curren
 
 ### 7.6 Team: list, add, edit, deactivate (D15, D18, D19)
 
-**List** (`GET …/members`): `OWNER` sees every membership including inactive ones and the `OWNER` row. `SERVICE_ADVISOR` sees only active `TECHNICIAN` and `PARTS_PERSON` members (the assign pickers, spec 04 §A); the `role` / `is_active` filters intersect with that set (an SA asking for `QC_INSPECTOR` gets an empty page). T, PP, QC → 403. The shop's members are few, so the service loads the filtered memberships, fetches their users in one `identity.get_users_by_ids` call, sorts by (role in glossary order `OWNER`, `SERVICE_ADVISOR`, `TECHNICIAN`, `PARTS_PERSON`, `QC_INSPECTOR`; `lower(full_name)`; `membership_id`) and slices `limit`/`offset` in memory (`total` = the filtered count). `open_jobs` comes from `ShopActivityReader.count_open_jobs` for the page (bookings not `READY_FOR_PICKUP`, `COMPLETED` or `CANCELLED` where the member is technician, parts person or current QC picker).
+**List** (`GET …/members`): `OWNER` sees every membership including inactive ones and the `OWNER` row. `SERVICE_ADVISOR` sees only active `TECHNICIAN` and `PARTS_PERSON` members whose account is also active (the assign pickers, spec 04 §A; as built, so the picker never offers someone `require_eligible_member` would refuse); the `role` / `is_active` filters intersect with that set (an SA asking for `QC_INSPECTOR` gets an empty page). T, PP, QC → 403. The shop's members are few, so the service loads the filtered memberships, fetches their users in one `identity.get_users_by_ids` call, sorts by (role in glossary order `OWNER`, `SERVICE_ADVISOR`, `TECHNICIAN`, `PARTS_PERSON`, `QC_INSPECTOR`; `lower(full_name)`; `membership_id`) and slices `limit`/`offset` in memory (`total` = the filtered count). `open_jobs` comes from `ShopActivityReader.count_open_jobs` for the page (bookings not `READY_FOR_PICKUP`, `COMPLETED` or `CANCELLED` where the member is technician, parts person or current QC picker).
 
 **Add** (`add_member`):
 
@@ -342,21 +345,21 @@ Proposed additional tests:
 4. Repositories (+ constraint-name mapping for the three unique keys).
 5. `events.py` (`ShopGridChanging`).
 6. Service: look-ups of §5.2 (needed by auth, scheduling and bookings) → public directory → `create_shop` → `update_shop` (+ veto event) → `replace_working_hours` → team → services → `get_me` → `set_rating`; `ShopActivityReader` + `register_activity_reader`.
-7. Routers: `public_router`, `me_router` (tag `identity`, function `get_me`), `shops_router`, `shop_router`; guards from `CAPABILITY_ROLES`.
-8. `create_app()`: include the routers; register `bookings.service.shop_activity_reader` and the bookings `ShopGridChanging` handler. Both are plain reads of bookings' own tables, so they are built in PH1 together with this module (the veto has nothing to block until PH2 creates bookings).
+7. Routers: `public_router`, `me_router` (tag `shops`, function `get_me` → `shops_get_me`), `shops_router`, `shop_router`; guards from `CAPABILITY_ROLES`.
+8. Export `routers` from `router.py`; `wire_modules()` includes them (D89, `app/main.py` is not edited). The bookings side — `register_ports()` registering `shop_activity_reader`, and the `ShopGridChanging` handler — is plain reads of bookings' own tables, so it is built in PH1 together with this module (the veto has nothing to block until PH2 creates bookings).
 9. Tests of §12, builders `make_shop`, `add_member`, `make_team`, `make_services` (spec 12 §4.3); `make gen-api`.
 
 ## 14. Dependencies (specs)
 
-[17-decisions.md](../17-decisions.md) (D9, D15–D20, D26, D34, D37, D38, D41, D55, D56, D60, D62–D64, D66, D68, D69, D80, D81), [18-glossary.md](../18-glossary.md) (§2, §5, §7, §7.1, §9, §10, §14), [01-architecture.md](../01-architecture.md) (rule 3, rule 8, D37 guard), [02-data-model.md](../02-data-model.md) §3.2–§3.5, §7, [03-api-contracts.md](../03-api-contracts.md) §1.3, §3.2, §4.4, §4.5, §4.9, [04-auth-and-security.md](../04-auth-and-security.md) (RBAC A, capabilities, staff accounts), [06-workflows.md](../06-workflows.md) O1–O5, [10-screens.md](../10-screens.md) P-01, P-02, S-01, S-03, O-02–O-05, [11-seed-data.md](../11-seed-data.md) (Phase A, Phase R), [12-quality-and-testing.md](../12-quality-and-testing.md). Uses `modules/identity.md`. Used by `modules/scheduling.md`, `modules/bookings.md` and every module behind `require_shop_member`.
+[17-decisions.md](../17-decisions.md) (D9, D15–D20, D26, D34, D37, D38, D41, D55, D56, D60, D62–D64, D66, D68, D69, D80, D81, D86, D87, D89), [18-glossary.md](../18-glossary.md) (§2, §5, §7, §7.1, §9, §10, §14), [01-architecture.md](../01-architecture.md) (rule 3, rule 8, D37 guard), [02-data-model.md](../02-data-model.md) §3.2–§3.5, §7, [03-api-contracts.md](../03-api-contracts.md) §1.3, §3.2, §4.4, §4.5, §4.9, [04-auth-and-security.md](../04-auth-and-security.md) (RBAC A, capabilities, staff accounts), [06-workflows.md](../06-workflows.md) O1–O5, [10-screens.md](../10-screens.md) P-01, P-02, S-01, S-03, O-02–O-05, [11-seed-data.md](../11-seed-data.md) (Phase A, Phase R), [12-quality-and-testing.md](../12-quality-and-testing.md). Uses `modules/identity.md`. Used by `modules/scheduling.md`, `modules/bookings.md` and every module behind `require_shop_member`.
 
 ## Open questions
 
-1. **Bookings facts on shops routes.** Spec 03 puts `has_future_bookings` (`ShopRead`) and `open_jobs` (`MemberRead`) on routes this module serves, but spec 01 forbids shops importing bookings and defines no read mechanism (events are for actions and vetoes). This spec proposes the `ShopActivityReader` port wired by `create_app()` (§5.3). The alternative that needs no new mechanism is spec 01's "composite endpoints live in the higher module" rule, which would move five shops routes into the bookings router; spec 01 should pick one. (Inventory has the same need for `BookingRef` on purchase orders.)
-2. **Shop without an active service — public detail.** Spec 03 §4.5 returns 200 with `services: []` and `is_bookable: false`; spec 12 BK-26 expects 404. This spec follows spec 03; BK-26 should be corrected.
-3. **Slug clash.** Spec 10 S-03 expects 409 `CONFLICT` "the slug from the name is taken"; spec 03 §4.9 resolves clashes with `-2`, `-3` and never answers 409. This spec follows spec 03; S-03 should drop that edge state.
-4. **Where the capability table lives.** Spec 04 places it in `app.shared.auth` next to `require_roles`; spec 01 places it in `shops/domain/capabilities.py`. `app.shared` may not import module domains, so this spec keeps it in shops and has route guards read `CAPABILITY_ROLES`; spec 04 should be aligned.
-5. **QC picker deactivated mid-inspection.** Deactivating or re-roling a QC inspector who holds a `QC_IN_PROGRESS` pick leaves that booking with nobody able to pass or fail it (spec 08 has no reassign or un-pick for QC). `open_jobs` counts the current pick so O-02 can warn; a rule (refuse the change, or clear the pick) needs a spec 08 / 17 decision.
+1. ✅ **Resolved by D86: bookings facts on shops routes.** `ShopActivityReader` + `shops.service.register_activity_reader()` (§5.3), implemented by `bookings.service.shop_activity_reader` and registered through bookings' `register_ports()`, which `wire_modules()` calls (D89); spec 01 describes the mechanism (its open question 10).
+2. ✅ **Resolved by D64 (amended): shop without an active service — public detail.** 200 with `services: []` and `is_bookable: false` (spec 03 §4.5); spec 12 BK-26 now expects the same, and booking creation answers 404.
+3. ✅ **Resolved in spec 10: slug clash.** S-03 now says a taken slug is never an error (`-2`, `-3` …, spec 03 §4.9).
+4. ✅ **Resolved in spec 04: where the capability table lives.** Spec 04 ("Capabilities") now places it in the shops domain (`shops/domain/capabilities.py`), with route guards reading `CAPABILITY_ROLES`.
+5. ✅ **Resolved by D87 (planned, P1): QC picker deactivated mid-inspection.** The bookings operation `REASSIGN_QC_INSPECTOR` will move the pick; until it ships, the Owner reactivates the inspector. `open_jobs` counts the current pick, so O-02 can warn before deactivating.
 6. **`tasks.manage` switch.** "Calls module enabled" is read as `Settings.calling_enabled` (all `CALL_PROVIDER_*` set). Confirm with spec 05.
 7. **Switcher city.** `MembershipRead` has no `shop_city` / `shop_timezone` (spec 03 Open question 3); S-01 wants the city. Not added here; `ShopScope` loads `GET /api/v1/shops/{shop_id}`.
 
@@ -366,7 +369,7 @@ Proposed additional tests:
 |---|---|---|
 | Enum (code, not stored) | `Capability` in `app.modules.shops.domain.capabilities`, with `CAPABILITY_ROLES` and `capabilities_for()` | The glossary §2.4 values as a `StrEnum`; the one role table behind `/me` and the route guards |
 | Value objects | `WorkingDay`, `ScheduleConfig` (`shops.domain.grid`) | Pure D37 inputs shared with scheduling |
-| Port | `ShopActivityReader`, `shops.service.register_activity_reader()`; bookings' implementation `bookings.service.shop_activity_reader` | Read access to bookings facts without an upward import (Open question 1) |
+| Port | ✅ merged (glossary §7.1a, D86) — `ShopActivityReader`, `shops.service.register_activity_reader()`; bookings' implementation `bookings.service.shop_activity_reader` | Read access to bookings facts without an upward import |
 | Internal schemas | `MembershipRecord` (renamed from today's internal `MembershipRead`), `ShopBrief`, `ServiceSnapshot`, `TeamMember`, `SetupFlags` | Return types of the §5.2 look-ups |
 | Service functions | `get_bookable_shop`, `get_shop_briefs`, `get_member_refs`, `get_setup_flags`, `set_rating` (internal), `get_shop_profile` (P2), plus the use-case names of §5.1 | Additions to spec 01's shops catalogue |
 | Limiter identifiers | `"shop-create", <user_id>`, `"member-create", <shop_id>` | Keys in the shared `account_limiter()` storage |

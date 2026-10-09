@@ -6,14 +6,14 @@
 
 Step-by-step playbook for running BayFlow **live** (Vercel + Railway) and **locally** (Docker Compose or native uv + pnpm), plus everything the brief's submission rules ask for (§9): the CI/CD pipeline, the complete environment-variable inventory, the full root `.env.example`, the README outline, repository standards, a post-deploy smoke test and the day-1 verification checklist.
 
-Brief §10 gives "Deployment and docs" 10 % ("Live URL works; README and .env.example let a stranger run it in minutes") and warns: "deploy early and keep deploying". Names follow [18-glossary.md](18-glossary.md); decisions D5–D14, D26, D60–D62, D68, D73, D76, D80 and D81 in [17-decisions.md](17-decisions.md) are binding; the system shape is in [01-architecture.md](01-architecture.md); endpoint paths and field names come from [03-api-contracts.md](03-api-contracts.md). Platform facts were checked against official documentation on 2026-10-09 (URL next to each claim); anything not verified is marked **(unverified)**.
+Brief §10 gives "Deployment and docs" 10 % ("Live URL works; README and .env.example let a stranger run it in minutes") and warns: "deploy early and keep deploying". Names follow [18-glossary.md](18-glossary.md); decisions D5–D14, D26, D60–D62, D68, D73, D76, D80, D81, D84 (the as-built backend), D85 (placeholder secrets) and D88 (realtime is P1) in [17-decisions.md](17-decisions.md) are binding; the system shape is in [01-architecture.md](01-architecture.md); endpoint paths and field names come from [03-api-contracts.md](03-api-contracts.md). Platform facts were checked against official documentation on 2026-10-09 (URL next to each claim); anything not verified is marked **(unverified)**.
 
 ## Hosts overview
 
 | Component | Host | Plan / cost | Runs as | Public URL | Notes |
 |---|---|---|---|---|---|
 | Web — `apps/web` (Next.js 16) | Vercel | Hobby: free, personal / non-commercial use only ([Vercel Hobby](https://vercel.com/docs/plans/hobby)) | Vercel's Next.js build | `https://<project>.vercel.app` — **the live URL** in the README | `/api/*` is rewritten to the API (D7). Keep the repo **public**: Hobby cannot deploy private repositories owned by a GitHub organization ([Vercel community](https://community.vercel.com/t/why-cant-hobby-accounts-deploy-from-organizations/10015)) |
-| API — `apps/api` (FastAPI) | Railway | Hobby: $5/month including $5 of usage ([Railway plans](https://docs.railway.com/pricing/plans)) | Dockerfile; uvicorn, **1 worker, 1 replica** (D14) | `https://<api>.up.railway.app` (`/docs`, `/health`, WebSocket) | Browsers reach it directly only for the WebSocket (D7) |
+| API — `apps/api` (FastAPI) | Railway | Hobby: $5/month including $5 of usage ([Railway plans](https://docs.railway.com/pricing/plans)) | Dockerfile; uvicorn, **1 worker, 1 replica** (D14) | `https://<api>.up.railway.app` (`/docs`, `/health`, WebSocket — P1, D88) | Browsers reach it directly only for the WebSocket (D7) |
 | PostgreSQL 16 | Railway (same project) | included in Hobby usage | Railway PostgreSQL template; its image is built from `railwayapp-templates/postgres-ssl`, whose `:latest` tag currently points to PostgreSQL 16 ([Railway PostgreSQL](https://docs.railway.com/guides/postgresql), [image README](https://github.com/railwayapp-templates/postgres-ssl)) | none | Private network only |
 | AI agent — `apps/agent` *(bonus)* | Railway (same project) | included in Hobby usage | Dockerfile; LiveKit Agents worker | none | Outbound connections only |
 | Calls + agent media *(bonus)* | LiveKit Cloud | Build plan, free (D57) | managed | `wss://<project>.livekit.cloud` | Spec 05 |
@@ -72,9 +72,9 @@ Set in *api → Variables* (use **sealed** variables for secrets: their values r
 | `PORT` | `4000` — set explicitly so the health check, the public domain's target port and the private URL all agree; Railway uses `PORT` for health checks ([healthchecks](https://docs.railway.com/reference/healthchecks)) |
 | `CLIENT_URL` | `https://<project>.vercel.app` (the production domain) |
 | `DATABASE_URL` | `${{Postgres.DATABASE_URL}}` — reference-variable syntax `${{SERVICE_NAME.VAR}}` (variables guide) |
-| `JWT_SECRET` | 48+ random characters, sealed — the API refuses to start in production with a value shorter than 32 bytes or equal to a repository placeholder |
+| `JWT_SECRET` | 48+ random characters, sealed — the API refuses to start in production with a value shorter than 32 bytes or **containing** a placeholder marker (`change-me`, `replace-me`, `dev-only`, `placeholder`; D85) |
 | `JWT_EXPIRES_IN` | `7d` |
-| `COOKIE_SECURE` | `true` |
+| `COOKIE_SECURE` | `true` — required: production refuses `false`, which is the code default for plain-HTTP localhost |
 | `LOG_LEVEL` | `INFO` |
 | `SEED_ON_DEPLOY` | `true` — every deploy re-runs the idempotent seed, which also repairs the demo cast (D13, D51, D60) |
 | `EMAIL_PROVIDER` | `http` once an HTTPS e-mail API account exists (P1 extra), otherwise `none`. Never `smtp` here: SMTP is available only on Railway's Pro plan and above; Free, Trial and Hobby must use transactional e-mail services with HTTPS APIs ([outbound networking](https://docs.railway.com/networking/outbound-networking)) (D26) |
@@ -100,15 +100,15 @@ Set in *api → Variables* (use **sealed** variables for secrets: their values r
 
 - **Why the wrapper (D13):** the command chains two commands with `&&`. For Dockerfile deployments Railway runs commands in **exec form**, which neither expands variables nor interprets shell operators, and its docs wrap such commands in `/bin/sh -c "…"` ([start command](https://docs.railway.com/deployments/start-command)). For `preDeployCommand` specifically, the accepted answer in a Railway Central Station thread (2026-04-28) gives the same fix for Dockerfile builds: wrap the chain in `/bin/sh -c` or call a script ([thread](https://station.railway.com/questions/pre-deploy-command-parsing-of-develop-71b60872)). The wrapper works whether Railway shell-evaluates the string or splits it into exec arguments. The command is exactly D13's — the dashboard field, `railway.json` and the Compose `migrate` service all use the same string.
 - **Behaviour** ([pre-deploy command](https://docs.railway.com/deployments/pre-deploy-command)): runs between build and deploy, in a separate container from the app, inside the private network with the app's variables; volumes are not mounted and filesystem changes are not kept; a non-zero exit is not retried and the deployment does not proceed. There is no time limit by default; set *Pre-deploy Timeout* (1–3600 s) to **600** so a migration stuck on a lock fails the deploy instead of hanging (on expiry the container is removed and the deployment fails, same page).
-- **Seed gating (D13):** `python -m app.scripts.seed` itself logs `seed skipped (SEED_ON_DEPLOY is not true)` and exits `0` **immediately** unless `SEED_ON_DEPLOY=true`; otherwise it runs the idempotent seed through the service layer (D51) and reconciles the demo cast — demo users and memberships active with their canonical roles, demo password hash valid for `BayFlow@2026` — without touching bookings, stock, POs or shop settings created by judges (D60). `--force` seeds regardless of the flag (used by `make seed` and by `./start.sh --seed` / `start.bat --seed`, D73). Production never relies on a default: Railway sets `SEED_ON_DEPLOY` explicitly on the `api` service (§4).
+- **Seed gating (D13):** `python -m app.scripts.seed` itself logs `seed skipped (SEED_ON_DEPLOY is not true)` and exits `0` **immediately** unless `SEED_ON_DEPLOY=true`; otherwise it runs the idempotent seed through the service layer (D51) and reconciles the demo cast — demo users and memberships active with their canonical roles, demo password hash valid for `BayFlow@2026` — without touching bookings, stock, POs or shop settings created by judges (D60). `--force` seeds regardless of the flag (used by `make seed` and by `./start.sh --seed` / `start.bat --seed`, D73). Production never relies on a default: Railway sets `SEED_ON_DEPLOY` explicitly on the `api` service (§4). As built (2026-10-09) the script implements the gate and `--force` and exits non-zero on any failure; with the gate open it logs `no seed data defined yet`, because the demo data is created through the module services, which arrive from PH1 (spec 11, spec 14).
 - **Migrations must be backward compatible.** The pre-deploy step migrates the database while the **previous** deployment is still serving traffic (the switch happens only after the health check). Use expand → deploy → contract: add columns/tables first; drop or rename only in a later deploy, after no running code uses them.
 
 ### 7. Health check, restarts, single replica
 
 - Health check path **`/health`** (unversioned, glossary §9). Railway calls it at deploy time until it returns any `2xx`; default timeout 300 s; it uses the `PORT` variable; requests come from host `healthcheck.railway.app`; it is **not** used for continuous monitoring; health checks give zero-downtime switches ([healthchecks](https://docs.railway.com/reference/healthchecks)).
-- `/health` returns `200 {"status":"ok"}` after a `SELECT 1` with a 2 s timeout, `503 {"status":"unavailable"}` otherwise (its one exception to problem+json). No auth, no host filtering (so `healthcheck.railway.app` is accepted). Like every response it sends `Cache-Control: no-store` and `X-Request-ID` (spec 03 §1.8, §4.2).
+- `/health` returns `200 {"status":"ok","database":"ok"}` after a `SELECT 1` with a 2 s timeout, `503 {"status":"degraded","database":"error"}` otherwise (its one exception to problem+json; D84, `app.core.health`). No auth, no host filtering (so `healthcheck.railway.app` is accepted). Like every response it sends `Cache-Control: no-store` and `X-Request-ID` (spec 03 §1.8, §4.2).
 - Restart policy `ON_FAILURE`, max 10 retries.
-- **One replica (D14).** A second replica would hold its own in-memory WebSocket hub, so a push would only reach clients connected to the same replica. When a new deployment replaces the old one, open sockets drop; the web client reconnects with backoff and keeps polling every 15 s (D14).
+- **One replica (D14).** A second replica would hold its own in-memory WebSocket hub (P1, D88) and its own in-memory rate-limit counters, so a push would only reach clients connected to the same replica. When a new deployment replaces the old one, open sockets drop; the web client reconnects with backoff and keeps polling every 15 s (D14) — the polling is the P0 path anyway (D88).
 
 ### 8. Config as code — `apps/api/railway.json`
 
@@ -176,22 +176,51 @@ All three are **fixed at build time** on Vercel: after a build the app no longer
 ```ts
 import type { NextConfig } from 'next'
 
-// VERCEL=1 is a Vercel system variable, available at build and runtime.
+// VERCEL=1 is a Vercel system variable (build and runtime). Rewrites and NEXT_PUBLIC_* values are
+// fixed at build time, so a Vercel build without them would ship a broken app (spec 07).
 const isVercelBuild = Boolean(process.env.VERCEL)
-
 for (const name of ['API_BASE_URL', 'NEXT_PUBLIC_WS_URL'] as const) {
   if (isVercelBuild && !process.env[name]) {
     throw new Error(`${name} must be set in the Vercel project settings`)
   }
 }
 
-// Local dev and CI fall back to the local API; Docker Compose passes http://api:4000 as a build arg.
-const apiBaseUrl = (process.env.API_BASE_URL ?? 'http://localhost:4000').replace(/\/+$/, '')
+/** Where `/api/*` is proxied to (D7). Local dev and CI fall back to the local API on port 4000. */
+const apiBaseUrl = (process.env.API_BASE_URL || 'http://localhost:4000').replace(/\/+$/, '')
+
+/** Spec 04 "Security headers (Tier 1 values)" — every path, including the rewritten `/api/*`. */
+export const securityHeaders = [
+  { key: 'X-Frame-Options', value: 'DENY' },
+  // Only directives that cannot break the app; the full CSP is spec 04 Tier 2.
+  {
+    key: 'Content-Security-Policy',
+    value: "frame-ancestors 'none'; base-uri 'self'; object-src 'none'; form-action 'self'",
+  },
+  { key: 'X-Content-Type-Options', value: 'nosniff' },
+  { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+  // Bonus calling (P2) will need microphone=(self).
+  { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+]
 
 const nextConfig: NextConfig = {
-  // Minimal Node server for the Docker Compose image; Vercel uses its own build output.
-  output: isVercelBuild ? undefined : 'standalone',
+  // Minimal Node server for the Docker Compose image only (the Dockerfile sets
+  // NEXT_OUTPUT=standalone). Vercel and local `pnpm build` / `pnpm start` use the default output.
+  output: process.env.NEXT_OUTPUT === 'standalone' ? 'standalone' : undefined,
+  poweredByHeader: false,
+  // Tailwind CSS 4 through its Turbopack loader (create-next-app 16.4 default; no PostCSS config).
+  turbopack: {
+    rules: {
+      '*.css': {
+        loaders: ['@tailwindcss/turbopack'],
+        as: '*.css',
+      },
+    },
+  },
+  async headers() {
+    return [{ source: '/(.*)', headers: securityHeaders }]
+  },
   async rewrites() {
+    // Array form = afterFiles: checked after app routes, so nothing may live under app/api/**.
     return [{ source: '/api/:path*', destination: `${apiBaseUrl}/api/:path*` }]
   },
 }
@@ -200,14 +229,15 @@ export default nextConfig
 ```
 
 - Syntax: [Next.js 16.4 rewrites](https://nextjs.org/docs/app/api-reference/config/next-config-js/rewrites) ("Rewriting to an external URL", `:path*` wildcard). An array return is applied after filesystem routes and before dynamic routes — the web app must not define `src/app/api/*` routes (spec 01).
-- `VERCEL`: [system environment variables](https://vercel.com/docs/environment-variables/system-environment-variables). `output: 'standalone'`: [output option](https://nextjs.org/docs/app/api-reference/config/next-config-js/output).
+- `VERCEL`: [system environment variables](https://vercel.com/docs/environment-variables/system-environment-variables). `output: 'standalone'`: [output option](https://nextjs.org/docs/app/api-reference/config/next-config-js/output) — used **only** when `NEXT_OUTPUT=standalone`, which the web Dockerfile sets; Vercel builds and local `pnpm build` / `pnpm start` keep the default output.
+- As built the file also sends spec 04's Tier 1 security headers on every path (`securityHeaders`, unit-tested in `next.config.test.ts`), disables `X-Powered-By` (`poweredByHeader: false`) and loads Tailwind CSS 4 through `@tailwindcss/turbopack` (no PostCSS config). `API_BASE_URL` falls back to `http://localhost:4000` when unset **or empty** (`||`).
 - Vercel executes the rewrite as a reverse proxy to an external origin, forwards visitor headers (`x-forwarded-for`, `x-real-ip`, `x-forwarded-host`, `x-forwarded-proto`) and honours upstream `cache-control`, `CDN-Cache-Control` and `Vercel-CDN-Cache-Control` headers: **responses that carry cache headers are cached by default for projects created on or after 2026-04-06** ([Vercel rewrites](https://vercel.com/docs/rewrites)). Our project is new, so the API sends `Cache-Control: no-store` on every `/api/*` response and on `/health`, errors and 500s included (D61, spec 01 middleware, spec 03 §1.8: Starlette's `ServerErrorMiddleware` sits outside user middleware, so the request-context middleware renders unhandled-exception 500s itself, with `no-store` and `X-Request-ID`) — the value Vercel's docs prescribe for content that must never be cached ([Cache-Control headers](https://vercel.com/docs/caching/cache-control-headers)). The smoke test and day-1 check #7 verify it; the fallback is an `apps/web/vercel.json` `headers` entry for `/api/:path*` with `x-vercel-enable-rewrite-caching: 0`, which restores "never cached" for external rewrites (rewrites page). A proxied request must start responding within 120 s ([Vercel changelog](https://vercel.com/changelog/cdn-origin-timeout-increased-to-two-minutes)).
 
 ### Preview deployments
 
 - Every push to another branch and every pull request gets a preview URL (Vercel for GitHub). Previews use the **Preview** variables, i.e. the same production API and data: use them for UI review, not for test data.
 - Deployment Protection's *Standard Protection* covers every deployment URL **except production domains** ([deployment protection](https://vercel.com/docs/deployment-protection)). Give judges only the production domain.
-- The WebSocket `Origin` check accepts only `CLIENT_URL` (spec 04), so previews fall back to 15 s polling.
+- The WebSocket `Origin` check accepts only `CLIENT_URL` (spec 04), so previews fall back to 15 s polling — the P0 path anyway (D88).
 
 ### Skipping web builds for API-only commits (optional)
 
@@ -220,6 +250,10 @@ Vercel's built-in "skip unaffected projects" needs JavaScript workspaces at the 
 Follows the official uv multi-stage pattern: uv copied from its image, `uv sync --locked --no-install-project` for a cached dependency layer, then the project; final image without uv, same base image as the builder, non-root user ([uv Docker guide](https://docs.astral.sh/uv/guides/integration/docker/), [uv-docker-example multistage.Dockerfile](https://github.com/astral-sh/uv-docker-example/blob/main/multistage.Dockerfile)).
 
 ```dockerfile
+# BayFlow API image (spec 07): Railway and Docker Compose.
+# Official uv multi-stage pattern: dependencies in a cached layer, the project after it; the
+# runtime image has no uv, uses the same base image as the builder and runs as a non-root user.
+
 # ---- builder: resolve and install dependencies with uv ----
 FROM python:3.12-slim-trixie AS builder
 COPY --from=ghcr.io/astral-sh/uv:0.12.24 /uv /uvx /bin/
@@ -245,12 +279,13 @@ ENV PATH="/app/.venv/bin:$PATH" \
 WORKDIR /app
 USER nonroot
 EXPOSE 4000
-# ONE worker on purpose: the WebSocket hub lives in process memory (D14).
+# ONE worker on purpose: the WebSocket hub and the rate-limit counters live in process memory (D14).
 # `sh -c` expands ${PORT} (Railway injects it); `exec` hands signals to uvicorn.
-CMD ["sh", "-c", "exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-4000} --workers 1 --proxy-headers --forwarded-allow-ips='*' --no-access-log --timeout-graceful-shutdown 10"]
+# --no-access-log: the API writes its own JSON access line; --no-server-header: spec 04 Tier 1.
+CMD ["sh", "-c", "exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-4000} --workers 1 --proxy-headers --forwarded-allow-ips='*' --no-access-log --no-server-header --timeout-graceful-shutdown 10"]
 ```
 
-- `--workers` would otherwise default to `$WEB_CONCURRENCY` or 1; `--no-access-log` because the API writes its own JSON access log; `--app-dir` defaults to the working directory, so `app.main` is importable from `/app` ([uvicorn settings](https://github.com/encode/uvicorn/blob/master/docs/settings.md)). The Alembic async template's `alembic.ini` sets `prepend_sys_path = .`, so `alembic upgrade head` finds `app` from `/app` too.
+- `--workers` would otherwise default to `$WEB_CONCURRENCY` or 1; `--no-access-log` because the API writes its own JSON access log; `--no-server-header` drops uvicorn's `server: uvicorn` header (spec 04 Tier 1; D84); `--app-dir` defaults to the working directory, so `app.main` is importable from `/app` ([uvicorn settings](https://github.com/encode/uvicorn/blob/master/docs/settings.md)). The Alembic async template's `alembic.ini` sets `prepend_sys_path = .`, so `alembic upgrade head` finds `app` from `/app` too.
 - **No BuildKit cache mounts:** Railway requires cache-mount IDs prefixed with the service ID (`id=s/<service id>-<target path>`) and forbids variables in them ([Dockerfiles](https://docs.railway.com/guides/dockerfiles)). Plain layers keep one Dockerfile valid for both Railway and Compose.
 - The Railway pre-deploy step and the Compose `migrate` service run this same image with a different command.
 
@@ -264,6 +299,8 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 .import_linter_cache/
+.coverage
+htmlcov/
 tests/
 .env
 .env.*
@@ -274,29 +311,43 @@ tests/
 Vercel builds the web app itself; this image exists so `docker compose up` runs the whole product. Based on the official example ([with-docker](https://github.com/vercel/next.js/tree/canary/examples/with-docker): Node 24 slim, `corepack enable pnpm`, standalone output, user `node`, `node server.js`).
 
 ```dockerfile
-FROM node:24-slim AS deps
-WORKDIR /app
-COPY package.json pnpm-lock.yaml ./
-RUN corepack enable pnpm && pnpm install --frozen-lockfile
+# BayFlow web — image for `docker compose up` only. Vercel builds the web app itself (spec 07).
+# Pattern: official Next.js with-docker example (Node 24 slim, Corepack pnpm, standalone output,
+# non-root `node` user, `node server.js`).
 
-FROM node:24-slim AS builder
+FROM node:24-slim AS base
+# Corepack installs the pnpm version pinned in package.json ("packageManager").
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
+    NEXT_TELEMETRY_DISABLED=1
+RUN corepack enable pnpm
 WORKDIR /app
+
+FROM base AS deps
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN pnpm install --frozen-lockfile
+
+FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-# Build-time values: rewrites and NEXT_PUBLIC_* are fixed during `next build`.
+# Build-time values: the /api rewrite target and NEXT_PUBLIC_* are fixed during `next build` (D7).
 ARG API_BASE_URL=http://api:4000
 ARG NEXT_PUBLIC_WS_URL=ws://localhost:4000/api/v1/ws
 ARG NEXT_PUBLIC_CALL_PROVIDER_URL=
 ENV API_BASE_URL=$API_BASE_URL \
     NEXT_PUBLIC_WS_URL=$NEXT_PUBLIC_WS_URL \
     NEXT_PUBLIC_CALL_PROVIDER_URL=$NEXT_PUBLIC_CALL_PROVIDER_URL \
-    NEXT_TELEMETRY_DISABLED=1
-RUN corepack enable pnpm && pnpm build
+    NEXT_OUTPUT=standalone
+RUN pnpm build
 
 FROM node:24-slim AS runner
 WORKDIR /app
-ENV NODE_ENV=production PORT=3000 HOSTNAME=0.0.0.0 NEXT_TELEMETRY_DISABLED=1
+ENV NODE_ENV=production \
+    PORT=3000 \
+    HOSTNAME=0.0.0.0 \
+    NEXT_TELEMETRY_DISABLED=1
 RUN mkdir .next && chown node:node .next
+# The standalone server does not copy public/ or .next/static; once copied next to server.js
+# it serves them itself.
 COPY --from=builder --chown=node:node /app/public ./public
 COPY --from=builder --chown=node:node /app/.next/standalone ./
 COPY --from=builder --chown=node:node /app/.next/static ./.next/static
@@ -305,7 +356,7 @@ EXPOSE 3000
 CMD ["node", "server.js"]
 ```
 
-The standalone server does not copy `public/` or `.next/static/` by default; once copied next to `server.js` it serves them, and `PORT` / `HOSTNAME` choose the bind address ([output option](https://nextjs.org/docs/app/api-reference/config/next-config-js/output)). `apps/web/.dockerignore` excludes `node_modules/`, `.next/`, `.env*`, `coverage/`.
+The standalone server does not copy `public/` or `.next/static/` by default; once copied next to `server.js` it serves them, and `PORT` / `HOSTNAME` choose the bind address ([output option](https://nextjs.org/docs/app/api-reference/config/next-config-js/output)). The `deps` stage also copies `pnpm-workspace.yaml`: in pnpm 10 that file holds `apps/web`'s own settings (`ignoredBuiltDependencies`), not a monorepo workspace (D5). `apps/web/.dockerignore` excludes `node_modules/`, `.next/`, `out/`, `build/`, `coverage/`, `.env*`, `*.tsbuildinfo`, `next-env.d.ts`, debug logs, `.git`, `.vercel`, the Dockerfile and itself.
 
 ### Agent — `apps/agent/Dockerfile` (bonus)
 
@@ -324,28 +375,48 @@ docker compose up --build
 `docker-compose.yml` (repo root):
 
 ```yaml
+# BayFlow local stack (spec 07 "Local development", D12, D73).
+#
+#   docker compose up -d --wait db                PostgreSQL only (used by ./start.sh, start.bat, make db-up)
+#   docker compose up --build                     everything: db, one-shot migrate + seed, API :4000, web :3000
+#   docker compose --profile mail up -d mailpit   optional local inbox: UI http://localhost:8025, SMTP :1025
+#   docker compose --profile bonus up --build     adds the bonus AI Front Desk worker (apps/agent)
+#
+# Data lives in the named volume `pgdata`. `docker compose down`, ./stop.sh and stop.bat keep it;
+# `make db-reset` wipes the schema; only `docker compose down -v` deletes the volume.
+# The root .env is read automatically for ${...} interpolation (e.g. POSTGRES_HOST_PORT).
 name: bayflow
+
+# The root .env (a copy of .env.example) for the Python services. `required: false` (Compose 2.24+)
+# keeps `docker compose config` and `docker compose up -d db` working before .env exists.
+x-root-env-file: &root-env-file
+  - path: .env
+    required: false
 
 services:
   db:
-    image: postgres:16          # same major version as Railway (D12); Debian-based like Railway's image
+    image: postgres:16 # same major version as Railway and CI (D12); Debian-based like Railway's image
     environment:
       POSTGRES_USER: bayflow
       POSTGRES_PASSWORD: bayflow
       POSTGRES_DB: bayflow
     ports:
-      - "${POSTGRES_HOST_PORT:-5434}:5432"   # host 5434 by default (D73): 5432/5433 are often taken
+      - "${POSTGRES_HOST_PORT:-5434}:5432" # host 5434 by default (D73): 5432/5433 are often taken
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U bayflow -d bayflow"]
+      # TCP check (-h 127.0.0.1): on the very first start the image initialises the database with a
+      # temporary socket-only server, so a socket check could report "healthy" before the real server
+      # accepts TCP connections (and the migrate step would then fail on a slow machine).
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p 5432 -U bayflow -d bayflow"]
       interval: 5s
       timeout: 5s
       retries: 10
+      start_period: 30s
 
-  migrate:                      # one-shot: the same command as Railway's pre-deploy step (D13)
+  migrate: # one-shot: the same command as Railway's pre-deploy step (D13)
     build: ./apps/api
-    env_file: .env
+    env_file: *root-env-file
     environment:
       DATABASE_URL: postgresql://bayflow:bayflow@db:5432/bayflow
     command: ["/bin/sh", "-c", "alembic upgrade head && python -m app.scripts.seed"]
@@ -355,7 +426,7 @@ services:
 
   api:
     build: ./apps/api
-    env_file: .env
+    env_file: *root-env-file
     environment:
       DATABASE_URL: postgresql://bayflow:bayflow@db:5432/bayflow
       PORT: "4000"
@@ -371,10 +442,11 @@ services:
       retries: 6
 
   web:
+    # No env_file on purpose: the root .env sets PORT=4000 and the standalone server binds to PORT.
     build:
       context: ./apps/web
       args:
-        API_BASE_URL: http://api:4000                    # server-side rewrite target inside the network
+        API_BASE_URL: http://api:4000 # server-side rewrite target inside the Compose network
         NEXT_PUBLIC_WS_URL: ws://localhost:4000/api/v1/ws # the browser connects through the published port
         NEXT_PUBLIC_CALL_PROVIDER_URL: ${NEXT_PUBLIC_CALL_PROVIDER_URL:-}
     ports:
@@ -383,17 +455,17 @@ services:
       api:
         condition: service_healthy
 
-  mailpit:                      # optional local inbox: docker compose --profile mail up
+  mailpit: # optional local inbox: EMAIL_PROVIDER=smtp, SMTP_PORT=1025, SMTP_HOST=mailpit (API in Docker) or localhost
     image: axllent/mailpit
     profiles: ["mail"]
     ports:
-      - "8025:8025"             # web UI
-      - "1025:1025"             # SMTP
+      - "8025:8025" # web UI
+      - "1025:1025" # SMTP
 
-  agent:                        # bonus: docker compose --profile bonus up
+  agent: # bonus AI Front Desk worker (spec 05): docker compose --profile bonus up
     build: ./apps/agent
     profiles: ["bonus"]
-    env_file: .env
+    env_file: *root-env-file
     environment:
       API_INTERNAL_URL: http://api:4000
     depends_on:
@@ -404,7 +476,8 @@ volumes:
   pgdata:
 ```
 
-- `depends_on` conditions `service_healthy` and `service_completed_successfully` and the `pg_isready` health check follow [Docker's startup-order guide](https://docs.docker.com/compose/how-tos/startup-order/).
+- `depends_on` conditions `service_healthy` and `service_completed_successfully` and the `pg_isready` health check follow [Docker's startup-order guide](https://docs.docker.com/compose/how-tos/startup-order/). The check runs over **TCP** (`-h 127.0.0.1`): on the very first start the image initialises the database with a temporary socket-only server, so a socket check could report healthy before the real server accepts TCP connections; `start_period: 30s` covers that initialisation.
+- `env_file` uses the long form `- path: .env` with **`required: false`** (the `x-root-env-file` anchor), so `docker compose config` and `docker compose up -d db` work before `.env` exists. That form needs **Docker Compose 2.24 or newer** (README prerequisites); older Compose versions reject the file.
 - Values under `environment:` override the same names from `env_file:` ([precedence](https://docs.docker.com/compose/how-tos/environment-variables/envvars-precedence/)); the root `.env` is also read automatically for `${…}` interpolation (same page).
 - `web` deliberately gets no `env_file`: the root `.env` contains `PORT=4000`, and the standalone server binds to `PORT`.
 - Host ports (D73): web `3000`, API `4000`, PostgreSQL `5434` (`POSTGRES_HOST_PORT`, read only by Compose for interpolation from the root `.env`), Mailpit UI `8025` / SMTP `1025`. Inside the Compose network the database is always `db:5432`; on the host it is `localhost:5434`, which is why the root `.env` has `DATABASE_URL=…@localhost:5434/bayflow`. Change both together if 5434 is taken.
@@ -426,8 +499,8 @@ make setup        # uv sync (apps/api) + pnpm install (apps/web) + git hooks
 
 | Script | Steps |
 |---|---|
-| `start.sh` / `start.bat` | 1. **Preflight:** creates `.env` from `.env.example` if missing; checks that `docker` (Compose v2, daemon running), `uv`, Node 24+, `pnpm` and `curl` are available, installs missing dependencies, then frees ports 3000 and 4000 by running `stop.sh --keep-db --quiet` (owner request, D73): stale BayFlow processes are stopped and **any other program listening on 3000/4000 is stopped too and named in the output** — Docker/VM/SSH port forwarders are never killed (start then exits with a message). 2. `docker compose up -d --wait db` (host port `POSTGRES_HOST_PORT`, default 5434). 3. In `apps/api`: `uv run alembic upgrade head`, then **always** `uv run python -m app.scripts.seed` (D73, amended) — the seed acts only when `SEED_ON_DEPLOY=true`, which `.env.example` sets for local development, so a fresh database gets the demo cast (D13, D60) and later runs only repair it; with `--seed` the script passes `--force`, which seeds whatever the flag says. 4. Starts the API (`uv run uvicorn app.main:app --reload --port 4000`) and the web app (`pnpm dev`, port 3000) in the background; output goes to `logs/api.log` and `logs/web.log`, PIDs to `.run/api.pid` and `.run/web.pid`. 5. Prints the URLs (web `http://localhost:3000`, Swagger `http://localhost:4000/docs`); `start.sh` then follows the logs and **Ctrl+C** runs the stop routine. |
-| `stop.sh` / `stop.bat` | Stops the process trees recorded in `.run/` (guarded against PID reuse), stops BayFlow's own Docker `api`/`web` containers if running, frees ports **3000** and **4000** if anything still listens there (never Docker/VM/SSH port forwarders), stops leftover dev servers of this repo — matched by command line **and** a real server executable (`node`, `next-server`, `python*`, `uvicorn`, `uv`) **and** a working directory inside the repo, and **never** the script's own ancestors (so the shell or terminal that ran it is safe) — removes the Next.js dev lock, runs `docker compose stop db` unless `--keep-db` (the container stops; the `pgdata` volume and its data are kept), removes the PID files and verifies the ports are free. Flags: `--keep-db`, `--quiet`, `--bayflow-only` (stop only BayFlow's own processes). Safe to run twice. |
+| `start.sh` / `start.bat` | 1. **Preflight:** checks that `docker` (Compose v2, daemon running), `uv`, Node 24+, `pnpm` and `curl` are available and the checkout is complete; creates `.env` from `.env.example` if missing and loads it (`start.sh` also warns when `DATABASE_URL`'s port differs from `POSTGRES_HOST_PORT`); installs missing dependencies (`uv sync`, `pnpm install`) unless `--no-install`. 2. **Frees ports 3000 and 4000** by running `stop.sh --keep-db --quiet` (`stop.bat --keep-db --quiet`; owner request, D73 amended): stale BayFlow processes are stopped and **any other program listening on 3000/4000 is stopped too and named in the output**; Docker/VM/SSH port forwarders are never killed — then the port stays busy, the stop script names its holder and exits 1, and start stops with a message. 3. `docker compose up -d --wait --wait-timeout 90 db` (host port `POSTGRES_HOST_PORT`, default 5434). 4. In `apps/api`: `uv run alembic upgrade head`, then **always** `uv run python -m app.scripts.seed` (D73, amended) — the seed acts only when `SEED_ON_DEPLOY=true`, which `.env.example` sets for local development, so a fresh database gets the demo cast (D13, D60) and later runs only repair it; with `--seed` the script passes `--force`, which seeds whatever the flag says. 5. Starts the API (`uv run uvicorn app.main:app --host 0.0.0.0 --port 4000 --reload`) and the web app (`pnpm dev` with `PORT=3000`): `start.sh` runs each in its own process group (`setsid`, or `set -m` + `nohup` on macOS) with output in `logs/api.log` / `logs/web.log` and PIDs in **`.run/pids`** (`name pid port` lines) **plus `.run/api.pid` and `.run/web.pid`**; `start.bat` opens two minimized windows titled "BayFlow API" / "BayFlow Web" (output in `logs\*.log`). 6. Waits for `GET http://localhost:4000/health` → 2xx (90 s) and any answer from `http://localhost:3000` (180 s / 120 tries on Windows); on failure it shows the last log lines and runs the stop script. `start.bat` then records the **listening** PIDs in `.run\api.pid` / `.run\web.pid`. 7. Prints the URLs (web, Swagger `/docs`, `/health`, Mailpit when running, PostgreSQL, logs); unless `--detach`, `start.sh` streams both logs with `[api]` / `[web]` prefixes and **Ctrl+C** (or SIGTERM / a closed terminal) runs `./stop.sh`, while `start.bat` waits for a key press and then runs `stop.bat`. Flags: `--detach`, `--seed`, `--no-install`, `--help`. |
+| `stop.sh` / `stop.bat` | 1. Sends SIGTERM to the process groups recorded in `.run/pids`, `.run/api.pid` and `.run/web.pid` — only when the PID still runs inside the repo and looks like the service (guarded against PID reuse; `stop.bat` checks for python, uv, uvicorn or node and also closes the "BayFlow API" / "BayFlow Web" windows) — waits up to 10 s, then SIGKILLs stragglers. 2. Stops BayFlow's own Docker `api`/`web` containers if they run (`docker compose up` publishes 3000/4000). 3. **Port backstop:** stops whatever still listens on 4000/3000 — never a Docker/VM/SSH port forwarder (`docker*`, `com.docker*`, `vpnkit`, `rootlesskit`, `slirp4netns`, `gvproxy`, `limactl`, `qemu*`, OrbStack, `ssh`, `sshd`; on Windows `com.docker*`, `wslrelay.exe`, `vpnkit.exe`, `dockerd.exe`, `docker-proxy.exe` and the System process). With `--bayflow-only` only processes running inside this repository are stopped here (`stop.bat`: whose command line contains this folder). 4. **Pattern backstop** (`stop.sh` only): leftover `uvicorn app.main:app`, `next dev` and `next-server` processes of this repo — matched by a fixed-string command line **and** a real server executable (`node`, `next-server*`, `python*`, `uvicorn`, `uv`; never a shell, editor or grep) **and** a working directory inside the repo — and **never** the script itself or one of its ancestors (so the shell or terminal that ran it is safe). 5. Removes the Next.js dev lock (`apps/web/.next/dev`, `apps/web/.next/lock`) and the PID files. 6. `docker compose stop db` unless `--keep-db` (the container stops; the `pgdata` volume and its data are kept). 7. Verifies that 3000 and 4000 are free; otherwise names the holder and exits 1. Flags: `--keep-db`, `--quiet`, `--bayflow-only`, `--help`. No `set -e`: cleanup continues when a step fails; safe to run twice. |
 
 `logs/` and `.run/` are git-ignored. `docker compose down` (or `make down`) also removes the stopped containers; the data volume survives both.
 
@@ -436,7 +509,8 @@ make setup        # uv sync (apps/api) + pnpm install (apps/web) + git hooks
 Recipes are indented with **tab** characters (GNU Make).
 
 ```make
-# BayFlow developer commands (GNU Make). Run `make` or `make help`.
+# BayFlow developer commands (GNU Make; spec 07). Run `make` or `make help`.
+# Windows without GNU Make: use start.bat / stop.bat, WSL2, or `docker compose up --build`.
 SHELL := /bin/bash
 .DEFAULT_GOAL := help
 LOAD_ENV := set -a; [ -f .env ] && . ./.env; set +a;
@@ -450,7 +524,11 @@ setup: ## First run: create .env, install API + web dependencies, install git ho
 	@[ -f .env ] || cp .env.example .env
 	cd apps/api && uv sync
 	cd apps/web && pnpm install
-	uvx pre-commit install
+	@if [ -f .pre-commit-config.yaml ] && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then \
+	  uvx pre-commit install; \
+	else \
+	  echo "setup: git hooks skipped (no .pre-commit-config.yaml or not a git repository)"; \
+	fi
 
 up: ## Everything in Docker: PostgreSQL, migrate + seed, API :4000, web :3000
 	docker compose up --build
@@ -464,7 +542,7 @@ db-up: ## Start only PostgreSQL in Docker and wait until it is healthy
 migrate: ## Apply Alembic migrations to DATABASE_URL
 	cd apps/api && uv run alembic upgrade head
 
-seed: ## Load the demo data (idempotent)
+seed: ## Load the demo data (idempotent; repairs the demo cast)
 	cd apps/api && uv run python -m app.scripts.seed --force
 
 db-reset: ## Wipe the LOCAL Docker database, then migrate and seed (refuses production / non-local URLs)
@@ -473,11 +551,11 @@ db-reset: ## Wipe the LOCAL Docker database, then migrate and seed (refuses prod
 	if [ "$$app_env" = production ]; then \
 	  echo "db-reset refused: APP_ENV=production" >&2; exit 2; fi; \
 	case "$$db_url" in \
-	  *@localhost:*|*@localhost/*|*@127.0.0.1:*|*@127.0.0.1/*|*@db:*|*@db/*) ;; \
-	  *) echo "db-reset refused: DATABASE_URL is not a local database (localhost, 127.0.0.1 or db)" >&2; exit 2 ;; \
+	  *@localhost:*|*@localhost/*|*@127.0.0.1:*|*@127.0.0.1/*|*@\[::1\]:*|*@\[::1\]/*|*@db:*|*@db/*) ;; \
+	  *) echo "db-reset refused: DATABASE_URL is not a local database (localhost, 127.0.0.1, ::1 or db)" >&2; exit 2 ;; \
 	esac
 	docker compose up -d --wait db
-	docker compose exec db psql -U bayflow -d bayflow -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+	docker compose exec -T db psql -U bayflow -d bayflow -v ON_ERROR_STOP=1 -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
 	$(MAKE) migrate seed
 
 api: ## API with auto-reload on http://localhost:4000 (Swagger at /docs)
@@ -486,7 +564,7 @@ api: ## API with auto-reload on http://localhost:4000 (Swagger at /docs)
 web: ## Web with hot reload on http://localhost:3000 (reads the root .env)
 	$(LOAD_ENV) cd apps/web && PORT=3000 pnpm dev
 
-dev: db-up migrate seed ## PostgreSQL in Docker + API and web locally
+dev: db-up migrate seed ## PostgreSQL in Docker + API and web locally (Ctrl+C stops both)
 	$(MAKE) -j2 api web
 
 test: db-up ## API tests (pytest on real PostgreSQL) + web unit tests (vitest)
@@ -501,18 +579,18 @@ fmt: ## Auto-fix lint findings and format all code
 	cd apps/api && uv run ruff check --fix . && uv run ruff format .
 	cd apps/web && pnpm format
 
-gen-api: ## Regenerate openapi.json (API export), then schema.d.ts (web script api:types) — D76
+gen-api: ## Regenerate openapi.json (API export), then schema.d.ts (web script api:types) - D76
 	cd apps/api && uv run python -m app.scripts.export_openapi ../web/src/lib/api/openapi.json
 	cd apps/web && pnpm api:types
 
-smoke: ## Post-deploy smoke test: make smoke WEB_URL=https://… API_URL=https://…
+smoke: ## Post-deploy smoke test: make smoke WEB_URL=https://... API_URL=https://...
 	WEB_URL="$(WEB_URL)" API_URL="$(API_URL)" ./scripts/smoke.sh
 ```
 
-- `uv run` keeps the virtualenv in sync before running; `uvx` runs a tool such as `pre-commit` without installing it into the project ([uv CLI](https://docs.astral.sh/uv/reference/cli/)).
-- **`db-reset` guard:** before anything is dropped, the recipe resolves `APP_ENV` and `DATABASE_URL` the way the API does (a real environment variable wins over the root `.env`) and exits with code **2** when `APP_ENV=production` or when `DATABASE_URL` does not point at `localhost`, `127.0.0.1` or `db` (a missing URL is refused too). The `DROP SCHEMA` itself always runs inside the local Compose `db` container; the guard stops the follow-up `migrate` / `seed` from touching a remote database.
+- `uv run` keeps the virtualenv in sync before running; `uvx` runs a tool such as `pre-commit` without installing it into the project ([uv CLI](https://docs.astral.sh/uv/reference/cli/)). `make setup` installs the git hooks only when `.pre-commit-config.yaml` exists and the folder is a git work tree (otherwise it says so and carries on).
+- **`db-reset` guard:** before anything is dropped, the recipe resolves `APP_ENV` and `DATABASE_URL` the way the API does (a real environment variable wins over the root `.env`) and exits with code **2** when `APP_ENV=production` or when `DATABASE_URL` does not point at `localhost`, `127.0.0.1`, `[::1]` or `db` (a missing URL is refused too). The `DROP SCHEMA` itself always runs inside the local Compose `db` container, through `docker compose exec -T` (no TTY, so it also works from scripts) with `psql -v ON_ERROR_STOP=1`; the guard stops the follow-up `migrate` / `seed` from touching a remote database.
 - **`gen-api` (D76):** `python -m app.scripts.export_openapi` writes `apps/web/src/lib/api/openapi.json` (its default path; the explicit argument above is the same file) as `app.openapi()` ([FastAPI](https://fastapi.tiangolo.com/how-to/extending-openapi/)) JSON with sorted keys and a trailing newline — `info.version` is a fixed string (never a Git SHA or a date), so the file only changes when the API contract changes. Then the web script `api:types` = `openapi-typescript src/lib/api/openapi.json -o src/lib/api/schema.d.ts` (CLI form `openapi-typescript <schema> -o <file>`, [openapi-ts.dev](https://openapi-ts.dev/introduction)). Both files are committed; CI fails if regenerating changes either (D50, D76).
-- `apps/web/package.json` scripts used above: `dev` = `next dev -p 3000`, `build` = `next build`, `start` = `next start -p 3000`, `lint` = `eslint . --max-warnings 0` (D80: a warning fails `make lint` and CI like an error; Next.js 16 removed `next lint`, and `next build` no longer lints — [Next.js 16 upgrade guide](https://nextjs.org/docs/app/guides/upgrading/version-16)), `typecheck` = `next typegen && tsc --noEmit` (D80: route types are generated before type-checking, the form recommended in the [next CLI docs](https://nextjs.org/docs/app/api-reference/cli/next)), `format` / `format:check` = `prettier --write .` / `prettier --check .`, `test` = `vitest run`, `api:types` (above). Toolchain pins per D11: TypeScript **5.9.3** and ESLint **9.39.x**, not the npm `latest` majors (7.x / 10.x), because `openapi-typescript` 7.13 requires `typescript ^5.x`, `typescript-eslint` 8.71 requires `<6.1.0`, and the plugins pulled in by `eslint-config-next` 16.4 declare peer `eslint` up to `^9` only. Generated files under `src/lib/api/` are listed in `.prettierignore` and ignored by ESLint.
+- `apps/web/package.json` scripts used above: `dev` = `next dev --port 3000`, `build` = `next build`, `start` = `next start --port 3000`, `lint` = `eslint . --max-warnings 0` (D80: a warning fails `make lint` and CI like an error; Next.js 16 removed `next lint`, and `next build` no longer lints — [Next.js 16 upgrade guide](https://nextjs.org/docs/app/guides/upgrading/version-16)), `typecheck` = `next typegen && tsc --noEmit` (D80: route types are generated before type-checking, the form recommended in the [next CLI docs](https://nextjs.org/docs/app/api-reference/cli/next)), `format` / `format:check` = `prettier --write .` / `prettier --check .`, `test` = `vitest run`, `test:watch` = `vitest`, `api:types` (above). `"engines": {"node": "24.x"}` and `"packageManager": "pnpm@10.34.6"` pin the runtime and the package manager (D1, D5). Toolchain pins per D11: TypeScript **5.9.3** and ESLint **9.39.x**, not the npm `latest` majors (7.x / 10.x), because `openapi-typescript` 7.13 requires `typescript ^5.x`, `typescript-eslint` 8.71 requires `<6.1.0`, and the plugins pulled in by `eslint-config-next` 16.4 declare peer `eslint` up to `^9` only. Generated files under `src/lib/api/` are listed in `.prettierignore` and ignored by ESLint.
 
 ### How environment files are loaded
 
@@ -520,15 +598,15 @@ There is **one** local configuration file: the root `.env`, copied from `.env.ex
 
 | Process | Reads its variables from | Mechanism |
 |---|---|---|
-| API, Alembic, seed, OpenAPI export (native, run from `apps/api`) | root `.env` | pydantic-settings `env_file=("../../.env", ".env")`; real environment variables win; missing files are skipped (spec 01) |
-| Docker Compose | root `.env` | automatic `${…}` interpolation (incl. the compose-only `POSTGRES_HOST_PORT`); `env_file: .env` for `migrate`, `api`, `agent`; `environment:` overrides (`DATABASE_URL` host `db`, `PORT`) win over `env_file` |
-| `start.sh` / `start.bat` (D73) | root `.env` | the API reads it through pydantic-settings as above; `start.sh` exports it for the web process like `make web` does (with `PORT=3000`); `start.bat` starts the web app with the dev defaults below |
+| API, Alembic, seed, OpenAPI export (native) | root `.env` | pydantic-settings with `env_file` = the repo-root `.env` **resolved from `app/core/config.py`'s location**, never from the working directory (D84, spec 01), so it does not matter where the command is started; real environment variables win; a missing file is skipped |
+| Docker Compose | root `.env` | automatic `${…}` interpolation (incl. the compose-only `POSTGRES_HOST_PORT`); `env_file` (`- path: .env`, `required: false`; Compose ≥ 2.24) for `migrate`, `api`, `agent`; `environment:` overrides (`DATABASE_URL` host `db`, `PORT`) win over `env_file` |
+| `start.sh` / `start.bat` (D73) | root `.env` | the API reads it through pydantic-settings as above; both scripts also load it into their own environment, so the web process inherits it, with `PORT=3000` (`start.sh`: `set -a; . ./.env; set +a`, through a CR-free copy if the file has Windows line endings; `start.bat`: one `set` per `KEY=value` line) |
 | Web via `make web` / `make dev` | root `.env` | the Makefile exports it into the process (`set -a; . ./.env; set +a`). Next.js looks up `process.env` **first**, then `.env.$(NODE_ENV).local`, `.env.local`, `.env.$(NODE_ENV)`, `.env` in `apps/web` ([Next.js env vars](https://nextjs.org/docs/app/guides/environment-variables)) |
 | Web via `pnpm dev` inside `apps/web` | `apps/web/.env.local` (optional, git-ignored) | Next.js's own loading; without it the dev defaults in `next.config.ts` and the realtime client (`http://localhost:4000`, `ws://localhost:4000/api/v1/ws`) apply |
 | Web on Vercel | Vercel project variables | build time (rewrites, `NEXT_PUBLIC_*`) and runtime |
 | API / agent on Railway | Railway service and shared variables | no `.env` file exists in the images (`.dockerignore`) |
 
-**Port collision:** the root `.env` sets `PORT=4000` for the API, and `next dev` also honours `PORT` ("Default: 3000, env: PORT" — next CLI docs). The `web` target therefore sets `PORT=3000` and the `dev` script passes `-p 3000`.
+**Port collision:** the root `.env` sets `PORT=4000` for the API, and `next dev` also honours `PORT` ("Default: 3000, env: PORT" — next CLI docs). The `web` target and both start scripts therefore set `PORT=3000`, and the `dev` script passes `--port 3000`.
 
 **`.env` format rules** (so make/shell, Docker Compose, python-dotenv and Next.js read it the same way): one `KEY=value` per line; comments only on their **own line** starting with `#` (no inline comments); quote values containing spaces with double quotes; no `$` or backticks in values; generate secrets with `python -c "import secrets; print(secrets.token_urlsafe(48))"` (URL-safe characters only).
 
@@ -537,11 +615,30 @@ There is **one** local configuration file: the root `.env`, copied from `.env.ex
 `.github/workflows/ci.yml`:
 
 ```yaml
+# BayFlow CI — the four required checks of spec 07 (§CI/CD) and spec 12 (§6): api, web, contract, secrets.
+# Railway's "Wait for CI" needs a workflow triggered by `push` on main (spec 07).
+#
+# Action versions and inputs, verified on GitHub on 2026-10-09 (releases API + action.yml/README at the tag):
+#   actions/checkout          v7.0.1  https://github.com/actions/checkout/releases/tag/v7.0.1
+#                                     input fetch-depth (action.yml at v7.0.1)
+#   actions/setup-node        v7.1.0  https://github.com/actions/setup-node/releases/tag/v7.1.0
+#                                     inputs node-version, cache, cache-dependency-path (action.yml at v7.1.0)
+#   pnpm/action-setup         v6.1.0  https://github.com/pnpm/action-setup/releases/tag/v6.1.0
+#                                     input package_json_file: path relative to the repo root; without `version`
+#                                     the action reads "packageManager" (pnpm@10.34.6 in apps/web/package.json, D1/D5).
+#                                     pnpm/setup@v3 is not usable: it installs pnpm 11+ only (its README; spec 12 §6).
+#   astral-sh/setup-uv        v10.2.0 https://github.com/astral-sh/setup-uv/releases/tag/v10.2.0
+#                                     inputs version, python-version, enable-cache, working-directory (README at v10.2.0).
+#                                     setup-uv publishes no moving major tags since v8 (`@v10` does not resolve), so it is
+#                                     pinned to the commit of v10.2.0, the form its README uses.
+#   gitleaks/gitleaks-action  v3.0.0  https://github.com/gitleaks/gitleaks-action/releases/tag/v3.0.0
+#                                     env GITHUB_TOKEN, GITLEAKS_LICENSE (organisation-owned repos only), GITLEAKS_ENABLE_COMMENTS
+#   uv 0.12.24 (latest release)       https://github.com/astral-sh/uv/releases/tag/0.12.24
 name: ci
 
 on:
   push:
-    branches: [main]          # Railway "Wait for CI" needs a push trigger on main
+    branches: [main] # Railway "Wait for CI" needs a push trigger on main
   pull_request:
 
 concurrency:
@@ -553,17 +650,20 @@ permissions:
 
 env:
   UV_VERSION: "0.12.24"
+  PYTHON_VERSION: "3.12"
+  NODE_VERSION: "24"
 
 jobs:
   api:
-    name: api · lint, format, types, architecture, tests
+    name: api · lint, format, types, architecture, tests, migrations
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: apps/api
     services:
       postgres:
-        image: postgres:16    # same major as Railway (D12)
+        image: postgres:16 # same major as Railway and docker-compose.yml (D12)
         env:
           POSTGRES_USER: bayflow
           POSTGRES_PASSWORD: bayflow
@@ -571,22 +671,22 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "pg_isready -U bayflow -d bayflow"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
     env:
       APP_ENV: development
-      DATABASE_URL: postgresql://bayflow:bayflow@localhost:5432/bayflow   # the CI service container (D73's 5434 is for developer machines)
-      JWT_SECRET: ci-placeholder-not-a-real-secret-value   # letters and hyphens only: gitleaks allowlists it
+      DATABASE_URL: postgresql://bayflow:bayflow@localhost:5432/bayflow # the CI service container (5434 is for developer machines, D73)
+      JWT_SECRET: ci-placeholder-not-a-real-secret-value # letters and hyphens only: gitleaks allowlists it
       COOKIE_SECURE: "false"
       CLIENT_URL: http://localhost:3000
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
           version: ${{ env.UV_VERSION }}
-          python-version: "3.12"
+          python-version: ${{ env.PYTHON_VERSION }}
           enable-cache: true
           working-directory: apps/api
       - run: uv sync --locked
@@ -594,13 +694,16 @@ jobs:
       - run: uv run ruff format --check .
       - run: uv run mypy app
       - run: uv run lint-imports
-      - run: uv run pytest
-      - run: uv run alembic upgrade head   # migrations apply cleanly to the empty `bayflow` database (tests use bayflow_test)
-      - run: uv run alembic check          # models and migrations agree (spec 12 §6 gate)
+      - run: uv run pytest --cov=app --cov-report=term-missing # coverage is reported, not enforced (spec 12 §6)
+      - run: uv run alembic upgrade head # migrations apply cleanly to the empty `bayflow` database (tests use bayflow_test)
+      - run: uv run alembic check # models and migrations agree (spec 12 §6 gate; needs the database at head)
+      # P1 gates from spec 12 §6, to add once the code exists: migration round-trip
+      # (`alembic downgrade base && alembic upgrade head`) and 100 % branch coverage of the bookings domain.
 
   web:
     name: web · lint, types, format, unit tests, build
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: apps/web
@@ -610,17 +713,17 @@ jobs:
       NEXT_TELEMETRY_DISABLED: "1"
     steps:
       - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6         # supports pnpm <= 12; no `version` → reads "packageManager"
+      - uses: pnpm/action-setup@v6 # no `version`: pnpm comes from "packageManager" only, so the two never disagree
         with:
-          package_json_file: apps/web/package.json   # relative to the repo root; no root package.json (D5)
+          package_json_file: apps/web/package.json # relative to the repo root; there is no root package.json (D5)
       - uses: actions/setup-node@v7
         with:
-          node-version: 24
-          cache: pnpm                       # pnpm must already be installed (step above)
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm # pnpm must already be installed (step above)
           cache-dependency-path: apps/web/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
-      - run: pnpm lint
-      - run: pnpm typecheck
+      - run: pnpm lint # eslint . --max-warnings 0 (D80)
+      - run: pnpm typecheck # next typegen && tsc --noEmit (D80)
       - run: pnpm format:check
       - run: pnpm test
       - run: pnpm build
@@ -628,15 +731,17 @@ jobs:
   contract:
     name: contract · OpenAPI ↔ generated TypeScript client
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     env:
-      DATABASE_URL: postgresql://unused:unused@localhost:5432/unused   # export never connects
+      APP_ENV: development
+      DATABASE_URL: postgresql://unused:unused@localhost:5432/unused # the export never connects
       JWT_SECRET: ci-placeholder-not-a-real-secret-value
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
           version: ${{ env.UV_VERSION }}
-          python-version: "3.12"
+          python-version: ${{ env.PYTHON_VERSION }}
           enable-cache: true
           working-directory: apps/api
       - uses: pnpm/action-setup@v6
@@ -644,40 +749,53 @@ jobs:
           package_json_file: apps/web/package.json
       - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
           cache-dependency-path: apps/web/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
         working-directory: apps/web
       - run: uv sync --locked
         working-directory: apps/api
-      - run: make gen-api                  # export_openapi → openapi.json, then pnpm api:types → schema.d.ts (D76)
-      - name: Both generated files are committed and current (D76)
+      - run: make gen-api # export_openapi -> openapi.json, then pnpm api:types -> schema.d.ts (D76)
+      - name: Both generated files are committed and current (D76, WEB-07)
         run: |
-          changes="$(git status --porcelain -- apps/web/src/lib/api/openapi.json apps/web/src/lib/api/schema.d.ts)"
-          [ -z "$changes" ] || { echo "$changes"; echo "::error::run make gen-api and commit both files"; exit 1; }
+          changes="$(git status --porcelain -- apps/web/src/lib/api)"
+          if [ -n "$changes" ]; then
+            echo "$changes"
+            git --no-pager diff --stat -- apps/web/src/lib/api
+            echo "::error::apps/web/src/lib/api is stale: run 'make gen-api' and commit openapi.json and schema.d.ts"
+            exit 1
+          fi
 
   secrets:
     name: secrets · gitleaks
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: read # on pull_request events gitleaks-action lists the PR's commits through the API
     steps:
       - uses: actions/checkout@v7
         with:
-          fetch-depth: 0
+          fetch-depth: 0 # full history: every commit is scanned
       - uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}   # free key, needed only for organisation-owned repos
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }} # free key, needed only for organisation-owned repos
+          GITLEAKS_ENABLE_COMMENTS: "false" # PR review comments would need pull-requests: write
 ```
 
 Sources for the building blocks:
 
 - Postgres service container with `pg_isready` health options, reached on `localhost` when the job runs on the runner ([GitHub docs](https://docs.github.com/en/actions/tutorials/use-containerized-services/create-postgresql-service-containers)).
-- `astral-sh/setup-uv` with a pinned uv version, `python-version`, `enable-cache` ([uv GitHub integration](https://docs.astral.sh/uv/guides/integration/github/)); latest releases on 2026-10-09 (GitHub releases API): `actions/checkout` v7.0.1, `astral-sh/setup-uv` v10.2.0, `pnpm/action-setup` v6.1.0, `actions/setup-node` v7.1.0, `gitleaks/gitleaks-action` v3.0.0.
+- `astral-sh/setup-uv` with a pinned uv version, `python-version`, `enable-cache` ([uv GitHub integration](https://docs.astral.sh/uv/guides/integration/github/)); latest releases on 2026-10-09 (GitHub releases API): `actions/checkout` v7.0.1, `astral-sh/setup-uv` v10.2.0, `pnpm/action-setup` v6.1.0, `actions/setup-node` v7.1.0, `gitleaks/gitleaks-action` v3.0.0. **`setup-uv` is pinned to the commit SHA of v10.2.0** (`c18668ad3cf93ea998bef934396af7bb5c839dc7`): it has published no moving major tags since v8, so `@v10` does not resolve; the SHA form is the one its README uses. The other actions use their major tags.
+- **`api` job as built:** `uv run pytest --cov=app --cov-report=term-missing` — coverage is reported, not enforced (the domain gate is P1, spec 12 §6); the pytest run already includes the migration round trip on `bayflow_test` (`tests/db/test_migrations.py`: `downgrade base` → `upgrade head` → `check`, spec 02 §9); then `alembic upgrade head` and `alembic check` on the empty `bayflow` database. Jobs have timeouts (api and web 20 min, contract 15, secrets 10).
+- **`contract` drift check as built:** after `make gen-api` it runs `git status --porcelain -- apps/web/src/lib/api` and fails on any output — unlike `git diff --exit-code`, this also catches a generated file that is new and not yet committed — printing `git diff --stat` and an `::error::` that says to run `make gen-api` and commit both files.
+- **`secrets` job permissions:** `contents: read` plus **`pull-requests: read`**, because on `pull_request` events gitleaks-action lists the PR's commits through the GitHub API; `GITLEAKS_ENABLE_COMMENTS: "false"`, since PR review comments would need `pull-requests: write`.
 - **pnpm 10.34.6 in CI.** `pnpm/setup` is **not** used: it requires pnpm v11 or newer, while D1 pins pnpm 10 because Vercel builds support pnpm 6–10. The official `pnpm/action-setup@v6` supports pnpm v12 and earlier; when its `version` input is omitted it reads the version from `packageManager` (or `devEngines.packageManager`) in the file named by `package_json_file` — a path relative to the repository root, here `apps/web/package.json` because there is no root manifest (D5) ([pnpm/action-setup README and action.yml](https://github.com/pnpm/action-setup)). `actions/setup-node@v7` then installs Node 24 and caches the pnpm store: `cache: pnpm` needs pnpm installed first, and `cache-dependency-path` points at the app's lockfile because the default search is the repo root ([actions/setup-node](https://github.com/actions/setup-node)). `pnpm install --frozen-lockfile` fails when the lockfile is out of date ([pnpm CI docs](https://pnpm.io/continuous-integration)).
 - `alembic check` (Alembic ≥ 1.9) fails when autogenerate would produce new operations, i.e. when models and migrations disagree; it needs a database at `head`, hence the `upgrade head` step before it (spec 12 §6).
 - gitleaks-action needs a free `GITLEAKS_LICENSE` only for repositories owned by an organization ([gitleaks-action](https://github.com/gitleaks/gitleaks-action)).
-- **Placeholder secrets stay scan-clean:** gitleaks's `generic-api-key` rule flags keyword-assigned values with entropy above 3.5 but allowlists values made only of letters, `_`, `.` and `-` (`^[a-zA-Z_.-]+$` — [gitleaks default config v8.30.1](https://github.com/gitleaks/gitleaks/blob/v8.30.1/config/gitleaks.toml)). Every placeholder in `.env.example`, CI and tests therefore uses letters and hyphens only (e.g. `local-dev-secret-replace-me-with-random-chars`, 45 characters, so it also passes the ≥ 32-byte rule in development); a digit-laden dummy such as `secret-0123abcd…` would fail our own `secrets` job. Production refuses every repository placeholder anyway (glossary §12).
+- **Placeholder secrets stay scan-clean:** gitleaks's `generic-api-key` rule flags keyword-assigned values with entropy above 3.5 but allowlists values made only of letters, `_`, `.` and `-` (`^[a-zA-Z_.-]+$` — [gitleaks default config v8.30.1](https://github.com/gitleaks/gitleaks/blob/v8.30.1/config/gitleaks.toml)). Every placeholder in `.env.example`, CI and tests therefore uses letters and hyphens only (e.g. `local-dev-secret-replace-me-with-random-chars`, 45 characters, so it also passes the ≥ 32-byte rule in development); a digit-laden dummy such as `secret-0123abcd…` would fail our own `secrets` job. Production refuses every repository placeholder anyway (glossary §12): D85 rejects any `JWT_SECRET` **containing** `change-me`, `replace-me`, `dev-only` or `placeholder`, which covers `.env.example`'s value, CI's `ci-placeholder-not-a-real-secret-value` and the API's built-in development secret (`dev-only-…`), whatever their length.
 - Test-database handling (a `<db>_test` database derived from `DATABASE_URL`, migrated with Alembic) and the full test list belong to spec 12. A Playwright smoke job is P1 (D54).
 
 **Branch protection on `main`:** require the `api`, `web`, `contract` and `secrets` checks and one review; block force-pushes.
@@ -700,15 +818,15 @@ Exactly the variables of glossary §12 — no more, no fewer (33). "Prod" = wher
 | `CLIENT_URL` | api | yes | `http://localhost:3000` | Railway `api`: `https://<project>.vercel.app` | Web origin: CORS, WebSocket `Origin` check, links in e-mails |
 | `DATABASE_URL` | api | yes | `postgresql://bayflow:bayflow@localhost:5434/bayflow` | Railway `api`: `${{Postgres.DATABASE_URL}}` | PostgreSQL 16 URL; the API converts it to `postgresql+asyncpg://` |
 | `POSTGRES_HOST_PORT` | docker compose only | no (default `5434`) | `5434` | — (not used on Railway) | Host port of the local PostgreSQL container (D73); keep `DATABASE_URL`'s port equal |
-| `JWT_SECRET` | api | yes | `local-dev-secret-replace-me-with-random-chars` | Railway `api` (sealed): 48+ random characters | HS256 signing secret, at least 32 bytes; **production refuses to start** with a shorter value or a repository placeholder |
-| `JWT_EXPIRES_IN` | api | no (default `7d`) | `7d` | Railway `api` | Token lifetime: a number followed by `m`, `h` or `d` |
-| `COOKIE_SECURE` | api | no (default `true`) | `false` | Railway `api`: `true` | `Secure` flag of `bf_session`; `false` only for plain-HTTP localhost |
+| `JWT_SECRET` | api | yes | `local-dev-secret-replace-me-with-random-chars` | Railway `api` (sealed): 48+ random characters | HS256 signing secret, at least 32 bytes; **production refuses to start** with a missing or shorter value or one containing a placeholder marker (`change-me`, `replace-me`, `dev-only`, `placeholder`; D85). Development without it falls back to a built-in `dev-only-…` secret and logs a warning |
+| `JWT_EXPIRES_IN` | api | no (default `7d`) | `7d` | Railway `api` | Token lifetime: a number followed by `s`, `m`, `h` or `d` (a bare number = seconds), between 5 minutes and 30 days, else the API refuses to start |
+| `COOKIE_SECURE` | api | no (default `false`, for plain-HTTP localhost) | `false` | Railway `api`: `true` (production refuses `false`) | `Secure` flag of `bf_session`; `false` only for plain-HTTP localhost |
 | `LOG_LEVEL` | api, agent | no (default `INFO`) | `INFO` | Railway `api`, `agent` | Log level of the JSON logs |
 | `SEED_ON_DEPLOY` | api | no (default `false`) | `true` | Railway `api`: `true` | `true` → `python -m app.scripts.seed` loads the idempotent demo data and repairs the demo cast after migrations (pre-deploy, Compose `migrate`, `start.*`); otherwise it exits 0 at once (D13, D60) |
 | `EMAIL_PROVIDER` | api | no (default `none`) | `none` (`smtp` with Mailpit) | Railway `api`: `http` (P1; `none` until an e-mail API account exists) | E-mail channel (D26): `none`, `smtp` (local Mailpit) or `http` (HTTPS e-mail API — Railway Hobby blocks outbound SMTP) |
 | `EMAIL_API_KEY` | api | with `EMAIL_PROVIDER=http` | blank | Railway `api` (sealed) | API key of the HTTPS e-mail service (vendor not fixed, e.g. Resend) |
 | `SMTP_HOST` | api | with `EMAIL_PROVIDER=smtp` | blank (`localhost` or `mailpit` with Mailpit) | blank | SMTP server |
-| `SMTP_PORT` | api | no (default `1025`) | `1025` | blank | SMTP port (Mailpit 1025) |
+| `SMTP_PORT` | api | no (code default `587`; `.env.example` sets `1025`) | `1025` | blank | SMTP port (Mailpit 1025) |
 | `SMTP_USER` | api | no | blank | blank | SMTP username |
 | `SMTP_PASS` | api | no | blank | blank | SMTP password |
 | `SMTP_FROM` | api | when e-mail is on | `no-reply@bayflow.test` | Railway `api`: an address on a domain the e-mail service has verified | Sender address for both `smtp` and `http` |
@@ -739,6 +857,7 @@ Brief §9.3 asks for every variable with a placeholder and a short comment; the 
 # =====================================================================
 # BayFlow example environment. Copy it to `.env` in the repo root:
 #     cp .env.example .env
+# (./start.sh and start.bat create `.env` from this file on their first run.)
 # Never commit `.env`. Comments sit on their own line (no inline
 # comments). Quote values that contain spaces. Do not use `$` in values.
 # Production values live in Railway (api, agent) and Vercel (web);
@@ -826,7 +945,7 @@ API_INTERNAL_URL=http://localhost:4000
 
 ## README outline
 
-The README is written last but **planned now**, so each requirement has an owner. Mapping to the brief:
+The README is written last but **planned now**, so each requirement has an owner. **As built (2026-10-09)** the root `README.md` follows this skeleton with sections 1–18 (the header is unnumbered; 17 Specs and 18 Troubleshooting are additions); sections that depend on unbuilt features carry "_to be completed_" and are filled as the features land (spec 14). Mapping to the brief:
 
 | Brief requirement | README section |
 |---|---|
@@ -872,26 +991,28 @@ The README is written last but **planned now**, so each requirement has an owner
 
    | Tool | Version | Needed for |
    |---|---|---|
-   | Docker with Compose v2 (`docker compose`) | current Docker Desktop / Engine | Option A, and PostgreSQL in Option B |
+   | Docker with Compose v2 (`docker compose`) | current Docker Desktop / Engine, **Compose 2.24 or newer** (the `env_file` `required: false` form) | Option A, and PostgreSQL in Option B |
    | Python | 3.12.x (`uv python install 3.12` installs it) | API (native) |
    | uv | 0.12.x (CI pins 0.12.24) | API (native) |
    | Node.js | 24 LTS | web (native) |
    | pnpm | 10.34.6 (pinned by `"packageManager"` in `apps/web/package.json`; `corepack enable` provides it) | web (native) |
    | PostgreSQL | 16 (Docker image `postgres:16`; a native 16 also works) | database |
    | GNU Make | any (macOS/Linux; on Windows use `start.bat` / `stop.bat`, WSL2 or Option A) | `make` shortcuts |
-   | curl, jq | any | smoke test only |
+   | curl, jq | any | start scripts (curl); smoke test (curl + jq) |
 
    Free local ports: web **3000**, API **4000**, PostgreSQL **5434** (change with `POSTGRES_HOST_PORT` and `DATABASE_URL` together), Mailpit 8025/1025 (optional) — D73.
 7. **Quick start (Docker)** — `cp .env.example .env` → `docker compose up --build` → open `http://localhost:3000`, log in with a demo account.
 8. **Local development (native)** — per-app installs (`make setup` does the first two): `cd apps/api && uv sync`; `cd apps/web && pnpm install`; bonus `cd apps/agent && uv sync`; then **`./start.sh`** (Windows: `start.bat`) and **`./stop.sh`** (`stop.bat`) — what they do (the seed always runs after migrations and acts when `SEED_ON_DEPLOY=true`, as `.env.example` sets it; `--seed` forces it), where the logs (`logs/`) and PID files (`.run/`) are (D73). Alternatives: `make dev` in the foreground, or the manual commands (`docker compose up -d --wait db`, `uv run alembic upgrade head`, `uv run python -m app.scripts.seed --force`, `uv run uvicorn app.main:app --reload --port 4000`, `pnpm dev`). A `make help` table of all targets.
 9. **Environment variables** — "copy `.env.example` to `.env`; defaults work locally"; the inventory table above, condensed (variable, purpose, local default). Two notes: (a) **`APP_ENV`, not `NODE_ENV`** — the brief's sample uses `NODE_ENV`, but the API is Python and reads `APP_ENV`; `NODE_ENV` belongs to Next.js, which sets it itself (`development` for `next dev`, `production` for every other command — [Next.js env vars](https://nextjs.org/docs/app/guides/environment-variables)), so never put it in `.env`. (b) On Vercel, `API_BASE_URL` and every `NEXT_PUBLIC_*` value are **fixed at build time** — change them, then redeploy.
 10. **Database** — created by Compose (`POSTGRES_DB=bayflow`, host port 5434) or `createdb bayflow` for a native server; `make migrate`; `make seed` (what the seed contains, spec 11; re-running it repairs the demo cast, D60); `make db-reset` (local only: refuses `APP_ENV=production` or a non-local `DATABASE_URL` with exit code 2).
-11. **Tests** — `make test` (pytest on PostgreSQL: state machine incl. every invalid transition, role and tenant isolation, concurrency — QC pick and last slot, the worked example end to end incl. QC-fail loop and estimate-rejected path; vitest for the web), `make lint`, what CI runs.
+11. **Tests** — `make test` (pytest on PostgreSQL: state machine incl. every invalid transition, role and tenant isolation, concurrency — QC pick and last slot, the worked example end to end incl. QC-fail loop and estimate-rejected path; vitest for the web), `uv run pytest -m "not db"` for the DB-free tests (no PostgreSQL needed), `make lint`, what CI runs (spec 12 §4.7).
 12. **API documentation** — Swagger UI at `/docs` (use **Authorize** with the `access_token` returned by `POST /api/v1/auth/login`, whose body is `{access_token, token_type, expires_in, user}`; memberships and capabilities come from `GET /api/v1/me`, D81), raw schema at `/openapi.json`, typed client generated with `make gen-api`.
 13. **Demo video** — link placeholder.
 14. **Deployment** — Vercel (web, root `apps/web`, build-time `API_BASE_URL` and `NEXT_PUBLIC_WS_URL`) + Railway (`api` with the pre-deploy command `/bin/sh -c "alembic upgrade head && python -m app.scripts.seed"` and `/health`, `Postgres` 16, bonus `agent`); production e-mail via `EMAIL_PROVIDER=http` because Railway Hobby has no outbound SMTP; every API response is `Cache-Control: no-store` (D61); `make smoke`; link to this spec.
 15. **Design decisions** — modular monolith (ADR in spec 01); state machine as data with `allowed_actions`; tenant isolation enforced three times; row locks for QC pick and slots; money as `Decimal`/`numeric(12,2)`, time in UTC with shop timezone; realtime pushes after commit + polling fallback; typed client generated from OpenAPI.
 16. **Contributing** — Conventional Commits, pre-commit hooks, PR checklist (below).
+17. **Specs** — a table linking the `.claude/specs/` files (foundation first: 00, 18, 17, 08).
+18. **Troubleshooting** — busy ports 3000/4000 (and what the start/stop scripts do about them), a taken port 5434, Docker not running, where the logs are, no demo accounts (`SEED_ON_DEPLOY`).
 
 ## Repository standards
 
@@ -902,48 +1023,90 @@ The README is written last but **planned now**, so each requirement has an owner
 - **`.gitignore`** (root):
 
   ```gitignore
-  # secrets — never commit real values
+  # --- Secrets: never commit real values (brief §9.1) ---
   .env
   .env.*
   !.env.example
-  # Python
+
+  # --- Local dev scripts (start.sh / start.bat) ---
+  logs/
+  .run/
+  *.log
+
+  # --- Python (apps/api, apps/agent) ---
   .venv/
+  venv/
   __pycache__/
   *.py[cod]
+  *.egg-info/
   .pytest_cache/
   .mypy_cache/
   .ruff_cache/
   .import_linter_cache/
   .coverage
+  .coverage.*
+  coverage.xml
   htmlcov/
-  # Node / Next.js
+
+  # --- Node / Next.js (apps/web) ---
   node_modules/
+  .pnpm-store/
   .next/
   out/
   next-env.d.ts
   *.tsbuildinfo
+  .eslintcache
   coverage/
   .vercel/
-  # OS / editors / logs
+  playwright-report/
+  test-results/
+  blob-report/
+
+  # --- OS and editors ---
   .DS_Store
+  Thumbs.db
+  ehthumbs.db
+  Desktop.ini
+  $RECYCLE.BIN/
   .idea/
-  *.log
-  # start.sh / start.bat runtime files (D73)
-  logs/
-  .run/
+  *.swp
+  *~
   ```
 
-  `.env.*` also covers `apps/web/.env.local`; Next.js recommends ignoring `next-env.d.ts` (next CLI docs); `.venv/` covers `apps/api/.venv` (D5).
+  `.env.*` also covers `apps/web/.env.local`; Next.js recommends ignoring `next-env.d.ts` (next CLI docs); `.venv/` covers `apps/api/.venv` (D5); `logs/` and `.run/` are the start scripts' runtime folders (D73); the Playwright output folders are ignored ahead of the P1 smoke (WEB-08).
 - **`.gitattributes`** (root, D5):
 
   ```gitattributes
-  *.sh  text eol=lf
+  # Line endings (spec 01 root layout, spec 07 repository standards).
+  # Text files are stored with LF and checked out with LF on every OS, so Prettier/Ruff
+  # (end of line = lf) and the bash scripts behave the same after a Windows checkout.
+  * text=auto eol=lf
+
+  # Shell scripts must keep LF or bash fails with "$'\r': command not found".
+  *.sh text eol=lf
+  .env.example text eol=lf
+  Makefile text eol=lf
+
+  # Windows batch files need CRLF: cmd.exe mis-parses labels and blocks in LF-only files.
   *.bat text eol=crlf
+  *.cmd text eol=crlf
+  *.ps1 text eol=crlf
+
+  # Binary assets: never normalise or diff as text.
+  *.png binary
+  *.jpg binary
+  *.jpeg binary
+  *.gif binary
+  *.ico binary
+  *.webp binary
+  *.pdf binary
+  *.woff binary
+  *.woff2 binary
   ```
 
-  Shell scripts keep LF endings after a Windows checkout (otherwise `bash` fails on `\r`), and `cmd.exe` batch files keep CRLF.
+  Every text file is stored and checked out with LF (so Prettier and Ruff, which expect LF, agree on every OS); shell scripts, `.env.example` and the `Makefile` keep LF after a Windows checkout (otherwise `bash` fails on `\r`), and `cmd.exe` batch files keep CRLF. `.editorconfig` sets the same line endings (CRLF for `*.bat`), UTF-8, 2-space indentation (4 for Python, tabs for the `Makefile`).
 - **Secret scanning:** the gitleaks pre-commit hook (`gitleaks` hook id, [gitleaks](https://github.com/gitleaks/gitleaks)) and the CI `secrets` job; GitHub **push protection** for users is on by default and blocks pushes of secrets to public repositories, and repository-level push protection can be enabled by an admin ([GitHub push protection](https://docs.github.com/en/code-security/secret-scanning/introduction/about-push-protection)) — enable it on day 1. If a secret ever lands in Git, **rotate it**; deleting the commit is not enough.
-- **Pre-commit hooks** — `.pre-commit-config.yaml` (installed by `make setup`):
+- **Pre-commit hooks** — `.pre-commit-config.yaml` (exists since PH0; installed by `make setup`, which skips it outside a git work tree):
 
   ```yaml
   repos:
@@ -982,96 +1145,196 @@ The README is written last but **planned now**, so each requirement has an owner
 
 ## Post-deploy smoke test — `scripts/smoke.sh`
 
-Run after every production deploy: `make smoke WEB_URL=https://<project>.vercel.app API_URL=https://<api>.up.railway.app`. Needs bash, curl and jq. Path prefixes follow glossary §9: public shop routes use the shop **slug** (`/api/v1/public/shops/{shop_slug}`, `/api/v1/public/shops/{shop_slug}/availability?date=YYYY-MM-DD`) and staff routes the shop UUID (D68); free places in a slot are `remaining` (D68), and full slots are omitted. Sub-paths and field names follow spec 03 (§4, §8.3): login returns `{access_token, token_type, expires_in, user}` and memberships come from `GET /api/v1/me` (D81); the public list is a page (`items`, `total`, `limit`); a shop detail has `id` and `services[].id`; availability `slots[].slot_start` and `slots[].remaining`; booking creation returns `account_created` and the booking under `booking` (`booking.id`, `booking.status`); a customer action returns the booking itself (`status`); the ticket is `ticket` / `expires_in` — update the script whenever spec 03 changes them. **Data is written only at the smoke-test shop, Lyallpur Motors (`lyallpur-motors`, spec 11)**, never at Lahore Auto Care, so judges' worked-example stock and slots stay untouched. Demo logins use the shared password `BayFlow@2026` (glossary §14); the throw-away customer's password has the required 12+ characters (D10). Every response that goes through the Vercel rewrite is checked for `Cache-Control: no-store`, and a repeated GET must never come back as `x-vercel-cache: HIT` (D61; header values per [Vercel response headers](https://vercel.com/docs/headers/response-headers)). The script was dry-run (2026-10-09) against a mock of these endpoints with the spec 03 shapes: it passes, and it fails on a missing `no-store`, a cached repeat, a login body without `user` (pre-D81), the old flat booking response, or the old `slots[].start` field.
+Run after every production deploy: `make smoke WEB_URL=https://<project>.vercel.app API_URL=https://<api>.up.railway.app`. Needs bash, curl and jq. Path prefixes follow glossary §9: public shop routes use the shop **slug** (`/api/v1/public/shops/{shop_slug}`, `/api/v1/public/shops/{shop_slug}/availability?date=YYYY-MM-DD`) and staff routes the shop UUID (D68); free places in a slot are `remaining` (D68), and full slots are omitted. Sub-paths and field names follow spec 03 (§4, §8.3): `/health` answers `{"status": "ok", "database": "ok"}` (D84); login returns `{access_token, token_type, expires_in, user}` and memberships come from `GET /api/v1/me` (D81); the public list is a page (`items`, `total`, `limit`); a shop detail has `id` and `services[].id`; availability `slots[].slot_start` and `slots[].remaining`; booking creation answers 201 with `account_created` and the booking under `booking` (`booking.id`, `booking.status`); a customer action answers 200 with the booking itself (`status`); the ticket is `ticket` / `expires_in` — update the script whenever spec 03 changes them. **Data is written only at the smoke-test shop, Lyallpur Motors (`lyallpur-motors`, spec 11)**, never at Lahore Auto Care, so judges' worked-example stock and slots stay untouched; if a step after the booking fails, an exit trap still cancels the smoke booking so it never keeps a slot place. Demo logins use the shared password `BayFlow@2026` (glossary §14); the throw-away customer's password has the required 12+ characters (D10). Coverage: DEP-01 (step 1), DEP-02 (step 2: the landing page answers 200 and the directory lists at least the 6 seeded shops, SEED-01) and DEP-03 (step 3: Bilal's login sets `bf_session` through the rewrite, and `GET /api/v1/me` with that cookie lists his `SERVICE_ADVISOR` membership). Every response that goes through the Vercel rewrite is checked for `Cache-Control: no-store`, and a repeated GET must never come back as `x-vercel-cache: HIT` (D61; header values per [Vercel response headers](https://vercel.com/docs/headers/response-headers)); `/health` must also carry `X-Request-ID` (spec 03 §1.8). Failures print the HTTP status and the problem's `code` and `detail`. The script passes ShellCheck 0.11 and was dry-run (2026-10-09) against a mock of these endpoints with the spec 03 shapes: it passes, skips the ticket on 404, and fails on a missing `no-store`, a ticket 500, a 409 `SLOT_FULL`, a cross-shop leak (cancelling the booking on exit) and the old `slots[].start` field.
+
+**Realtime is P1 (D88).** Step 3's ticket check (`GET /api/v1/realtime/ticket`) needs the P1 realtime layer, which arrives with PH6 (spec 14). While that endpoint answers 404 the script prints a `SKIP` line and goes on, because the 15 s polling (D14) is the P0 path; any other non-200 answer fails. Once PH6 is deployed, run it with `SMOKE_REQUIRE_REALTIME=1` so that a missing ticket endpoint fails too.
+
+**As-built status (2026-10-09).** The committed `scripts/smoke.sh` is the listing below, verbatim. This listing is the contract: change the script and the listing together.
 
 ```bash
 #!/usr/bin/env bash
-# BayFlow post-deploy smoke test.
-# Side effects: creates one throw-away customer (smoke+<epoch>@bayflow.test — a reserved .test address,
-# never e-mailed, D26) and one booking at the smoke-test shop Lyallpur Motors (spec 11), then cancels it
-# (that shop's Service Advisor gets two notifications). Nothing is written at Lahore Auto Care.
+# BayFlow post-deploy smoke test (spec 07 "Post-deploy smoke test"; spec 12 DEP-01…DEP-03; D7, D61, D68,
+# D70, D81, D84, D88).
+#
+#   make smoke WEB_URL=https://<project>.vercel.app API_URL=https://<api>.up.railway.app
+#   WEB_URL=http://localhost:3000 API_URL=http://localhost:4000 scripts/smoke.sh     # local stack
+#
+# Needs bash, curl and jq. Side effects: creates one throw-away customer (smoke+<n>@bayflow.test, a
+# reserved .test address that is never e-mailed, D26) and one booking at the smoke-test shop Lyallpur
+# Motors (spec 11), then cancels it (that shop's Service Advisor gets two notifications). If a later
+# step fails, the booking is still cancelled on the way out. Nothing is written at Lahore Auto Care.
+# Every response that goes through the web origin's /api rewrite must carry Cache-Control: no-store and
+# must never be a Vercel cache HIT (D61). Realtime is P1 (D88): while GET /api/v1/realtime/ticket
+# answers 404 the ticket check is skipped; SMOKE_REQUIRE_REALTIME=1 makes it mandatory.
+# Field names follow spec 03; update this script and spec 07's listing when spec 03 changes them.
 set -euo pipefail
-: "${WEB_URL:?set WEB_URL}" "${API_URL:?set API_URL}"
-DEMO_PASSWORD='BayFlow@2026'                 # every demo account (glossary §14)
-SMOKE_SHOP_SLUG='lyallpur-motors'            # the designated smoke-test shop (spec 11); never lahore-auto-care
-JAR="$(mktemp)"; trap 'rm -f "$JAR"' EXIT
-step()   { printf '\n== %s\n' "$*"; }
-fail()   { printf 'FAIL: %s\n' "$*" >&2; exit 1; }
-status() { curl -s -o /dev/null -w '%{http_code}' "$@"; }
-login()  {  # D81: the body is {access_token, token_type, expires_in, user}; memberships come from GET /api/v1/me
-  curl -fsS -X POST "$WEB_URL/api/v1/auth/login" -H 'Content-Type: application/json' \
-    -d "$(jq -n --arg e "$1" --arg p "$DEMO_PASSWORD" '{email: $e, password: $p}')" \
-    | jq -r 'select(.token_type == "bearer" and (.user | type) == "object") | .access_token'
-}
-no_store() {  # usage: no_store <label> <curl args…> — D61; through the Vercel rewrite it must also never be a CDN HIT
-  local what="$1" h; shift
-  h="$(curl -fsS -o /dev/null -D - "$@")" || fail "$what: request failed"
-  grep -qiE '^cache-control:.*no-store' <<<"$h" || fail "$what: Cache-Control: no-store missing (D61)"
-  if grep -qiE '^x-vercel-cache: *HIT' <<<"$h"; then fail "$what: served from Vercel's CDN cache (D61)"; fi
-}
 
-step "1. Health (direct to Railway; no-store and X-Request-ID like every response, spec 03 §4.2)"
-curl -fsS "$API_URL/health" | jq -e '.status == "ok"' >/dev/null || fail "/health"
-no_store "/health" "$API_URL/health"
-HEALTH_HEADERS="$(curl -fsS -o /dev/null -D - "$API_URL/health")" || fail "/health headers"
-grep -qi '^x-request-id:' <<<"$HEALTH_HEADERS" || fail "/health: X-Request-ID missing (spec 03 §1.8)"
+: "${WEB_URL:?set WEB_URL, e.g. WEB_URL=https://<project>.vercel.app}"
+: "${API_URL:?set API_URL, e.g. API_URL=https://<api>.up.railway.app}"
+WEB_URL="${WEB_URL%/}"
+API_URL="${API_URL%/}"
+for tool in curl jq; do
+  command -v "$tool" >/dev/null 2>&1 || {
+    printf 'FAIL: %s is required\n' "$tool" >&2
+    exit 1
+  }
+done
 
-step "2. Public shop directory through the Vercel rewrite (path + query forwarded, never cached); shops by slug"
-SHOPS="$(curl -fsS "$WEB_URL/api/v1/public/shops?limit=100")"
-jq -e '.total >= 3 and .limit == 100' <<<"$SHOPS" >/dev/null || fail "expected >= 3 listed shops and limit=100"
+DEMO_PASSWORD='BayFlow@2026'      # every demo account (glossary §14)
+SMOKE_SHOP_SLUG='lyallpur-motors' # the designated smoke-test shop (spec 11); never lahore-auto-care
+WORK="$(mktemp -d)"
+JAR="$WORK/customer.jar" # cookie session of the throw-away customer
+SA_JAR="$WORK/bilal.jar" # cookie session of Bilal (DEP-03)
+BOOKING_ID=""
+CANCELLED=0
+
+step() { printf '\n== %s\n' "$*"; }
+fail() {
+  printf 'FAIL: %s\n' "$*" >&2
+  exit 1
+}
+http() { curl --connect-timeout 15 --max-time 120 "$@"; } # Vercel allows a proxied request 120 s
+status() { http -s -o /dev/null -w '%{http_code}' "$@"; }
+call() { # usage: call <body-file> <curl args…>; prints the HTTP status, the body goes to <body-file>
+  local out="$1"
+  shift
+  http -sS -o "$out" -w '%{http_code}' "$@"
+}
+problem() { # "<status> <code>: <detail>" of a problem+json body (spec 03 §2), else the body's start
+  jq -r '"\(.status // "?") \(.code // "-"): \(.detail // .title // "")"' "$1" 2>/dev/null || head -c 300 "$1"
+}
+login() { # usage: login <email> [curl args…]; prints the access token (D81 body shape)
+  local email="$1" out="$WORK/login.json" code
+  shift
+  code="$(call "$out" "$@" -X POST "$WEB_URL/api/v1/auth/login" -H 'Content-Type: application/json' \
+    -d "$(jq -n --arg e "$email" --arg p "$DEMO_PASSWORD" '{email: $e, password: $p}')")" || return 1
+  if [[ "$code" != 200 ]]; then
+    printf 'login %s -> HTTP %s: %s\n' "$email" "$code" "$(problem "$out")" >&2
+    return 1
+  fi
+  jq -er --arg e "$email" 'select(.token_type == "bearer" and (.expires_in | type) == "number"
+      and (.user | type) == "object" and .user.email == $e
+      and (.access_token | type) == "string" and (.access_token | length) > 0) | .access_token' "$out" || {
+    printf 'login %s: the body is not {access_token, token_type: "bearer", expires_in, user} (D81)\n' "$email" >&2
+    return 1
+  }
+}
+no_store() { # usage: no_store <label> <curl args…>; D61, and through the rewrite never a Vercel cache HIT
+  local what="$1" headers
+  shift
+  headers="$(http -fsS -o /dev/null -D - "$@")" || fail "$what: request failed"
+  grep -qiE '^cache-control:.*no-store' <<<"$headers" || fail "$what: Cache-Control: no-store missing (D61)"
+  if grep -qiE '^x-vercel-cache: *HIT' <<<"$headers"; then
+    fail "$what: served from Vercel's CDN cache (D61)"
+  fi
+}
+cleanup() { # a failure after step 4 must not leave the smoke booking holding a slot place
+  if [[ -n "$BOOKING_ID" ]] && ((CANCELLED == 0)); then
+    printf 'Cleaning up: cancelling the smoke booking %s\n' "$BOOKING_ID" >&2
+    http -s -o /dev/null -b "$JAR" -X POST "$WEB_URL/api/v1/me/bookings/$BOOKING_ID/actions/cancel" \
+      -H 'Content-Type: application/json' -d '{"reason": "smoke test (aborted)"}' || true
+  fi
+  rm -rf "$WORK"
+}
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
+step "1. Health (direct to the API; no-store and X-Request-ID like every response, spec 03 §1.8)"
+HEALTH_STATUS="$(call "$WORK/health.json" -D "$WORK/health.headers" "$API_URL/health")" ||
+  fail "GET $API_URL/health: request failed"
+[[ "$HEALTH_STATUS" == 200 ]] || fail "GET $API_URL/health -> HTTP $HEALTH_STATUS: $(head -c 300 "$WORK/health.json")"
+jq -e '.status == "ok" and .database == "ok"' "$WORK/health.json" >/dev/null ||
+  fail '/health body is not {"status": "ok", "database": "ok"} (D84)'
+grep -qiE '^cache-control:.*no-store' "$WORK/health.headers" || fail "/health: Cache-Control: no-store missing (D61)"
+grep -qi '^x-request-id:' "$WORK/health.headers" || fail "/health: X-Request-ID missing (spec 03 §1.8)"
+
+step "2. Landing page and public shop directory through the web origin's /api rewrite (never cached; shops by slug, D68)"
+[[ "$(status "$WEB_URL/")" == 200 ]] || fail "the landing page $WEB_URL/ does not answer 200 (DEP-02)"
+SHOPS="$(http -fsS "$WEB_URL/api/v1/public/shops?limit=100")" || fail "GET /api/v1/public/shops"
+jq -e '.total >= 6 and .limit == 100' <<<"$SHOPS" >/dev/null ||
+  fail "expected >= 6 listed shops (spec 11 SEED-01, DEP-02) and limit=100"
 no_store "public shop list (1st request)" "$WEB_URL/api/v1/public/shops?limit=1"
 no_store "public shop list (repeat, must not be a cache HIT)" "$WEB_URL/api/v1/public/shops?limit=1"
-SHOP_A_ID="$(curl -fsS "$WEB_URL/api/v1/public/shops/lahore-auto-care" | jq -r '.id // empty')"   # read only
-SHOP_B="$(curl -fsS "$WEB_URL/api/v1/public/shops/$SMOKE_SHOP_SLUG")"                          # the smoke-test shop
+SHOP_A_ID="$(http -fsS "$WEB_URL/api/v1/public/shops/lahore-auto-care" | jq -r '.id // empty')" ||
+  fail "GET /api/v1/public/shops/lahore-auto-care (read only)"
+SHOP_B="$(http -fsS "$WEB_URL/api/v1/public/shops/$SMOKE_SHOP_SLUG")" || fail "GET /api/v1/public/shops/$SMOKE_SHOP_SLUG"
 SHOP_B_ID="$(jq -r '.id // empty' <<<"$SHOP_B")"
-[ -n "$SHOP_A_ID" ] && [ -n "$SHOP_B_ID" ] || fail "lahore-auto-care or the smoke-test shop $SMOKE_SHOP_SLUG is not listed"
+if [[ -z "$SHOP_A_ID" || -z "$SHOP_B_ID" ]]; then
+  fail "lahore-auto-care or the smoke-test shop $SMOKE_SHOP_SLUG is not listed"
+fi
+printf 'Lahore Auto Care: %s   smoke-test shop %s: %s\n' "$SHOP_A_ID" "$SMOKE_SHOP_SLUG" "$SHOP_B_ID"
 
-step "3. Every demo account logs in with $DEMO_PASSWORD; /me lists Bilal's membership (D81); his Bearer token works on his shop"
+step "3. Every demo account logs in with $DEMO_PASSWORD; Bilal's cookie reaches /me through the rewrite (DEP-03, D81)"
 for who in fatima.owner bilal.sa imran.tech hamza.tech sara.qc hina.qc usman.parts ayesha.customer; do
-  t="$(login "$who@bayflow.test")" && [ -n "$t" ] && [ "$t" != null ] || fail "login $who"
+  login "$who@bayflow.test" >/dev/null || fail "login $who@bayflow.test"
 done
-SA_TOKEN="$(login bilal.sa@bayflow.test)"
-curl -fsS -H "Authorization: Bearer $SA_TOKEN" "$WEB_URL/api/v1/me" \
-  | jq -e --arg a "$SHOP_A_ID" 'any(.memberships[]; .shop_id == $a and .role == "SERVICE_ADVISOR")' >/dev/null \
-  || fail "GET /api/v1/me does not list Bilal's SERVICE_ADVISOR membership (D81)"
-[ "$(status -H "Authorization: Bearer $SA_TOKEN" "$WEB_URL/api/v1/shops/$SHOP_A_ID/bookings?limit=1")" = 200 ] \
-  || fail "Bilal cannot list Lahore Auto Care bookings"
+SA_TOKEN="$(login bilal.sa@bayflow.test -c "$SA_JAR")" || fail "login bilal.sa@bayflow.test"
+grep -q bf_session "$SA_JAR" || fail "login did not set the bf_session cookie through the rewrite (D7, DEP-03)"
+http -fsS -b "$SA_JAR" "$WEB_URL/api/v1/me" |
+  jq -e --arg a "$SHOP_A_ID" '.email == "bilal.sa@bayflow.test"
+    and any(.memberships[]; .shop_id == $a and .role == "SERVICE_ADVISOR")' >/dev/null ||
+  fail "GET /api/v1/me with the bf_session cookie does not list Bilal's SERVICE_ADVISOR membership (DEP-03, D81)"
+[[ "$(status -H "Authorization: Bearer $SA_TOKEN" "$WEB_URL/api/v1/shops/$SHOP_A_ID/bookings?limit=1")" == 200 ]] ||
+  fail "Bilal's Bearer token cannot list Lahore Auto Care bookings"
 no_store "staff booking list" -H "Authorization: Bearer $SA_TOKEN" "$WEB_URL/api/v1/shops/$SHOP_A_ID/bookings?limit=1"
-curl -fsS -H "Authorization: Bearer $SA_TOKEN" "$WEB_URL/api/v1/realtime/ticket" \
-  | jq -e '.expires_in == 60 and (.ticket | length > 0)' >/dev/null || fail "WebSocket ticket (D70)"
+TICKET_STATUS="$(call "$WORK/ticket.json" -H "Authorization: Bearer $SA_TOKEN" "$WEB_URL/api/v1/realtime/ticket")" ||
+  fail "GET /api/v1/realtime/ticket: request failed"
+case "$TICKET_STATUS" in
+  200)
+    jq -e '.expires_in == 60 and (.ticket | type == "string" and length > 0)' "$WORK/ticket.json" >/dev/null ||
+      fail "the WebSocket ticket is not {ticket, expires_in: 60} (D70)"
+    ;;
+  404)
+    if [[ "${SMOKE_REQUIRE_REALTIME:-0}" == 1 ]]; then
+      fail "GET /api/v1/realtime/ticket -> 404, but SMOKE_REQUIRE_REALTIME=1 (D88)"
+    fi
+    printf 'SKIP: the realtime ticket is not deployed yet (P1, D88); 15 s polling is the P0 path (D14)\n'
+    ;;
+  *) fail "GET /api/v1/realtime/ticket -> HTTP $TICKET_STATUS: $(problem "$WORK/ticket.json")" ;;
+esac
 
 step "4. A new customer books at the smoke-test shop through the wizard (public routes by slug, D68; cookie session)"
 SERVICE_ID="$(jq -r '.services[0].id // empty' <<<"$SHOP_B")"
-[ -n "$SERVICE_ID" ] || fail "the smoke-test shop shows no active service"
+[[ -n "$SERVICE_ID" ]] || fail "the smoke-test shop shows no active service"
 SLOT=""
 for d in 1 2 3 4 5 6 7; do
   DAY="$(date -u -d "+$d day" +%F 2>/dev/null || date -u -v+"$d"d +%F)"
-  SLOT="$(curl -fsS "$WEB_URL/api/v1/public/shops/$SMOKE_SHOP_SLUG/availability?date=$DAY" \
-          | jq -r '[.slots[] | select(.remaining > 0)][0].slot_start // empty')"   # full slots are omitted anyway
-  [ -n "$SLOT" ] && break
+  SLOT="$(http -fsS "$WEB_URL/api/v1/public/shops/$SMOKE_SHOP_SLUG/availability?date=$DAY" |
+    jq -r '[.slots[] | select(.remaining > 0)][0].slot_start // empty')" || fail "GET availability for $DAY"
+  if [[ -n "$SLOT" ]]; then
+    break
+  fi
 done
-[ -n "$SLOT" ] || fail "no slot with remaining places at the smoke-test shop in the next 7 days"
-BODY="$(jq -n --arg shop "$SHOP_B_ID" --arg svc "$SERVICE_ID" --arg slot "$SLOT" \
-  --arg email "smoke+$(date +%s)@bayflow.test" '{
+[[ -n "$SLOT" ]] || fail "no slot with remaining places at the smoke-test shop in the next 7 days"
+EMAIL="smoke+$(date +%s)$RANDOM@bayflow.test"
+BODY="$(jq -n --arg shop "$SHOP_B_ID" --arg svc "$SERVICE_ID" --arg slot "$SLOT" --arg email "$EMAIL" '{
     shop_id: $shop, service_ids: [$svc], slot_start: $slot, customer_notes: "smoke test",
     customer: {full_name: "Smoke Test", email: $email, password: "Smoke-Test@2026"},
     vehicle: {registration_number: "SMK-0001", make: "Toyota", model: "Corolla", year: 2018}}')"
-BOOKING="$(curl -fsS -c "$JAR" -X POST "$WEB_URL/api/v1/bookings" -H 'Content-Type: application/json' -d "$BODY")"
-BOOKING_ID="$(jq -r '.booking.id // empty' <<<"$BOOKING")"            # BookingCreatedRead nests the booking (spec 03)
-jq -e '.booking.status == "PENDING" and .account_created == true' <<<"$BOOKING" >/dev/null \
-  || fail "new booking is not PENDING, or the response is not {access_token, …, account_created, booking}"
-grep -q bf_session "$JAR" || fail "Set-Cookie bf_session did not pass through the Vercel rewrite (D7)"
+CREATE_STATUS="$(call "$WORK/booking.json" -c "$JAR" -X POST "$WEB_URL/api/v1/bookings" \
+  -H 'Content-Type: application/json' -d "$BODY")" || fail "POST /api/v1/bookings: request failed"
+[[ "$CREATE_STATUS" == 201 ]] || fail "POST /api/v1/bookings -> HTTP $CREATE_STATUS: $(problem "$WORK/booking.json")"
+BOOKING_ID="$(jq -r '.booking.id // empty' "$WORK/booking.json")" # BookingCreatedRead nests the booking (spec 03)
+[[ -n "$BOOKING_ID" ]] || fail "the booking response has no booking.id (BookingCreatedRead, spec 03)"
+jq -e '.booking.status == "PENDING" and .account_created == true and .token_type == "bearer"' \
+  "$WORK/booking.json" >/dev/null ||
+  fail "the new booking is not PENDING, or the response is not {access_token, token_type, expires_in, account_created, booking}"
+grep -q bf_session "$JAR" || fail "Set-Cookie bf_session did not pass through the rewrite (D7)"
+printf 'Booked %s (%s) at %s for %s\n' "$(jq -r '.booking.reference' "$WORK/booking.json")" "$BOOKING_ID" "$SLOT" "$EMAIL"
 
 step "5. Tenant isolation: a Lahore Auto Care staff token on a smoke-test shop booking -> 404"
-[ "$(status -H "Authorization: Bearer $SA_TOKEN" "$WEB_URL/api/v1/shops/$SHOP_B_ID/bookings/$BOOKING_ID")" = 404 ] \
-  || fail "the smoke-test shop's route must be 404 for Lahore Auto Care staff"
-[ "$(status -H "Authorization: Bearer $SA_TOKEN" "$WEB_URL/api/v1/shops/$SHOP_A_ID/bookings/$BOOKING_ID")" = 404 ] \
-  || fail "Lahore Auto Care's route must not reveal a smoke-test shop booking"
+[[ "$(status -H "Authorization: Bearer $SA_TOKEN" "$WEB_URL/api/v1/shops/$SHOP_B_ID/bookings/$BOOKING_ID")" == 404 ]] ||
+  fail "the smoke-test shop's route must be 404 for Lahore Auto Care staff"
+[[ "$(status -H "Authorization: Bearer $SA_TOKEN" "$WEB_URL/api/v1/shops/$SHOP_A_ID/bookings/$BOOKING_ID")" == 404 ]] ||
+  fail "Lahore Auto Care's route must not reveal a smoke-test shop booking"
 
-step "6. Clean up: the customer cancels the smoke booking (frees the slot)"
-curl -fsS -b "$JAR" -X POST "$WEB_URL/api/v1/me/bookings/$BOOKING_ID/actions/cancel" \
-  -H 'Content-Type: application/json' -d '{"reason": "smoke test"}' \
-  | jq -e '.status == "CANCELLED"' >/dev/null || fail "cancel"
+step "6. Clean up: the customer cancels the smoke booking (frees the slot place)"
+CANCEL_STATUS="$(call "$WORK/cancel.json" -b "$JAR" -X POST "$WEB_URL/api/v1/me/bookings/$BOOKING_ID/actions/cancel" \
+  -H 'Content-Type: application/json' -d '{"reason": "smoke test"}')" || fail "cancel: request failed"
+[[ "$CANCEL_STATUS" == 200 ]] || fail "cancel -> HTTP $CANCEL_STATUS: $(problem "$WORK/cancel.json")"
+jq -e '.status == "CANCELLED"' "$WORK/cancel.json" >/dev/null || fail "the smoke booking is not CANCELLED after cancel"
+CANCELLED=1
 
 printf '\nSMOKE TEST PASSED\n'
 ```
@@ -1083,7 +1346,7 @@ Do these on the **first** day, with a "hello world" API and web deployed (brief 
 | # | Check | How | If it fails |
 |---|---|---|---|
 | 1 | **`Set-Cookie` passes through the Vercel rewrite** (D7/D8 risk) | `curl -si -X POST https://<web>/api/v1/auth/login -H 'Content-Type: application/json' -d '{"email":"bilal.sa@bayflow.test","password":"BayFlow@2026"}' \| grep -i '^set-cookie'` shows `bf_session=…; HttpOnly; Path=/; SameSite=lax; Secure` and **no** `Domain=`; in a browser, DevTools → Application → Cookies lists `bf_session` for the Vercel domain and later `/api/v1/…` calls succeed. Third-party integrations report first-party cookies through Vercel rewrites ([Sesamy Next.js guide](https://developers.sesamy.com/integrations/frameworks/next-js.html)), but this must be confirmed for us | D7 fallback: keep the token from the login response in memory and send `Authorization: Bearer` (specs 04, 09) |
-| 2 | **WebSocket connects directly** (D7, D70) | Browser DevTools → Network → WS: `wss://<api>.up.railway.app/api/v1/ws?ticket=…` returns 101; `ping` → `pong`; an action in a second browser produces `booking.updated` only for users who can see that booking (glossary §11). A ticket older than 60 s is refused before accept — the server closes with 1008, uvicorn answers the upgrade with HTTP 403, so DevTools reports close code **1006** (D70, spec 03 §6.2) — and the client reconnects with a fresh ticket; Railway's logs show `ticket=[redacted]`, never the token | Check `NEXT_PUBLIC_WS_URL` (rebuild after changing), `CLIENT_URL` (Origin check), the domain's target port 4000, the log filter (spec 01) |
+| 2 | **WebSocket connects directly** (D7, D70; the hub is P1, D88 — on day 1 a throwaway echo socket proves the network path, spec 14) | Browser DevTools → Network → WS: `wss://<api>.up.railway.app/api/v1/ws?ticket=…` returns 101; `ping` → `pong`; an action in a second browser produces `booking.updated` only for users who can see that booking (glossary §11). A ticket older than 60 s is refused before accept — the server closes with 1008, uvicorn answers the upgrade with HTTP 403, so DevTools reports close code **1006** (D70, spec 03 §6.2) — and the client reconnects with a fresh ticket; Railway's logs show `ticket=[redacted]`, never the token | Check `NEXT_PUBLIC_WS_URL` (rebuild after changing), `CLIENT_URL` (Origin check), the domain's target port 4000, the log filter (spec 01) |
 | 3 | **PostgreSQL major version parity** (D12) | Railway → `Postgres` → source image tag (`postgres-ssl:<major>`) and the API's startup log line with the server version; must equal `postgres:16` in `docker-compose.yml` and CI | Change both tags to Railway's major on the same day |
 | 4 | **Railway pre-deploy command form** (D13) | The deployment details page shows the pre-deploy command with the config-file icon and exactly `/bin/sh -c "alembic upgrade head && python -m app.scripts.seed"`; the deploy logs show Alembic's `Running upgrade … -> <head>` **and** the seed summary (or `seed skipped` when `SEED_ON_DEPLOY` is not `true`); a manual redeploy runs again without duplicates (D51) and repairs the demo cast (D60) | If only Alembic ran, `&&` was not interpreted: try the one-element array form, which the schema also accepts (`["/bin/sh -c \"alembic upgrade head && python -m app.scripts.seed\""]`); last resort, a script that runs both commands (needs a D13 update) |
 | 5 | **Health check green** | Railway marks the deployment healthy; `curl -fsS https://<api>.up.railway.app/health` | Check `PORT=4000`, `DATABASE_URL` reference, logs |
@@ -1097,18 +1360,18 @@ Do these on the **first** day, with a "hello world" API and web deployed (brief 
 
 ## Dependencies
 
-- [00-overview.md](00-overview.md), [17-decisions.md](17-decisions.md) (D1, D2, D5–D14, D26, D32, D51–D54, D57–D58, D60–D62, D68–D71, D73, D76, D80, D81), [18-glossary.md](18-glossary.md) (§9 paths, §11 realtime, §12 variables and local ports, §13 commits, §14 demo cast), [01-architecture.md](01-architecture.md) (topology, folder layout, middleware incl. `Cache-Control: no-store`, e-mail adapters, OpenAPI export), [03-api-contracts.md](03-api-contracts.md) (`/health`, headers incl. 500s, login, `/me`, booking and availability field names used by the smoke test), [11-seed-data.md](11-seed-data.md) (the smoke-test shop `lyallpur-motors`).
-- Used by: [04-auth-and-security.md](04-auth-and-security.md) (cookie flags, Origin check, rate-limit IP), [05-calling-and-ai-front-desk.md](05-calling-and-ai-front-desk.md) (agent service), [09-frontend-and-ux.md](09-frontend-and-ux.md) (`package.json` scripts, client location), [11-seed-data.md](11-seed-data.md) (seed CLI, idempotency), [12-quality-and-testing.md](12-quality-and-testing.md) (CI jobs, test database), [14-roadmap.md](14-roadmap.md) (deploy on day 1), [16-open-questions-and-risks.md](16-open-questions-and-risks.md) (day-1 results).
+- [00-overview.md](00-overview.md), [17-decisions.md](17-decisions.md) (D1, D2, D5–D14, D26, D32, D51–D54, D57–D58, D60–D62, D68–D71, D73, D76, D80, D81, D84, D85, D88), [18-glossary.md](18-glossary.md) (§9 paths, §11 realtime, §12 variables and local ports, §13 commits, §14 demo cast), [01-architecture.md](01-architecture.md) (topology, folder layout, middleware incl. `Cache-Control: no-store`, e-mail adapters, OpenAPI export), [03-api-contracts.md](03-api-contracts.md) (`/health`, headers incl. 500s, login, `/me`, booking and availability field names used by the smoke test), [11-seed-data.md](11-seed-data.md) (the smoke-test shop `lyallpur-motors`).
+- Used by: [04-auth-and-security.md](04-auth-and-security.md) (cookie flags, Origin check, rate-limit IP), [05-calling-and-ai-front-desk.md](05-calling-and-ai-front-desk.md) (agent service), [09-frontend-and-ux.md](09-frontend-and-ux.md) (`package.json` scripts, client location), [11-seed-data.md](11-seed-data.md) (seed CLI, idempotency), [12-quality-and-testing.md](12-quality-and-testing.md) (CI jobs, test database), [14-roadmap.md](14-roadmap.md) (deploy on day 1), spec 16 — open questions and risks, not written yet (day-1 results).
 
 ## Open questions
 
-1. ✅ Resolved by D26: **e-mail in production.** `EMAIL_PROVIDER=http` (HTTPS e-mail API, `EMAIL_API_KEY`) in production, `smtp` with Mailpit locally, `none` by default; reserved/test TLDs are never e-mailed. *Still open:* which provider the `http` adapter targets (request format, endpoint — the glossary has no URL variable, so it is a code constant) is decided in `modules/notifications.md`; Railway's page recommends Resend and also lists SendGrid, Mailgun and Postmark.
+1. ✅ Resolved by D26: **e-mail in production.** `EMAIL_PROVIDER=http` (HTTPS e-mail API, `EMAIL_API_KEY`) in production, `smtp` with Mailpit locally, `none` by default; reserved/test TLDs are never e-mailed. ✅ The provider is decided in [modules/notifications.md](modules/notifications.md): the `http` adapter targets Resend (`POST https://api.resend.com/emails`, Bearer `EMAIL_API_KEY`, an `Idempotency-Key` per notification; the endpoint is a code constant because the glossary has no URL variable). This spec keeps saying "e.g. Resend": another vendor means another adapter class, not a configuration change. Railway's page recommends Resend and also lists SendGrid, Mailgun and Postmark.
 2. ✅ Resolved by D1/D11: **pnpm** is pinned to **10.34.6** (`packageManager` in `apps/web/package.json`); CI uses `pnpm/action-setup@v6` because `pnpm/setup` needs pnpm 11+. Revisit only if Vercel documents pnpm 11 (Corepack remains the way to pin an exact version there, day-1 check #12).
 3. ✅ Resolved by D13: **`preDeployCommand` form** — `/bin/sh -c "alembic upgrade head && python -m app.scripts.seed"`; the schema accepts a string or a one-element array, and we use the string. Day-1 check #4 still confirms that both commands ran.
 4. **Rewrite-time `API_BASE_URL`.** Because rewrites are fixed at build time, a new Railway domain requires a Vercel redeploy. Acceptable (glossary §12 records it); noted for the runbook.
 5. **Region** for Railway services (closest to Pakistan) and the resulting latency **(unverified)**.
 6. **Agent cost and health check** (bonus): whether the always-on worker fits the $5 usage credit; the health endpoint is `/` on port 8081 (spec 05).
-7. **Smoke-test field names.** Paths are fixed by glossary §9 and D68 (slug-based public routes, `remaining`); the request/response field names the script reads (`access_token`, `id`, `slug`, `services[].id`, `slots[].start`, `ticket`, `expires_in`, the wizard body shape) must still be confirmed by spec 03. ✅ Resolved by spec 03 (§4.3–§4.6, §8.3) and D81: availability `slots[].slot_start` / `slots[].remaining` (full slots omitted), the booking under `booking` (`booking.id`, `booking.status`) next to `access_token`, `token_type`, `expires_in` and `account_created`, the public shop by slug, and a login body of token + `user` with memberships from `GET /api/v1/me`. The script above uses these names (dry-run against a mock).
+7. **Smoke-test field names.** Paths are fixed by glossary §9 and D68 (slug-based public routes, `remaining`); the request/response field names the script reads (`access_token`, `id`, `slug`, `services[].id`, `slots[].start`, `ticket`, `expires_in`, the wizard body shape) must still be confirmed by spec 03. ✅ Resolved by spec 03 (§4.3–§4.6, §8.3) and D81: availability `slots[].slot_start` / `slots[].remaining` (full slots omitted), the booking under `booking` (`booking.id`, `booking.status`) next to `access_token`, `token_type`, `expires_in` and `account_created`, the public shop by slug, and a login body of token + `user` with memberships from `GET /api/v1/me`. The script above uses these names (dry-run against a mock). ✅ Fixed in code (2026-10-09): the committed `scripts/smoke.sh` reads `slots[].slot_start`, books only at `lyallpur-motors` and is the listing verbatim ("As-built status" in §Post-deploy smoke test).
 8. ✅ Resolved by D69: **visitor IP for rate limiting** — per-account (e-mail) limits are primary and per-IP limits only a generous ceiling, because many users can share Vercel's egress IPs. Day-1 check #8 still records which header carries the visitor IP so the ceilings can be tuned (spec 04).
 9. **Keep `helping-folder/`** (the brief PDF) in the public repo, or replace it with a link if the organisers object.
 10. **`start.*` and the seed.** D73 lists "start the DB container, run migrations, start API + web"; this spec also runs the `SEED_ON_DEPLOY`-gated seed in step 3 so a fresh local database has the demo accounts the README promises. Confirm, or drop step 3's seed and tell users to run `make seed` once. ✅ Resolved by D73 (amended 2026-10-09): the start scripts always run the seed script after migrations; it acts only when `SEED_ON_DEPLOY=true`, which `.env.example` sets for local development, and `--seed` forces it. Production keeps setting `SEED_ON_DEPLOY` explicitly on the Railway `api` service (§4).

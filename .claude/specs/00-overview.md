@@ -35,13 +35,13 @@ One platform, three surfaces, one backend:
 | QC queue, checklist, issues, fail loop | §7.4, §5.3 | `modules/qc.md` |
 | Notifications (in-app bell + unread count) | §5.4 | `modules/notifications.md` |
 | Seed data + demo credentials | §7.7 | 11 |
-| Submission: public repo, live URL, README, `.env.example`, code quality | §9 | 07, 12 |
+| Submission: public repo, live URL, README, `.env.example`, code quality (CI, incl. the OpenAPI drift check, D76) | §9 | 07, 12 |
 
 **Core definition of done (§7.8):** a judge completes the full lifecycle on the live URL with seeded accounts, from customer booking to `COMPLETED`; the QC-fail loop and the estimate-rejected path work; no role can perform another role's action.
 
 ### P1 — Recommended extras (cheap, strengthen judging)
 
-Extra notifications (spec 18 §6), technician/parts reassignment, owner multi-shop summary, e-mail for customer-facing events, Playwright smoke test, OpenAPI drift check in CI.
+Extra notifications (spec 18 §6), WebSocket live updates (D88; polling is the P0 path), technician/parts reassignment, owner multi-shop summary, e-mail for customer-facing events, Playwright smoke test.
 
 ### P2 — Bonus track (only after P0 works end-to-end on the live URL; §8)
 

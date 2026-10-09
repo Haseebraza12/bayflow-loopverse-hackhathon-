@@ -84,8 +84,8 @@ Rules (D15, D17):
 | `POST /api/v1/shops/{shop_id}/members` | `OWNER` of `shop_id` | Add a staff member (D18) | 201 | 403, 404, 409 `CONFLICT`, 422, 429 |
 | `PATCH /api/v1/shops/{shop_id}/members/{membership_id}` | `OWNER` of `shop_id` | Change role, deactivate, reactivate (D19) | 200 | 403 `FORBIDDEN` (the `OWNER` membership), 404, 422 |
 | `POST /api/v1/bookings` | anonymous or session | Booking wizard incl. the account rule (D32) | 201; every successful booking sets `bf_session` **and** returns `access_token`, `expires_in` and `account_created` in the body (D32) | 409 `EMAIL_ALREADY_REGISTERED`, 409 `SLOT_FULL`, 422, 429 |
-| `GET /api/v1/realtime/ticket` | session | Short-lived WebSocket ticket, served by the notifications module, which runs the hub (D70, glossary §11) | 200 `{ticket, expires_in: 60}` | 401 (the session has expired) |
-| `wss://<api-host>/api/v1/ws?ticket=<ticket>` | ticket | Realtime channel (glossary §11) | 101 | handshake refused: the server closes with 1008 (D70); browsers report 1006 ([WebSocket ticket](#websocket-ticket--get-apiv1realtimeticket)) |
+| `GET /api/v1/realtime/ticket` | session | Short-lived WebSocket ticket, served by the notifications module, which runs the hub (D70, glossary §11). **P1** with the hub (D88) | 200 `{ticket, expires_in: 60}` | 401 (the session has expired) |
+| `wss://<api-host>/api/v1/ws?ticket=<ticket>` | ticket | Realtime channel (glossary §11). **P1** (D88); the P0 app stays current by polling (D14) | 101 | handshake refused: the server closes with 1008 (D70); browsers report 1006 ([WebSocket ticket](#websocket-ticket--get-apiv1realtimeticket)) |
 
 Every `/api/*` response — these endpoints, every other authenticated endpoint and the public ones alike, errors and 500s included — carries `Cache-Control: no-store`, and so does `/health` (D61; spec 03 §1.8; OWASP Session Management; see [CDN caching](#security-headers-tier-1-values)). The three `/api/v1/auth/*` routes belong to the identity module (D81). Exact request/response schemas are owned by spec 03; this spec fixes the security-relevant fields.
 
@@ -325,7 +325,7 @@ The WebSocket goes straight to <api-host>: no cookie there → ticket instead.
 ### Secrets and rotation
 
 - `JWT_SECRET` is random and at least 32 bytes: RFC 7518 §3.2 requires an HS256 key of at least 256 bits, and PyJWT emits `InsecureKeyLengthWarning` below 32 bytes (verified). Generate with `python -c "import secrets; print(secrets.token_urlsafe(64))"`.
-- Startup checks when `APP_ENV=production`: refuse to start if `JWT_SECRET` is shorter than 32 bytes or starts with `change-me` (the brief's sample placeholder), or if `COOKIE_SECURE` is not `true`. In development, log a warning instead.
+- Startup checks when `APP_ENV=production`: refuse to start if `JWT_SECRET` is shorter than 32 bytes or **contains** a placeholder marker — `change-me` (the brief's sample), `replace-me` (`.env.example`'s `local-dev-secret-replace-me-with-random-chars`), `dev-only` (the built-in development secret) or `placeholder` (CI's `ci-placeholder-…`) (D85) — or if `COOKIE_SECURE` is not `true`. In development, log a warning instead.
 - Rotation: change `JWT_SECRET` in the Railway variables and redeploy. Every session and ticket becomes invalid at once; users see one 401 and log in again. This is the "panic button" if the secret may have leaked. Graceful dual-key rotation (`kid`) is Tier 3.
 - `AGENT_SERVICE_TOKEN` (bonus) is rotated in the `api` and `agent` services together.
 
@@ -569,7 +569,7 @@ Spec 05 §8 owns the endpoints; this is who may use them.
 | Capability | CUSTOMER | OWNER | SERVICE_ADVISOR | TECHNICIAN | PARTS_PERSON | QC_INSPECTOR |
 |---|---|---|---|---|---|---|
 | Start a call from a booking | ✅ own booking (to the shop) | ✅ (to the customer) | ✅ (to the customer) | ❌ | ❌ | ❌ |
-| Accept / decline a ringing call | ✅ calls from the shop to them | ✅ customer calls to the shop (decline only when the shop has no active SA: the Owner is then the eligible callee, spec 05 §3.3) | ✅ customer calls to the shop | ❌ | ❌ | ❌ |
+| Accept / decline a ringing call | ✅ calls from the shop to them | ✅ customer calls to the shop **only when the shop has no active SA** — the Owner is then the eligible callee (spec 05 §3.3, D26) | ✅ customer calls to the shop (any active SA is an eligible callee, rung or not) | ❌ | ❌ | ❌ |
 | Hang up | ✅ as a participant | ✅ as a participant | ✅ as a participant | ❌ | ❌ | ❌ |
 | View call logs | ✅ own calls on own bookings | ✅ all calls of the shop | ✅ all calls of the shop | ❌ | ❌ | ❌ |
 | View AI call summaries and transcripts | ❌ | 👁 | 👁 | ❌ | ❌ | ❌ |
@@ -700,8 +700,8 @@ D69: login, owner registration, booking creation, shop creation, member creation
 | 9 | Errors: RFC 9457 problem+json; `debug=False`; 422 without `input`; unhandled exceptions rendered as 500 by the request-context middleware itself, so the 500 keeps `Cache-Control` and `X-Request-ID` (the `Exception` handler is only a backstop) | `app.core.errors`, `app.core.error_handlers`, `app.core.middleware` |
 | 10 | Log hygiene: no auth bodies or credential headers; ticket redaction filter; SQLAlchemy `hide_parameters=True`; uvicorn `--no-server-header` | `app.core.logging`, `app.core.database`, Dockerfile |
 | 11 | Secrets in environment variables only; `.env` git-ignored; `.env.example` placeholders | repo root (spec 07) |
-| 12 | WebSocket ticket (D70: `typ = ws`, 60 s, handshake only, 1008 on rejection, new ticket per reconnect, redacted from logs), `Origin` allowlist, publish-time recipients filtered by visibility (glossary §11), `wss://` in production | notifications module (ticket endpoint and realtime hub, D70) |
-| 13 | SEC-01…SEC-40, SEC-44…SEC-46 and SEC-48 green in CI (bonus SEC-36, SEC-49, SEC-50 with the bonus; SEC-47 is P1) | spec 12 |
+| 12 | WebSocket ticket (D70: `typ = ws`, 60 s, handshake only, 1008 on rejection, new ticket per reconnect, redacted from logs), `Origin` allowlist, publish-time recipients filtered by visibility (glossary §11), `wss://` in production. The realtime layer is **P1** (D88): these rules are mandatory from the moment `/api/v1/ws` ships, never a later hardening step | notifications module (ticket endpoint and realtime hub, D70) |
+| 13 | SEC-01…SEC-40, SEC-44…SEC-46 and SEC-48 green in CI (SEC-33 and the ticket part of SEC-38 once the P1 WebSocket ships, D88; bonus SEC-36, SEC-49, SEC-50 with the bonus; SEC-47 is P1) | spec 12 |
 | 14 | Request-body size cap: 64 KiB, 256 KiB for the bonus agent summary route → 413 `PAYLOAD_TOO_LARGE` (part of the API contract, spec 03 §1.10) | small pure-ASGI middleware |
 
 ### Tier 2 — if time permits
@@ -799,7 +799,7 @@ upgrade-insecure-requests;
 **Policy** — the same for owners, staff (initial passwords set by the Owner) and customers:
 
 - **12–128 characters** (D10); any Unicode characters, including spaces; **no composition rules**; never trimmed or truncated (only e-mails are trimmed).
-- Validated server-side with `Password = Annotated[SecretStr, Field(min_length=12, max_length=128)]`. `SecretStr` prints as `**********` in reprs and tracebacks (verified); length is counted in characters.
+- Validated server-side with the as-built `Password = Secret[Annotated[str, StringConstraints(min_length=12, max_length=128)]]` in `app.core.security` (D84). `Secret` prints as `**********` in reprs and tracebacks; length is counted in characters; a short password reports Pydantic's `string_too_short` ("String should have at least 12 characters", spec 03 §2.5), which a `SecretStr` with `Field(min_length=…)` would not.
 - The web mirrors it with Zod (`z.string().min(12).max(128)`) for instant feedback only.
 - The demo password `BayFlow@2026` is exactly 12 characters, so it passes; an 11-character password is rejected with 422 (SEC-29). Every seeded account and every password typed in the demo script must respect the same minimum (spec 11).
 - Current guidance is stricter for single-factor passwords — NIST SP 800-63B-4 and the OWASP Authentication Cheat Sheet ask for at least 15 characters without MFA (8 is their floor *with* MFA). D10 settles on 12: above the MFA floor, closer to the single-factor guidance, and still compatible with the published demo password. The per-account limiter, Argon2id and the Tier 2 blocklist cover the rest.
@@ -920,7 +920,7 @@ pytest + httpx against a real PostgreSQL (D54), seeded with at least two shops w
 | SEC-34 | Notifications: list and mark-read with another user's notification ID | Only own notifications listed; foreign ID → 404 |
 | SEC-35 | Estimate integrity: `PUT …/estimate` in `AWAITING_CUSTOMER` and `ESTIMATE_APPROVED`; approve a superseded version | 409 `ESTIMATE_LOCKED`; 409 `STALE_ESTIMATE` (SM-14); totals always server-computed |
 | SEC-36 | Bonus internal API: no or wrong `AGENT_SERVICE_TOKEN`; a session JWT on `/api/v1/internal/*`; the service token on a user route; missing or wrong `X-Agent-Call-Token`; a call without an AI leg; a booking endpoint before `verify-caller`; the same after the AI leg ended; a reference of another customer at the same shop, and of the same customer at another shop | 401, 401, 401, 404, 404, 403 `IDENTITY_NOT_VERIFIED`, 409 `CALL_NOT_ACTIVE`, 404, 404 (≙ spec 05 FD-01, FD-02, FD-04, FD-12; D75 renamed AI-xx) |
-| SEC-37 | Production config guards (`APP_ENV=production` with a 9-byte secret, a `change-me…` secret, `COOKIE_SECURE=false`); CI check that no `.env` file is tracked | Startup fails with a clear message; check passes |
+| SEC-37 | Production config guards (`APP_ENV=production` with a 9-byte secret; a 40-byte secret containing each placeholder marker of D85 — `change-me`, `replace-me`, `dev-only`, `placeholder` — including `.env.example`'s value; `COOKIE_SECURE=false`); CI check that no `.env` file is tracked | Startup fails with a clear message for each; check passes |
 | SEC-38 | Log hygiene: capture logs during the auth, wizard and WebSocket tests (and the bonus internal and webhook tests) | No password, no `eyJ…` JWT, no `ticket=` value, no `Authorization` or `X-Agent-Call-Token` header |
 | SEC-39 | `next` sanitiser: `https://evil.example`, `//evil.example`, `/\evil.example`, `/pos` | Only `/pos` is honoured |
 | SEC-40 | Imran (technician, Shop A) creates a shop | `OWNER` of the new shop only; Owner-only calls on Shop A still 403 |
@@ -990,7 +990,7 @@ Executed on 2026-10-09 in a scratch virtualenv (Python 3.12.3) with the D11 vers
 
 ## Dependencies
 
-- **Depends on:** [18-glossary.md](18-glossary.md) (names), [17-decisions.md](17-decisions.md) (D7–D10, D14–D21, D30, D32, D33, D35, D39, D40, D44, D47, D49, D51, D52, D54, D55, D58, D60–D63, D66, D67, D69, D70, D75, D80–D83), [08-booking-state-machine.md](08-booking-state-machine.md) (actors, guards, error order, `allowed_actions`, SM tests).
+- **Depends on:** [18-glossary.md](18-glossary.md) (names), [17-decisions.md](17-decisions.md) (D7–D10, D14–D21, D30, D32, D33, D35, D39, D40, D44, D47, D49, D51, D52, D54, D55, D58, D60–D63, D66, D67, D69, D70, D75, D80–D85, D88), [08-booking-state-machine.md](08-booking-state-machine.md) (actors, guards, error order, `allowed_actions`, SM tests).
 - **Needs from other specs:** 02 (unique and partial unique indexes on `users` / `shop_memberships`, composite FKs incl. assignee → membership, `notifications.recipient_role` / `link`, `call_logs.ai_call_token_hash`), 03 (exact paths and schemas, problem+json shape, audience-specific booking/estimate schemas, the `/me` membership schema), 01 (`app.core` / `app.shared` placement incl. `app.shared.clock` and `app.shared.email`, event bus, realtime hub), 05 (internal API checks §5.1, webhook §8.5, calls/tasks access §8.2, CALL-/FD- tests), 07 (env vars, `.env.example` placeholder, uvicorn flags, Vercel/Railway config, no rewrite of `/api/v1/internal/*`), 09/10 (API client 401 handling, `next` sanitiser, `proxy.ts` UX redirect, headers config, capability-driven buttons, WebSocket reconnect), 11 (every demo account satisfies the policy; D60 reconciliation), 12 (SEC tests in CI; SEC-44…SEC-47 adopted from its proposals), 16 (day-1 checks).
 - **Used by:** `modules/identity.md`, `modules/shops.md`, every module spec (route dependencies and visibility), 06, 12, 15.
 
@@ -1001,7 +1001,7 @@ Executed on 2026-10-09 in a scratch virtualenv (Python 3.12.3) with the D11 vers
 3. ✅ **Resolved by D70:** the query-string ticket stays — 60 seconds, handshake only, close 1008 on rejection (browsers see 1006), a new ticket on every reconnect, redacted from logs; single use is Tier 2.
 4. ✅ **Resolved by D69:** per-account (e-mail) limits are primary and per-IP limits only a secondary ceiling; the day-1 measurement (spec 16) just tunes the ceilings.
 5. ✅ **Resolved by D18:** the consent gap is accepted for the hackathon (rate-limited, grants no data); the invitation flow is Tier 3.
-6. **`.env.example` placeholder.** The brief's sample `JWT_SECRET=change-me` is 9 bytes: PyJWT warns in development and production startup refuses it. Spec 07 should use a ≥ 32-character placeholder made of letters and hyphens (glossary §12) or document the generation command.
+6. ✅ **Resolved by D85 and spec 07: `.env.example` placeholder.** `.env.example` uses the letters-and-hyphens placeholder `local-dev-secret-replace-me-with-random-chars` (glossary §12), and production refuses any `JWT_SECRET` shorter than 32 bytes or containing `change-me`, `replace-me`, `dev-only` or `placeholder` ([Secrets and rotation](#secrets-and-rotation), SEC-37).
 7. ✅ **Resolved by D60:** every seed run reconciles the demo cast (users active, memberships active with their canonical role, demo password hash restored). Judge-made changes to bookings, stock or shop settings are accepted drift (D71).
 8. ✅ **Resolved by D19:** any change to the `OWNER` membership → 403 `FORBIDDEN`.
 9. **Slot hoarding.** ✅ The directory half is resolved by D64 (listed only with `is_listed` and at least one active service). Still open: should active bookings per customer per shop be capped (Tier 2 item 10)? Product rule for `modules/bookings.md`.
@@ -1050,3 +1050,8 @@ Still pending:
   - Stock adjustments are P0 (D82): RBAC B. The request-body cap moves from Tier 2 #8 to Tier 1 #14 (spec 03 §1.10: 64 KiB, 256 KiB for the agent summary).
   - SEC-27 also covers the booking-creation limits (D69; ≙ spec 12 BK-32).
   - Open questions 14 and 15 resolved (D63, glossary §10); proposed glossary additions updated.
+- **2026-10-09 final consistency sweep** (decisions D84, D85, D88):
+  - Production secret guard: refuse any `JWT_SECRET` containing a placeholder marker (`change-me`, `replace-me`, `dev-only`, `placeholder`), not only a `change-me` prefix (D85): secrets section, SEC-37; Open question 6 resolved.
+  - `Password` is the as-built `Secret[Annotated[str, StringConstraints(min_length=12, max_length=128)]]` (D84).
+  - The WebSocket ticket and `/api/v1/ws` are P1 (D88): endpoint summary, Tier 1 #12 and #13 (SEC-33 applies once the socket ships).
+  - RBAC E aligned with spec 05 §3.3 (authoritative for the bonus): the Owner accepts or declines a customer → shop call only when the shop has no active SA; any active SA may, rung or not.

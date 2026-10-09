@@ -1,7 +1,7 @@
 # 12 — Quality & Testing
 
 **Status:** Draft
-**Code homes:** `apps/api/pyproject.toml` (Ruff, mypy, import-linter, pytest), `apps/api/tests/`, `apps/web/eslint.config.mjs`, `apps/web/vitest.config.mts`, `apps/web/playwright.config.ts`, `apps/web/e2e/`, `.github/workflows/ci.yml`, `.github/workflows/smoke.yml`, `.github/pull_request_template.md`
+**Code homes:** `apps/api/pyproject.toml` (Ruff, mypy, import-linter, pytest), `apps/api/tests/`, `apps/web/eslint.config.mjs`, `apps/web/vitest.config.mts`, `.github/workflows/ci.yml`, `.github/pull_request_template.md` (all exist since PH0); P1, not yet created: `apps/web/playwright.config.ts`, `apps/web/e2e/`, `.github/workflows/smoke.yml`
 
 ## Purpose
 
@@ -84,6 +84,12 @@ select = [
 "tests/**" = ["S101", "S105", "S106", "PLR2004"]  # asserts, fixture passwords, magic numbers
 "app/scripts/seed*.py" = ["S105", "S106"]          # demo credentials are seed data, not logic (D52)
 "app/shared/clock.py" = ["TID251"]                   # the single source of "now" (D63)
+"app/shared/enums.py" = ["S105"]                     # PASS / PASS_QC are enum values, not passwords
+"app/core/errors.py" = ["N818"]                      # spec 01 names the AppError subclasses after the codes
+"alembic/versions/*.py" = ["PLR0915"]                # migrations: one statement per table, index, trigger
+
+[tool.ruff.lint.isort]
+known-third-party = ["alembic"]  # the local alembic/ folder holds migrations, not the package
 
 [tool.ruff.lint.mccabe]
 max-complexity = 10
@@ -114,7 +120,7 @@ Rule sets deliberately **not** enabled:
 
 Ruff 0.16.10 confirmed that the banned-api entries flag `datetime.now(UTC)`, `dt.datetime.now(tz=UTC)`, `date.today()` and `time.time()`. Re-checked with Ruff 0.16.4 on 2026-10-09 after the consolidation: the clock messages point at `app.shared.clock` (D63), `time.monotonic()` stays allowed, and the two `EmailStr` entries flag `from pydantic import EmailStr`, `from pydantic.networks import EmailStr` and `pydantic.EmailStr` (D62).
 
-`app/shared/clock.py` is the only file-level exemption: JWT `iat` / `exp` are issued and checked with the app clock too (D63). `app.core.security.issue_token` / `decode_token` take `now` as an argument, because `app.core` may not import `app.shared` (spec 01), and their callers pass `utcnow()`; PyJWT's own system-time checks are switched off (spec 04). D63's single exception is the rate-limit windows, which slowapi and `limits` keep on system time inside the libraries; if our code must compare with a library timestamp (e.g. turning `limits`' `reset_time` into `Retry-After`), that one line carries `# noqa: TID251  # D63 exception: rate-limit window`.
+`app/shared/clock.py` is the only file-level `TID251` exemption (the other per-file ignores above are narrow false positives: enum values named like passwords, error classes named after their codes, long migration functions): JWT `iat` / `exp` are issued and checked with the app clock too (D63). `app.core.security.issue_token` / `decode_token` take `now` as an argument, because `app.core` may not import `app.shared` (spec 01), and their callers pass `utcnow()`; PyJWT's own system-time checks are switched off (spec 04). D63's single exception is the rate-limit windows, which slowapi and `limits` keep on system time inside the libraries; if our code must compare with a library timestamp (e.g. turning `limits`' `reset_time` into `Retry-After`), that one line carries `# noqa: TID251  # D63 exception: rate-limit window`.
 
 **mypy:**
 
@@ -173,13 +179,13 @@ async def confirm(booking_id: UUID, body: ConfirmIn, member: CurrentMember, book
   - Service functions: about 40 lines or fewer (PLR0915), split into private helpers named after spec 08 steps (`_reserve_outstanding`, `_release_reservations`).
   - Cyclomatic complexity: 10 or less. Arguments: 6 or fewer.
   - The state machine's size lives in the `RULES` table (data), not in branches.
-- **Docstrings only where non-obvious.** Each module package gets a 3–5 line docstring in `__init__.py` naming its tables (glossary §7) and its spec. Comments explain *why* and cite the rule they implement, e.g. `# D30: lock order booking → PO → parts → slot`, `# spec 08 T13`. Judges can trace code back to specs this way.
+- **Docstrings only where non-obvious.** `__init__.py` files stay empty (spec 01 rule 5, D84); each module's `models.py` opens with a short docstring naming its tables (glossary §7) and its spec, and its `service.py` with one naming its use cases (as built, the not-yet-built modules' `service.py` / `schemas.py` are docstring-only stubs, D84). Comments explain *why* and cite the rule they implement, e.g. `# D30: lock order booking → PO → parts → slot`, `# spec 08 T13`. Judges can trace code back to specs this way.
 - **Errors.** Services raise typed application errors. One handler in `app.core` maps them to RFC 9457 problem+json with the glossary §10 `code` (D49). Routers never build error dicts. Bare `except:` is forbidden (E722). Broad `except Exception` exists only in the global 500 handler.
 - **Logging.** Use the `logging` module (no `print`, T20). Never log passwords, tokens, cookies or full request bodies.
 
-**Layering enforced by import-linter.** The contracts live in spec 01 (§Dependency rules): `app-layers`, `module-direction`, `module-internal-layers` (router optional, because `estimates` and `qc` have no router), `public-surface`, `pure-domain` and `no-module-cycles` (acyclic siblings). CI runs all of them with `uv run lint-imports` (§6 below).
+**Layering enforced by import-linter.** The contracts live in spec 01 (§Dependency rules) and in `apps/api/pyproject.toml`: `app-layers`, `module-direction`, `module-internal-layers` (router optional, because `estimates` has no router; `service` and `schemas` are required, which is why every module has both files — docstring-only stubs until it is built, D84), `public-surface`, `pure-domain`, `thin-routers`, `seed-through-services` and `no-module-cycles` (acyclic siblings). CI runs all eight with `uv run lint-imports` (§6 below); all are KEPT as built (D84).
 
-This spec proposes two more contracts for spec 01. They encode rules spec 01 already states in prose but its layer contracts cannot express. Both were validated with import-linter 2.15 on 2026-10-09 against a skeleton of the module layout:
+✅ Adopted: this spec proposed the two contracts below; spec 01 and `apps/api/pyproject.toml` now contain them. They encode rules spec 01 states in prose but its layer contracts cannot express. Both were validated with import-linter 2.15 on 2026-10-09 against a skeleton of the module layout:
 - `module-internal-layers` alone stays KEPT when a router imports its own module's repository, because a layers contract allows a higher layer to skip lower ones. `thin-routers` reports it as BROKEN.
 - `seed-through-services` reports `app.scripts.seed → app.modules.inventory.repository` as BROKEN (D51: the seed goes through the service layer).
 
@@ -217,7 +223,7 @@ Verified import-linter facts that spec 01 and these contracts rely on:
 | eslint-config-next | 16.4.x (same as `next`) | — |
 | Prettier + prettier-plugin-tailwindcss | 3.x + 0.8.x | `"format": "prettier --write ."`, `"format:check": "prettier --check ."` |
 | Vitest + React Testing Library + jsdom | Vitest 5.0.x on Vite 8, jsdom 30 | `"test": "vitest run"`, `"test:watch": "vitest"` |
-| Playwright | 1.64.x | `"test:e2e": "playwright test"` |
+| Playwright *(P1)* | 1.64.x | `"test:e2e": "playwright test"` — not in `package.json` yet (added with WEB-08) |
 | openapi-typescript + openapi-fetch | 7.13.x + 0.17.x | `"api:types": "openapi-typescript src/lib/api/openapi.json -o src/lib/api/schema.d.ts"`; `make gen-api` runs the API export, then this script (D76) |
 | pnpm | **10.34.6** (D1, D11), pinned by `"packageManager": "pnpm@10.34.6"` in `apps/web/package.json` — there is no root `package.json` (D5); Vercel supports pnpm 6–10 | — |
 
@@ -251,7 +257,7 @@ export default defineConfig([
     },
   },
   { files: ['src/lib/api/**'], rules: { 'no-restricted-syntax': 'off' } },
-  globalIgnores(['.next/**', 'out/**', 'build/**', 'next-env.d.ts', 'src/lib/api/schema.d.ts']),
+  globalIgnores(['.next/**', 'out/**', 'build/**', 'coverage/**', 'next-env.d.ts', 'src/lib/api/schema.d.ts']),
 ])
 ```
 
@@ -276,8 +282,8 @@ Rules:
 - **Alembic is the only path to a schema**, in production (D13 pre-deploy) and in tests (§4.1). `metadata.create_all()` is never used.
 - **Constraint naming convention:** spec 02's `NAMING_CONVENTION` on `Base.metadata`. It is the Alembic recipe, with `%(column_0_N_name)s` so composite keys and FKs get full names. Inside migrations, explicit names are wrapped in `op.f()` (spec 02). Predictable names are what autogenerate and dropping constraints rely on.
 - **Autogenerate is a draft.** Every migration is read and fixed by hand: CHECK constraints (D29 enums, D42 stock), composite FKs (D20), partial or unique indexes, server defaults. `downgrade()` is implemented.
-- **A merged migration is immutable.** Fix forward with a new revision. Use one migration per module per PR, with message `"<module>: <change>"`.
-- **Drift gate.** `alembic check` (Alembic ≥ 1.9) fails CI when models and migrations disagree. **Round-trip** `upgrade head → downgrade base → upgrade head` runs in CI (P1).
+- **A merged migration is immutable.** Fix forward with a new revision. Use one migration per module per PR, with message `"<module>: <change>"`. As built, the whole schema — bonus tables included — is one baseline revision, `23165172278b` (spec 02 §9, D84); D29 enums are rendered into migrations by the `alembic/env.py` `render_item` hook.
+- **Drift gate.** `alembic check` (Alembic ≥ 1.9) fails CI when models and migrations disagree. The **round trip** runs on every CI run inside pytest: `tests/db/test_migrations.py` does `downgrade base → upgrade head → check` on `<db>_test` and asserts a single head (D84); the `api` job then runs `alembic upgrade head` + `alembic check` on the empty `bayflow` database (§6).
 - **Put rules in the database where they belong:**
   - stock `CHECK`s (`on_hand ≥ 0`, `reserved ≥ 0`, `reserved ≤ on_hand`, D42)
   - money `CHECK`s: `≥ 0` and whole rupees (`ck_<table>_whole_rupees`, D41, spec 02)
@@ -285,7 +291,7 @@ Rules:
   - uniqueness: booking `reference`, `(shop_id, sku)`, one membership per `(shop_id, user_id)`, `(shop_id, slot_start)` for slot counters
   - composite FKs that make cross-shop references impossible (D20)
   
-  Tests INV-14, EST-20 and SEC-45 prove these hold even when the service layer is bypassed.
+  Tests INV-14, EST-20 and SEC-45 prove these hold even when the service layer is bypassed. As built, `apps/api/tests/db/test_constraints.py` already covers them at the schema level (stock CHECKs, whole rupees, one owner, active owner membership, composite tenant FKs, assignee membership, own-vehicle FK, enum CHECKs, lower-case e-mail, append-only ledgers, `seq`, ids and clock timestamps), with rows built directly by `tests/rows.py`.
 - **Types.** Money is `numeric(12,2)` (D41). Timestamps are `timestamptz` in UTC (D38). Primary keys are `uuid` (D50).
 - **Queries.** SQLAlchemy expressions only. Raw SQL is allowed only as `text()` with bound parameters (Ruff `S608` flags string-built SQL). Locks are taken with `with_for_update()` inside the action's single transaction, in the D30 order.
 - **The seed is not a migration** (D13, D51). It is an idempotent script that runs through the service layer.
@@ -429,7 +435,7 @@ These call services and repositories directly, with the real async engine:
 - Every endpoint gets a happy-path test plus one test per error `code` it can return. All error assertions go through `assert_problem(resp, status, code)` (§4.5).
 - **Action matrix** (`tests/security/test_action_matrix.py`, marker `slow`). This is spec 04's SEC-07 and the API half of SM-03, SM-04, SM-05, SM-16, SM-17 and SM-19; one implementation serves them all.
   - Set-up: one booking is driven to each of the 17 statuses with `drive_booking_to` (§4.3). There is a cast of callers: booking customer, another customer, Owner, SA, assigned technician, other technician, assigned parts person, other parts person, QC picker, other QC inspector, and an SA of Shop B.
-  - For every (status, slug, caller), an **oracle** written from spec 08 and glossary §10 predicts the outcome, applying the check order: visible? (404) → role (403 `FORBIDDEN`) → assignment (403 `NOT_ASSIGNED`) → status (409 `INVALID_TRANSITION`, or `ALREADY_PICKED` for `pick-qc` on `QC_IN_PROGRESS`). `EDIT_ESTIMATE` is exercised through `PUT …/estimate`, where the status verdict is 409 `ESTIMATE_LOCKED` (the estimate service maps the domain's `INVALID_TRANSITION`; EST-11). A slug that the caller's endpoint family does not serve — a staff slug such as `confirm` on `/api/v1/me/bookings/{booking_id}/actions/…`, or `approve-estimate` / `reject-estimate` on the staff route — is an unknown route: 404 `NOT_FOUND` before any other check (spec 03).
+  - For every (status, slug, caller), an **oracle** written from spec 08 and glossary §10 predicts the outcome, applying the check order: visible? (404) → role (403 `FORBIDDEN`) → assignment (403 `NOT_ASSIGNED`) → status (409 `INVALID_TRANSITION`, or `ALREADY_PICKED` for `pick-qc` on `QC_IN_PROGRESS`). `EDIT_ESTIMATE` is exercised through `PUT …/estimate`, where the status verdict is 409 `ESTIMATE_LOCKED`: the bookings `edit_estimate` use case maps the domain's `INVALID_TRANSITION` to `ESTIMATE_LOCKED`, and the estimates service raises `ESTIMATE_LOCKED` itself as a backstop for a version that is no longer editable (EST-11; `modules/bookings.md`, `modules/estimates.md`). A slug that the caller's endpoint family does not serve — a staff slug such as `confirm` on `/api/v1/me/bookings/{booking_id}/actions/…`, or `approve-estimate` / `reject-estimate` on the staff route — is an unknown route: 404 `NOT_FOUND` before any other check (spec 03).
   - Every predicted rejection is sent and must match the HTTP status and `code` exactly. The booking row and its events must be unchanged afterwards.
   - Every predicted "allowed" must appear in that caller's `allowed_actions`, and is not executed (SM-02 covers execution).
   - Rejected requests change nothing, so the 17 bookings are reused for the whole matrix inside one test function.
@@ -485,7 +491,8 @@ These run the real seed entry function against the empty test database, with a `
 
 ### 3.8 Web tests
 
-- **Vitest + React Testing Library + jsdom.** Packages: `vitest` 5, `vite` 8, `@vitejs/plugin-react`, `jsdom` 30, `@testing-library/react`, `@testing-library/dom` (Next.js guide). No `vite-tsconfig-paths`: Vite 8 resolves the `@/*` alias from `tsconfig.json` itself with `resolve.tsconfigPaths: true`, as `apps/web/vitest.config.mts` does.
+- **Vitest + React Testing Library + jsdom.** Packages: `vitest` 5, `vite` 8, `@vitejs/plugin-react`, `jsdom` 30, `@testing-library/react`, `@testing-library/dom`, `@testing-library/jest-dom` (Next.js guide). No `vite-tsconfig-paths`: Vite 8 resolves the `@/*` alias from `tsconfig.json` itself with `resolve.tsconfigPaths: true`, as `apps/web/vitest.config.mts` does; it runs `src/**/*.test.{ts,tsx}` and the root `*.test.ts` (e.g. `next.config.test.ts`), with `vitest.setup.ts` registering jest-dom and RTL's cleanup.
+  - **Status (2026-10-09):** 7 test files, **67 tests**, all green — `src/lib/format.test.ts` (WEB-01, WEB-02), `src/lib/status.test.ts` (WEB-03), `src/lib/api/errors.test.ts` (WEB-05), `next.config.test.ts` (SEC-32, web half), plus `src/components/status-badge.test.tsx`, `src/lib/api/query-client.test.ts` (spec 09 §2.7 retry policy) and `src/proxy.test.ts` (spec 09 §2.8 session gate), which carry no catalogue ID yet.
   - Vitest 5 requires Node `^22.12 || ^24 || ≥26`, which our Node 24 (D1) satisfies.
   - Vitest does **not** support async Server Components. Those are covered by Playwright, as the Next.js docs recommend.
   - Hooks are tested with the API client module mocked (`vi.mock`). There are no network calls in unit tests.
@@ -503,7 +510,7 @@ These run the real seed entry function against the empty test database, with a `
 ### 3.9 Contract test (generated types in sync)
 
 - `make gen-api` (D76; spec 07) runs `uv run python -m app.scripts.export_openapi ../web/src/lib/api/openapi.json` in `apps/api`, then the web script `pnpm api:types` (`openapi-typescript src/lib/api/openapi.json -o src/lib/api/schema.d.ts`) in `apps/web`. Both files are committed. The OpenAPI snapshot doubles as the "API docs" optional deliverable (§9.1).
-- CI job `contract` (spec 07) runs `make gen-api`, then `git diff --exit-code -- apps/web/src/lib/api`. Any API change made without regenerating `openapi.json` and `schema.d.ts` fails the build (WEB-07). D76 makes this a standing CI rule, so the gate is P0, not an optional extra. `openapi-typescript --check` is an equivalent shortcut for the TS half.
+- CI job `contract` (spec 07) runs `make gen-api`, then `git status --porcelain -- apps/web/src/lib/api` and fails on any output (as built; unlike `git diff --exit-code` it also catches a generated file that was never committed). Any API change made without regenerating `openapi.json` and `schema.d.ts` fails the build (WEB-07). D76 makes this a standing CI rule, so the gate is P0, not an optional extra. `openapi-typescript --check` is an equivalent shortcut for the TS half.
 
 ### 3.10 Live checks
 
@@ -536,6 +543,7 @@ The DEP group (§5 below) runs after every production deploy:
 - **Engine with `NullPool` in tests.** Every session gets a fresh connection, so there is no pooled connection reuse across event loops (SQLAlchemy's recommendation). Concurrency requests are guaranteed distinct backends, and the sync WebSocket `TestClient` (which runs the app in its own loop) is safe.
 - **No shared fixtures in the database.** Each test builds its own shops with builders and never relies on seed data. Only SEED tests run the seed.
 - (P1, only if the backend suite exceeds about 3 minutes) Shard with pytest-xdist, one database per worker (`bayflow_test_gw0`, …). Not needed at hackathon size.
+- **As built (D84).** `apps/api/tests/conftest.py` implements all of the above: it derives `<db>_test`, refuses any other name, creates it through the `postgres` database, resets `public`, runs `alembic upgrade head` as a subprocess, sets the two timeouts and truncates every app table (`RESTART IDENTITY CASCADE`) after each `db` test. **The `db` marker and the `db` fixture imply each other** (a collection hook adds whichever is missing), so every test that touches PostgreSQL is marked and **`uv run pytest -m "not db"` runs without a database**: on 2026-10-09 that is 1,329 of the 1,371 collected tests (42 are `db`). It also pins the test environment (`APP_ENV=development`, a test `JWT_SECRET`, `COOKIE_SECURE=false`, `EMAIL_PROVIDER=none`, `SEED_ON_DEPLOY=false`) before importing the app, whatever the developer's root `.env` says.
 
 ### 4.2 The app under test
 
@@ -543,7 +551,7 @@ The DEP group (§5 below) runs after every production deploy:
   - `DATABASE_URL` pointing at the derived `<db>_test` database;
   - `COOKIE_SECURE=false`, so the httpx cookie jar sends `bf_session` back over `http://test` (standard cookie semantics; not re-verified);
   - `EMAIL_PROVIDER=none`, so e-mail is disabled (D26; NOT-09 injects a fake mailer);
-  - rate limits raised through a test-settings override of spec 04's constants, except in SEC-27 and BK-32, which use the real thresholds; the in-memory limiter storage is reset after every test. The limiters keep their windows on system time (the one D63 exception, §4.4), so tests reset them instead of moving the clock.
+  - rate limits raised through a test-settings override of spec 04's constants, except in SEC-27 and BK-32, which use the real thresholds; the in-memory limiter storage is reset after every test. The limiters keep their windows on system time (the one D63 exception, §4.4), so tests reset them instead of moving the clock. As built, the reset exists (`app.core.security.reset_rate_limits()`, called by an autouse fixture before and after every test); the override seam that raises the limits is still to be built with the first rate-limited route (Open question 6).
 - The client wraps `LifespanManager(app)` (asgi-lifespan) + `AsyncClient(transport=ASGITransport(app=manager.app), base_url="http://test")`.
 - **Auth helpers.** `as_user(user)` returns a client that sends `Authorization: Bearer <token>`. This is fast and avoids a login round-trip; D8 accepts Bearer everywhere. The SEC tests use the real login and cookie flow.
 - **Clock and overrides.** The `clock` fixture installs a `SimulatedClock` as the process clock in `app.shared.clock` and restores `SystemClock` on teardown (D63; §4.4). `app.dependency_overrides` (FastAPI "Testing Dependencies with Overrides") is used only for collaborators such as a fake mailer, and is reset with `app.dependency_overrides = {}` in teardown.
@@ -552,10 +560,12 @@ The DEP group (§5 below) runs after every production deploy:
 ```toml
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "session"
 asyncio_default_test_loop_scope = "session"
-addopts = "--strict-markers -ra"
+# importlib mode: test files in different folders may share a basename without __init__.py files.
+addopts = "--strict-markers -ra --import-mode=importlib"
 markers = [
   "db: uses the PostgreSQL test database (<db>_test); tables truncated after the test",
   "concurrency: parallel requests through the lock gate",
@@ -582,7 +592,7 @@ pytestmark = pytest.mark.filterwarnings(
 
 ### 4.3 Builders and `drive_booking_to`
 
-Builders are plain async functions in `tests/builders.py`. They call the **real service layer** with a real actor, never raw SQL, so test data is always reachable and consistent. Factory libraries add little here, because every builder must go through async services.
+Builders are plain async functions in `tests/builders.py`. They call the **real service layer** with a real actor, never raw SQL, so test data is always reachable and consistent. Factory libraries add little here, because every builder must go through async services. *As built (2026-10-09):* `tests/builders.py` does not exist yet — the services arrive from PH1. The schema-level tests use `tests/rows.py` instead, which builds ORM rows directly (`make_user`, `make_shop`, … with the same names) **on purpose**, to prove what the database enforces with the services bypassed (INV-14, SEC-45); feature tests must never use it.
 
 | Builder | Creates (through services) |
 |---|---|
@@ -651,23 +661,26 @@ Because builders use the real transitions, a broken transition fails the builder
 
 ### 4.6 Layout
 
-The layout mirrors `app/modules`, as spec 01 sets out, plus a few cross-cutting folders:
+The planned layout mirrors `app/modules`, as spec 01 sets out, plus a few cross-cutting folders. **As built (2026-10-09)** the foundation tests (PH0) live in `unit/`, `api/` and `db/`; the other folders are created by the phases that need them. There are no `__init__.py` files: pytest runs with `--import-mode=importlib`, so test files in different folders may share a basename.
 
 ```
-apps/api/tests/
-  conftest.py        # test database (<db>_test), NullPool engine, migrate-once, truncate, app + client, clock fixture, as_user
-  builders.py        # make_*, drive_booking_to
-  assertions.py      # assert_problem, assert_invariants
-  lockgate.py        # hold_row_lock, wait_for_lock_waiters
-  unit/<module>/     # pure, DB-free tests (no marker), e.g. unit/bookings/test_state_machine.py (SM-01, SM-19 domain half, QC-08)
-  modules/<module>/  # DB-backed service, repository and API tests (`db`), concurrency tests (`concurrency`), WebSocket modules
-  security/          # spec 04 SEC catalogue, incl. the action matrix (SEC-07) and the route sweep (SEC-02)
-  e2e/               # scenarios: test_worked_example.py (SM-18) and SM-08 … SM-13 (`scenario`)
-  seed/              # SEED-xx (`seed`)
-  live/              # DEP scripted checks (`live`)
+apps/api/tests/      # as built: conftest.py, rows.py, unit/, api/, db/ — everything marked "planned" comes later
+  conftest.py        # test database (<db>_test), NullPool engine, migrate-once, truncate, app + clients (`client` without lifespan, `db_client` with it), clock fixture; planned: as_user
+  rows.py            # direct ORM rows for schema-level tests (services bypassed on purpose, §4.3)
+  builders.py        # planned (PH1): make_*, drive_booking_to
+  assertions.py      # built: assert_problem, assert_invariants (+ invariant_violations)
+  lockgate.py        # built: hold_row_lock(db, table, **key), wait_for_lock_waiters(db, n)
+  unit/              # pure, DB-free (no marker): core/ (config, errors, logging, security), shared/ (clock, email, event bus, money, timestamps), bookings/test_state_machine.py (SM-01, SM-19 domain half, QC-08)
+  api/               # the app through httpx (some `db`): auth dependencies, database-error mapping, error handlers, health, middleware
+  db/                # schema level (`db`): constraints (INV-14, SEC-45, …), the migration round trip and single head
+  modules/<module>/  # planned: DB-backed service, repository and API tests (`db`), concurrency tests (`concurrency`), WebSocket modules
+  security/          # planned: spec 04 SEC catalogue, incl. the action matrix (SEC-07) and the route sweep (SEC-02)
+  e2e/               # planned: scenarios — test_worked_example.py (SM-18) and SM-08 … SM-13 (`scenario`)
+  seed/              # planned: SEED-xx (`seed`)
+  live/              # planned: DEP scripted checks (`live`)
 apps/web/
-  src/**/*.test.ts(x)   # Vitest, next to the code under test
-  e2e/smoke.spec.ts     # Playwright smoke (P1)
+  src/**/*.test.ts(x), next.config.test.ts   # Vitest, next to the code under test (as built: 7 files, 67 tests)
+  e2e/smoke.spec.ts     # Playwright smoke (P1, planned)
 ```
 
 ### 4.7 Running tests locally (copied into the README, brief §9.1)
@@ -685,6 +698,7 @@ make lint                          # Ruff, format check, mypy, import contracts,
 cd apps/api
 uv run pytest                      # all backend tests
 uv run pytest tests/unit           # pure, DB-free tests only: seconds
+uv run pytest -m "not db"          # every test that needs no PostgreSQL (no Docker needed)
 uv run pytest -m "not slow"        # quick loop
 uv run pytest tests/e2e -k worked_example -vv
 
@@ -702,7 +716,7 @@ cd apps/api && WEB_URL=https://<web> API_URL=https://<api> uv run pytest -m live
 
 **Columns.**
 - **Layer:** U domain unit, I integration, A API, C concurrency, S scenario, D seed, W web unit, X contract, L live.
-- **Pri:** P0 = must exist and pass before submission; P1 = recommended extra; P2 = bonus track, built only after the core works end to end on the live URL (D36). Bonus-track tests (calling, AI Front Desk) belong to spec 05. "P0 once `/api/v1/ws` ships" marks realtime tests that become mandatory with the WebSocket.
+- **Pri:** P0 = must exist and pass before submission; P1 = recommended extra; P2 = bonus track, built only after the core works end to end on the live URL (D36). Bonus-track tests (calling, AI Front Desk) belong to spec 05. **Realtime (WebSocket) tests are P1** (D88: the hub, `GET /api/v1/realtime/ticket` and `/api/v1/ws` are P1; the bell kept fresh by 15 s polling is the P0 path) — they become mandatory only with the bonus calling (P2), which needs the socket.
 
 **Markers.**
 - **★** = the *minimum proof set*: 21 tests that must exist by the 50 % checkpoint (CP3, spec 14) and are never cut.
@@ -717,8 +731,11 @@ cd apps/api && WEB_URL=https://<web> API_URL=https://<api> uv run pytest -m live
 - SEC IDs and their expected results belong to spec 04.
 - SEED-11…SEED-19 come from spec 11 ("Verification"); this spec assigned the numbers.
 - Bonus tests CALL-xx (calling), FD-xx (AI Front Desk API, D75) and AG-xx (agent) belong to spec 05; the bonus rows below only index the ones that touch this spec's groups.
+- **Module-spec proposals** (`modules/*.md`, "Tests"): this spec numbers them. New groups IDN (identity), SHP (shops) and SCH (scheduling); the next free numbers of BK, EST, INV, QC, NOT and RPT; the calls module's proposals become CALL-17…CALL-21 and FD-13…FD-15 (spec 05 already owns CALL-15 and CALL-16). Rows taken from a module spec name it in brackets; the module spec still holds the detail.
 
 This catalogue lists them all so CI and spec 15 have one index.
+
+**Status (2026-10-09, as built).** API: **1,371** pytest items collected (D84 recorded 1,369 when the foundation gates first went green), **1,131** of them the exhaustive state-machine tests (`tests/unit/bookings/test_state_machine.py`); 42 need PostgreSQL (`db`), so 1,329 run with `pytest -m "not db"`. The foundation tests reference SM-01…SM-04, SM-16, SM-19 (domain halves), QC-08, API-01, API-04, API-08, API-12, SEC-04, SEC-13, SEC-15, SEC-24…SEC-26, SEC-28, SEC-30, SEC-37, SEC-45, INV-14 and the domain half of EST-11; module feature tests start with PH1 (spec 14). Web: **67** Vitest tests in 7 files (§3.8). Ruff, mypy, the eight import contracts and the Alembic upgrade / check / downgrade round trip are green (D84).
 
 ### SM — booking state machine (copied unchanged from spec 08)
 
@@ -786,11 +803,11 @@ Spec 04 defines SEC-01…SEC-43 and the expected result of each. This table repe
 | SEC-30 | CSRF: JSON endpoints reject `text/plain`, form-encoded and missing `Content-Type` | A | P0 |
 | SEC-31 | CORS allows only `CLIENT_URL` | A | P0 |
 | SEC-32 | Security headers on web and API, incl. `Cache-Control: no-store` on every `/api/*` response, public ones included (D61; the per-operation sweep is API-13) | A + W | P0 |
-| SEC-33 | WebSocket ticket (D70: `typ` = `ws`, 60 s by the test clock), `Origin` and deactivation checks: every rejected handshake closes with 1008, asserted with the server-side `TestClient` (§4.2) — browsers would only see 1006; no `booking.updated` for bookings the user cannot see (glossary §11) | A | P0 once `/api/v1/ws` ships |
+| SEC-33 | WebSocket ticket (D70: `typ` = `ws`, 60 s by the test clock), `Origin` and deactivation checks: every rejected handshake closes with 1008, asserted with the server-side `TestClient` (§4.2) — browsers would only see 1006; no `booking.updated` for bookings the user cannot see (glossary §11) | A | P1 (D88) |
 | SEC-34 | Notifications: another user's notification → 404 | A | P0 |
 | SEC-35 | Estimate integrity: locked edits, stale approval, server-side totals | A | P0 |
 | SEC-36 | Bonus internal API guarded by `AGENT_SERVICE_TOKEN` and scoped to the caller | A | P2 (with PH9) |
-| SEC-37 | Production config guards; no tracked `.env` | U + X | P0 |
+| SEC-37 | Production config guards — incl. D85: a `JWT_SECRET` **containing** `change-me`, `replace-me`, `dev-only` or `placeholder` is refused whatever its length (`.env.example`'s value, CI's `ci-placeholder-…`, the built-in dev secret), as is `COOKIE_SECURE=false`; no tracked `.env`. As built: `tests/unit/core/test_config.py::test_production_refuses_weak_or_placeholder_settings` | U + X | P0 |
 | SEC-38 | Log hygiene: no passwords, tokens, tickets or `Authorization` headers in logs | A | P0 |
 | SEC-39 | Login `next` redirect sanitiser | W | P0 |
 | SEC-40 | Any user (e.g. a technician) can create a shop and owns only that shop (D17) | A | P0 |
@@ -804,6 +821,44 @@ Spec 04 defines SEC-01…SEC-43 and the expected result of each. This table repe
 | SEC-48 | The project `Email` type on register-owner, login and the wizard: spaces and mixed case are accepted and stored or matched lower-case; `x@localhost`, `bad@@x` → 422; no `EmailStr` in `apps/api` (D62; API-12 is the `.test` half) | A | P0 |
 | SEC-49 | *(bonus)* LiveKit webhook authentication and replay (≙ spec 05 CALL-13) | A | P2 |
 | SEC-50 | *(bonus)* Calls and tasks RBAC (≙ spec 05 CALL-10) | A | P2 |
+
+### IDN — identity (from `modules/identity.md` §12)
+
+| ID | Test | Layer | Pri |
+|---|---|---|---|
+| IDN-01 | Register-owner: 201, cookie set, body `user` has no `memberships` key (D81), `last_login_at` set; a following `GET /api/v1/me` returns `memberships: []` | A | P0 |
+| IDN-02 | Transparent rehash: a stored hash with outdated Argon2 parameters is replaced after a successful login and still verifies; a failed login never rewrites it | A + I | P1 |
+| IDN-03 | Limiter cleared on success (D69): 4 failures, 1 success, then 4 more failures still log in on the 5th try with the right password; the 5th failure blocks | A | P0 |
+| IDN-04 | A user whose every membership is inactive logs in (200); an inactive user with the right password → 401 and counts as a failure (D9) | A | P0 |
+| IDN-05 | Internal functions are idempotent: `set_user_active` / `set_password` on an already-correct account change no column (`updated_at` unchanged); `password_matches` never touches the limiter (supports SEED-19, D60) | I | P0 |
+| IDN-06 | Logout is idempotent with no cookie, with an expired cookie and with a valid one (always 204 + clearing header); the Bearer token still works after logout (documented stateless caveat) | A | P0 |
+
+### SHP — shops, team and catalogue (from `modules/shops.md` §12)
+
+| ID | Test | Layer | Pri |
+|---|---|---|---|
+| SHP-01 | Slugs (D68): "Lahore Auto Care" → `lahore-auto-care`; a second shop with the same name → `lahore-auto-care-2`; an Urdu-only name → `shop`; renaming never changes the slug | U + A | P0 |
+| SHP-02 | Shop creation is atomic: an invalid working-hours row → 422 and no `shops`, `shop_working_hours` or `shop_memberships` row exists; a valid one creates exactly 1 + 7 + 1 rows | A | P0 |
+| SHP-03 | Working-hours validation codes: duplicate weekday, missing times, `closes_at ≤ opens_at`, off-grid time, closed day with times (accepted, stored NULL), 6 or 8 entries | A | P0 |
+| SHP-04 | Duration change without future bookings (D37): hours on the new grid → 200; hours off it → 422 `hours_not_on_grid`; with a future booking → 409 even when the hours would fit | A | P0 |
+| SHP-05 | Services: duplicate active name (case-insensitive) → 409; a deactivated duplicate is allowed; reactivating it → 409; the same name in another shop → 201 | A | P0 |
+| SHP-06 | Members list: Owner sees all incl. inactive and `OWNER`; SA sees only active T and PP; T/PP/QC → 403; order role → name | A | P0 |
+| SHP-07 | `open_jobs` (through the D86 `ShopActivityReader`) counts bookings where the member is technician, parts person or current QC picker, excluding `READY_FOR_PICKUP`, `COMPLETED`, `CANCELLED` | A | P0 |
+| SHP-08 | Cities list: one entry per case-insensitive city of directory shops only (unlisted or service-less shops excluded, D64) | A | P0 |
+| SHP-09 | `/me` excludes inactive memberships, sorts by shop name, and capabilities equal `CAPABILITY_ROLES` for each role; `tasks.manage` absent while calling is disabled (D66) | A | P0 |
+| SHP-10 | Route guards and capabilities agree: every route guarded with `CAPABILITY_ROLES[c]` returns 403 for exactly the roles whose `/me` lacks `c` (generated) | A | P0 |
+
+### SCH — scheduling (from `modules/scheduling.md` §12)
+
+| ID | Test | Layer | Pri |
+|---|---|---|---|
+| SCH-01 | DST zone (`Europe/London`, spring-forward date, hours 00:00–04:00, 60-minute slots): the non-existent 01:00 local slot is skipped; every `slot_end = slot_start + duration` (PKT has no DST, D38, so this guards other zones) | U | P1 |
+| SCH-02 | Horizon boundary (D37): the last slot of `today + 30` (local) is offered and bookable; any slot on `today + 31` → `slots: []` and 422 `INVALID_SLOT` `beyond_horizon` | U + A | P0 |
+| SCH-03 | A slot starting exactly at `now` is neither offered nor bookable (`in_past`, D63) | U | P0 |
+| SCH-04 | Capacity lowered below `booked_count` → slot omitted (no negative `remaining`); raising it again reopens the slot | A | P0 |
+| SCH-05 | Availability of a listed shop with no active service returns its slots (spec 03 §4.5); an unlisted shop → 404 (D64) | A | P0 |
+| SCH-06 | `release_slot` on a missing counter raises (500); a double release cannot drive the count below 0 | I | P0 |
+| SCH-07 | Reason precedence of `modules/scheduling.md` §7.4 (e.g. an off-grid time in the past → `off_grid`; a past on-grid time on a closed day → `in_past`; an on-grid time after closing → `outside_hours`) | U | P0 |
 
 ### BK — booking creation, scheduling and booking operations (brief §5.1, §7.3)
 
@@ -828,19 +883,29 @@ Spec 04 defines SEC-01…SEC-43 and the expected result of each. This table repe
 | BK-17 | Customer dashboard list: only own bookings, each with status and `allowed_actions`; a booking awaiting approval is identifiable (`approve-estimate` present) (§7.3 "pending actions highlighted") | A | P0 |
 | BK-18 | Staff booking list filters by one or several statuses and paginates (§7.4 SA) | A | P0 |
 | BK-19 | Booking detail returns the event timeline in chronological order — `(created_at, seq)`, D79 — with actor role, from/to and note (§7.3 live timeline, §7.5) | A | P0 |
-| BK-20 | Vehicle fields: registration, make, model and year required (year within the range spec 03 sets †); colour and mileage optional → 422 otherwise (§5.1) | A | P0 |
+| BK-20 | Vehicle fields (`VehicleWrite`): `registration_number`, `make`, `model` and `year` required (year within the range spec 03 sets †); `color` and `mileage_km` optional → 422 otherwise (§5.1) | A | P0 |
 | BK-21 | `assign-technician` / `assign-parts-person` with a user who is not an active member with the required role in this shop (wrong role, inactive, other shop, unknown) → 422 `MEMBER_NOT_ELIGIBLE` (T04, T12) | A | P0 |
 | BK-22 | `decline` and staff `cancel` require `reason` (1–500) → 422 otherwise; customer `cancel` reason optional (T03, T22) | A | P0 |
 | BK-23 | `notify-ready` sets `ready_notified_at`, is repeatable and sends `VEHICLE_READY` each time; `complete` by the customer or SA sets `completed_at` (O3, D27, D28, T21) | A | P0 |
 | BK-24 | `start-repair` sets `repair_started_at` without changing status and writes an event; a second repair round overwrites it (O2, D25) | A | P0 |
 | BK-25 | `reassign-technician` / `reassign-parts-person`: the new assignee must be eligible and different; the draft estimate is kept; the new assignee is notified (O4, O5) | A | P1 |
-| BK-26 | Directory hides a shop without an active service (D64): a listed shop with no services, or with every service deactivated, is absent from `GET /api/v1/public/shops` and from the city list; its public detail still answers 200 with `services: []` and `is_bookable: false` (spec 03); `POST /api/v1/bookings` for it → 404 `NOT_FOUND` (spec 08 T01, spec 03 order of checks); it reappears once a service is active again | A | P0 |
+| BK-26 | Directory hides a shop without an active service (D64): a listed shop with no services, or with every service deactivated, is absent from `GET /api/v1/public/shops` and from the city list; its public detail still answers 200 with `services: []` and `is_bookable: false` (spec 03; D64 amended), whereas an **unlisted** shop's slug → 404 `NOT_FOUND` (D64); `POST /api/v1/bookings` for a listed shop without services → 404 `NOT_FOUND` (spec 08 T01, spec 03 order of checks); it reappears once a service is active again | A | P0 |
 | BK-27 | Public routes use the shop slug (D68): `GET /api/v1/public/shops/{shop_slug}` and `…/availability?date=YYYY-MM-DD` answer by slug; an unknown slug, or a shop UUID in that position, → 404; every slot reports its free places as `remaining` (capacity − booked) and no slot object has an `available` key (glossary §1) | A | P0 |
 | BK-28 | Mileage snapshot (D65): the wizard's mileage is stored on `bookings.mileage_km` (null when omitted); re-booking the same vehicle with a higher mileage updates the vehicle (D35) but leaves the earlier booking's `mileage_km` unchanged | A | P0 |
 | BK-29 | Grid changes blocked by future bookings (D37): while the shop has a future non-cancelled booking, changing `slot_duration_minutes` or `timezone` → 409 `CONFLICT` (the bookings module vetoes `ShopGridChanging`) and nothing changes; once every future booking is cancelled the change succeeds, provided the working hours lie on the new grid (else 422, field code `hours_not_on_grid`, spec 03); capacity and working-hours changes are always allowed and keep existing bookings | A | P0 |
 | BK-30 | Midnight-anchored grid (D37): slots start at local midnight + k × `slot_duration_minutes` in the shop's timezone. With 45-minute slots, 09:00 and 18:00 are on the grid (12 × 45 and 24 × 45 minutes) and 09:30 is not; working hours whose opening or closing time is off the grid → 422 `VALIDATION_ERROR` (field code `not_on_grid`, spec 03); the day's last slot ends by closing time | U + A | P0 |
 | BK-31 | Timeline order without distinct timestamps (D79): with a frozen `SimulatedClock`, drive a booking through several actions so every event shares one `created_at`; the timeline (BK-19) and the event-chain invariant (§4.5) still follow insert order through `(created_at, seq)`, and `seq` strictly increases | A + I | P0 |
 | BK-32 | Booking-creation limits (D69; spec 04 table): anonymous `POST /api/v1/bookings` over the per-IP limit, and a logged-in customer over the per-user limit → 429 `RATE_LIMITED` with `Retry-After`; nothing is created and the slot counter is unchanged | A | P0 |
+| BK-33 | D83 `[bookings.md]`: a partial receipt for a `PARTS_ORDERED` booking writes no event and keeps `version`, but `booking.updated` reaches its viewers (server-side `TestClient` sockets) | A | P0; push half P1 (D88) |
+| BK-34 | `allowed_actions` of a list item equals the detail's for the same caller, for every role and status reached by `drive_booking_to` `[bookings.md]` | A | P0 |
+| BK-35 | `status_changed_at` ignores operations: after `start-repair`, `notify-ready` and an in-place estimate save it still equals the last status change `[bookings.md]` | A | P0 |
+| BK-36 | Customer projection: `EDIT_ESTIMATE` and `REASSIGN_*` absent; notes only on `DECLINE`, `CANCEL`, `REJECT_ESTIMATE`; no actor, role or `metadata` keys (complements SEC-12) `[bookings.md]` | A | P0 |
+| BK-37 | `GET …/parts`: QC inspector → 403 when the booking is in the queue, 404 when not visible; technician sees it only when assigned `[bookings.md]` | A | P0 |
+| BK-38 | `PUT …/estimate` by an SA or the Owner with `inspection_notes` → 422 `not_allowed`; by the technician → saved, no event `[bookings.md]` | A | P0 |
+| BK-39 | Concurrent `pick-qc` loser gets `ALREADY_PICKED` naming the picker; the picker's own repeated click gets the same 409 `[bookings.md]` | C | P0 |
+| BK-40 | `can_view` and the SQL predicate agree for every role × status × assignment combination (unit + one DB round-trip per role) `[bookings.md]` | U + I | P0 |
+| BK-41 | Grid veto counts only future non-cancelled bookings: a past booking or a cancelled future one does not block a duration change (complements BK-29) `[bookings.md]` | A | P0 |
+| BK-42 | Generated routes: the staff family has exactly the 20 (22 with P1) slugs and the customer family exactly 4; `POST …/actions/edit-estimate` → 404 `[bookings.md]` | A | P0 |
 
 ### EST — estimates (brief §7.4, §7.5; D39–D41)
 
@@ -856,7 +921,7 @@ Spec 04 defines SEC-01…SEC-43 and the expected result of each. This table repe
 | EST-08 | Lines: 1–50; `PART` quantity integer ≥ 1; `LABOUR` description required, quantity 0.01–999.99; `unit_price` a whole-rupee amount ≥ 0 (EST-20) → 422 otherwise (O1) | A | P0 |
 | EST-09 | A `PART` line's unit price defaults to `parts.unit_cost` when omitted and can be overridden (D40) | A | P0 |
 | EST-10 | Submit or send with zero lines → 422 `ESTIMATE_EMPTY` (T06, T07) | A | P0 |
-| EST-11 | Editing outside `INSPECTING` (technician) / `ESTIMATE_REVIEW` (SA, Owner) → 409 `ESTIMATE_LOCKED`, including after send and after approval, and for an Owner or SA during `INSPECTING`: the domain answers `INVALID_TRANSITION` for `EDIT_ESTIMATE` outside the caller's own status, and the estimate service maps it to `ESTIMATE_LOCKED` for `PUT …/estimate` — never 403 (O1, D39) | A | P0 |
+| EST-11 | Editing outside `INSPECTING` (technician) / `ESTIMATE_REVIEW` (SA, Owner) → 409 `ESTIMATE_LOCKED`, including after send and after approval, and for an Owner or SA during `INSPECTING`: the domain answers `INVALID_TRANSITION` for `EDIT_ESTIMATE` outside the caller's own status, and the **bookings `edit_estimate` use case maps it to `ESTIMATE_LOCKED`** for `PUT …/estimate` (the estimates service also raises `ESTIMATE_LOCKED` itself, as a backstop, for a version that is no longer editable) — never 403 (O1, D39). The domain half exists (`test_state_machine.py`) | U + A | P0 |
 | EST-12 | `SENT`, `APPROVED`, `REJECTED`, `SUPERSEDED` versions are immutable at the service layer: attempts raise; lines and totals unchanged (D39) | I | P0 |
 | EST-13 | Approval stores `APPROVED`, `decided_at`, `decided_by_user_id`; the customer's view shows the timestamped acceptance (brief §3, T08) | A | P0 |
 | EST-14 | Approve or reject with an `estimate_id` that is not the current `SENT` version (superseded, another booking's, unknown) → 409 `STALE_ESTIMATE` † (T08, T09) | A | P0 |
@@ -866,6 +931,13 @@ Spec 04 defines SEC-01…SEC-43 and the expected result of each. This table repe
 | EST-18 | The estimate editor response shows live availability (on_hand − reserved) for each `PART` line and flags shortages (§7.6, D40) | A | P0 |
 | EST-19 | Estimate events carry `{estimate_id, version, grand_total}` metadata (spec 08) | A | P1 |
 | EST-20 | Whole rupees (D41): a `unit_price` or part `unit_cost` with paisa (`"900.50"`) → 422 `VALIDATION_ERROR` (field code `not_whole_rupees`, spec 03); each line total is quantity × unit price **rounded half-up** to whole rupees (`1.50 × 999` = 1,498.50 → `"1499.00"`, where banker's rounding would give 1,498); estimate totals are sums of the rounded lines; every money value serializes as `".00"`; the DB's `ck_<table>_whole_rupees` rejects paisa even when services are bypassed | U + A + I | P0 |
+| EST-21 | Overflow guard: 9 999 × 9 999 999 999 → 422 `VALIDATION_ERROR`, never a 500; nothing written `[estimates.md]` | A | P0 |
+| EST-22 | `estimate_revision_in_progress` truth table: nothing sent yet → false; after rejection + revise → true; after send → false; after cancellation → false `[estimates.md]` | A | P0 |
+| EST-23 | A `PART` line's description comes from the catalogue at save time; renaming the part later leaves `SENT` / `APPROVED` versions unchanged, and the next draft save shows the new name `[estimates.md]` | A | P0 |
+| EST-24 | One 422 lists every invalid line (`lines.0.part_id`, `lines.3.quantity`, …), not just the first `[estimates.md]` | A | P0 |
+| EST-25 | `line_total` equals PostgreSQL `round(quantity * unit_price)` and `app.shared.money.round_rupees` for a sample including every `.5` tie `[estimates.md]` | U + I | P0 |
+| EST-26 | The booking-status ↔ latest-version table of `modules/estimates.md` §7.1 holds after every scenario step (added to `assert_invariants`) | S | P0 |
+| EST-27 | A `SENT` version superseded by a cancellation is absent from the customer detail, the customer estimates list (P1) and the agent view (P2) `[estimates.md]` | A | P0 |
 
 ### INV — inventory and procurement (brief §7.6; D42–D45)
 
@@ -897,6 +969,14 @@ Spec 04 defines SEC-01…SEC-43 and the expected result of each. This table repe
 | INV-24 | A receipt never reserves for a booking that is not `PARTS_ORDERED` (D43): receive a booking-linked PO after the booking moved on (e.g. `mark-parts-ready` once stock arrived another way) or was cancelled (INV-09) → the stock arrives as general stock; the booking's `booking_parts`, status and events are unchanged and no `RECEIVE_PARTS` event is written | A | P0 |
 | INV-25 | An `ADJUST` that would take `on_hand` below `reserved` (or below 0) → 409 `INSUFFICIENT_STOCK`; stock and ledger unchanged (D82) | A | P0 |
 | INV-26 | Ledger order and order-free checks (D79): the movements of one action (e.g. `order-parts` reserving the filter and the oil) share one `created_at`; a part's stock history lists rows by `(created_at, seq)` with a running balance that ends at the part's `on_hand` / `reserved`; the INV-01 check gives the same verdict for every permutation of the rows inside one action (checker unit-tested on shuffled input) | U + I | P0 |
+| INV-27 | `order-parts` item validation returns `missing_shortage`, `not_short` and `below_shortage` together in one 422; nothing reserved `[inventory.md]` | A | P0 |
+| INV-28 | A receipt repeated with the same `expected_received_qty` → 409 `CONCURRENT_UPDATE` while the PO is still `PARTIALLY_RECEIVED`; stock unchanged `[inventory.md]` | A | P0 |
+| INV-29 | General PO with an inactive or other-shop part → 422 `invalid_reference`; a `booking_id` in the body → 422 `extra_forbidden` `[inventory.md]` | A | P0 |
+| INV-30 | Receipt rows: `RECEIVE` has `booking_id` NULL and the PO id; the following `RESERVE` carries both the booking and the PO id `[inventory.md]` | A + I | P0 |
+| INV-31 | `on_order` and `stock_state` on `GET …/parts`, and the `stock_state` filter (`OUT` wins over `LOW`, reorder level 0) `[inventory.md]` | A | P0 |
+| INV-32 | QC inspector: `GET …/parts` and `…/bookings/{id}/parts` → 403; estimate reads return `PartStockRef` with null stock fields `[inventory.md]` | A | P0 |
+| INV-33 | PO-number collision: an injected generator returns a taken number first; the PO is created with the next one `[inventory.md]` | I | P0 |
+| INV-34 | D83: a partial receipt reports its reservations (`ReceiptReservation.reserved`) and the booking's viewers get `booking.updated` (with bookings' `BookingPartsChanged` and notifications; = BK-33) `[inventory.md]` | A | P0; push half P1 (D88) |
 
 ### QC — quality check (brief §7.4, §5.3; D46, D47)
 
@@ -913,6 +993,12 @@ Spec 04 defines SEC-01…SEC-43 and the expected result of each. This table repe
 | QC-09 | The technician sees the QC issues sent back on the job detail (§7.4 Technician) | A | P0 |
 | QC-10 | A re-test may be picked by a different QC inspector than the previous round (D47) | A | P0 |
 | QC-11 | `pass-qc` keeps `qc_inspector_user_id` (it records who passed the job) and stores the checklist; `fail-qc` stores the checklist too when one is sent, and clears the picker (D46, D47) | A | P0 |
+| QC-12 | `GET …/qc/checklist` returns the five items in D46 order with spec 03 labels for every role; non-member → 404 `[qc.md]` | A | P0 |
+| QC-13 | Missing, repeated and unknown keys → 422 with `checklist_incomplete` / `enum`; a failed item on pass → `checklist_item_failed` listing every failed item `[qc.md]` | A | P0 |
+| QC-14 | `qc_round` and `open_qc_issues_count` through a fail loop: 0 before QC, 1 at `QC_PENDING`, 1 after the fail, 2 at the re-test; open issues 1 → 0 on resend `[qc.md]` | A | P0 |
+| QC-15 | `fail-qc` without a checklist stores NULL; with one, the stored JSON has labels in template order and item notes `[qc.md]` | A | P0 |
+| QC-16 | After a booking leaves QC, the inspector who inspected it still sees it and its history; another QC inspector gets 404 (D21) `[qc.md]` | A | P0 |
+| QC-17 | Repository: inserting a second open inspection for a booking → mapped to 409 `ALREADY_PICKED` (`uq_qc_inspections_one_open_per_booking`, spec 02 §7.5) `[qc.md]` | I | P0 |
 
 ### NOT — notifications (brief §5.4; D26)
 
@@ -929,8 +1015,16 @@ Spec 04 defines SEC-01…SEC-43 and the expected result of each. This table repe
 | NOT-09 | E-mail for `ESTIMATE_SENT` and `VEHICLE_READY` only when `EMAIL_PROVIDER` is `smtp` or `http`; `none` → no attempt; addresses at reserved/test TLDs (`.test`, `.example`, `.invalid`, `.localhost`) are never e-mailed; a provider failure never fails or rolls back the action (D26) | A | P1 |
 | NOT-10 | The notification list returns the caller's notifications, newest first, paginated | A | P0 |
 | NOT-11 | Every notification row stores `recipient_role` and a server-computed `link` for that recipient (D67): `BOOKING_CANCELLED` sent to the customer links into the customer portal, the same type sent to an SA links to that shop's POS booking page; every link opens for its recipient (no 403 / 404) | A | P0 |
-| NOT-12 | `booking.updated` goes only to users who can see the booking (glossary §11, D21): an unassigned technician, another parts person, a QC inspector outside `QC_PENDING` / `QC_IN_PROGRESS` who never inspected it, members of other shops and deactivated members receive nothing. Asserted with server-side `TestClient` sockets (§4.2) | A | P0 once `/api/v1/ws` ships |
+| NOT-12 | `booking.updated` goes only to users who can see the booking (glossary §11, D21): an unassigned technician, another parts person, a QC inspector outside `QC_PENDING` / `QC_IN_PROGRESS` who never inspected it, members of other shops and deactivated members receive nothing. Asserted with server-side `TestClient` sockets (§4.2) | A | P1 (D88) |
 | NOT-13 *(bonus)* | Bonus recipients (glossary §6): `CALL_MISSED` for a customer → shop call goes to the SAs of the shop (the Owner if none, D26); for a shop → customer call, to the customer; `AI_TASK_CREATED` goes to the SAs of the shop. Implemented by spec 05's CALL-04, CALL-08 and FD-07; indexed here so the recipient matrix is complete | A | P2 |
+| NOT-14 | `link_for` for every `recipient_role` and `AI_TASK_CREATED` (unit); every link passes the `ck_notifications_link_relative` rule `[notifications.md]` | U + I | P0 |
+| NOT-15 | Texts: placeholders filled from the event; a 2,000-character cancel reason is cut to the 1,000-character body `[notifications.md]` | U | P0 |
+| NOT-16 | Ticket: exactly `sub`, `iat`, `exp = iat + 60`, `typ = "ws"`; used as a Bearer token → 401; no row or server state created `[notifications.md]` | A | P1 (D88) |
+| NOT-17 | WebSocket: `ping` → `pong`; unknown frames and invalid JSON are ignored and the socket stays open `[notifications.md]` | A | P1 (D88) |
+| NOT-18 | D83: `BookingPartsChanged` pushes `booking.updated` to the booking's viewers only and writes no row; a general-restock receipt pushes nothing (= BK-33 from the notifications side) `[notifications.md]` | A | P1 (D88) |
+| NOT-19 | `http` adapter request (mocked transport): URL, Bearer key, JSON body, `Idempotency-Key`; reserved-TLD skip makes no request `[notifications.md]` | U | P1 (e-mail, D26) |
+| NOT-20 | A socket whose send fails is removed; the action's HTTP response is unchanged `[notifications.md]` | A | P1 (D88) |
+| NOT-21 | Mark-read twice → 204 both times, `read_at` unchanged by the second call `[notifications.md]` | A | P0 |
 
 ### RPT — owner overview (brief §7.4 Owner)
 
@@ -939,19 +1033,25 @@ Spec 04 defines SEC-01…SEC-43 and the expected result of each. This table repe
 | RPT-01 | The owner overview for the selected shop returns bookings-by-status counts matching the bookings table, the team list and an inventory summary (low/out counts); no data from other shops | A | P0 |
 | RPT-02 | Owner multi-shop summary aggregates only the shops the caller owns | A | P1 |
 | RPT-03 | Non-owners cannot open the owner overview → 403 `FORBIDDEN` † | A | P0 |
+| RPT-04 | `status_counts` lists all 17 statuses in glossary §3 order, zeros included, and sums to the shop's bookings `[reporting.md]` | A | P0 |
+| RPT-05 | Today window in the shop's timezone with a frozen clock at `2026-10-15T19:30:00Z` (16 Oct 00:30 PKT): a booking at `2026-10-16T05:00:00Z` counts, one at `2026-10-15T18:00:00Z` does not; a cancelled one never counts; `completed` follows `completed_at` `[reporting.md]` | A | P0 |
+| RPT-06 | Inventory: `stock_value` = Σ on hand × cost over active parts; an inactive part is excluded; `low_stock` order `OUT` first, then available, max 5; `low_stock_count` counts `LOW` + `OUT` `[reporting.md]` | A | P0 |
+| RPT-07 | Team: inactive members and the `OWNER` row are listed; `open_jobs` counts technician, parts-person and current-picker roles and ignores `READY_FOR_PICKUP`, `COMPLETED`, `CANCELLED` `[reporting.md]` | A | P0 |
+| RPT-08 | Setup flags on a brand-new shop (`has_services`, `has_team`, `has_parts` false; `is_listed` true), then each flips after the matching action `[reporting.md]` | A | P0 |
+| RPT-09 | Owner summary (P1, with RPT-02): SA + in-progress + terminal groups partition all statuses (unit); the summary of an owner of two shops who is staff in a third has exactly two rows `[reporting.md]` | U + A | P1 |
 
 ### API — conventions, errors, health (brief §9.4; D48–D50)
 
 | ID | Test | Layer | Pri |
 |---|---|---|---|
-| API-01 ★ | Every 4xx/5xx is `application/problem+json` with the RFC 9457 members of spec 03, `status` equal to the HTTP status, and a glossary §10 `code`. Checked for 401, 403, 404, 409, 422, 500, and 429 once rate limits exist (D49). The one exemption is `/health`'s 503, whose body is `HealthRead` (`{"status": "unavailable"}`, spec 03; API-08) | A | P0 |
+| API-01 ★ | Every 4xx/5xx is `application/problem+json` with the RFC 9457 members of spec 03, `status` equal to the HTTP status, and a glossary §10 `code`. Checked for 401, 403, 404, 409, 422, 500, and 429 once rate limits exist (D49). The one exemption is `/health`'s 503, whose body is `HealthRead` (`{"status": "degraded", "database": "error"}`, D84, spec 03; API-08) | A | P0 |
 | API-02 | 422 bodies list every invalid field (location + message) so the UI can show inline errors | A | P0 |
 | API-03 | Framework errors are converted too: request-validation errors, unknown routes (404), wrong methods (405) and malformed JSON never return FastAPI's default `{"detail": …}` shape | A | P0 |
 | API-04 | Unhandled exceptions → 500 `INTERNAL_ERROR` with a generic `detail`; no stack trace, SQL or exception class in the body; the error is logged | A | P0 |
 | API-05 | Collections (lists that can grow without bound) use the pagination envelope `{items, total, limit, offset}`; default `limit` 20; `limit` outside 1–100 or a negative `offset` → 422 `VALIDATION_ERROR` † (glossary §9). Bounded lists — a booking's events, estimate versions, booking parts and QC rounds, the QC checklist, directory cities, a customer's vehicles — return `{items}` without pagination (spec 03) | A | P0 |
 | API-06 | Every booking list item and detail, for every endpoint family, includes `allowed_actions` (array of slugs, possibly empty) (D48) | A | P0 |
 | API-07 | Conventions on real responses: `snake_case` keys, UUID ids, UTC `Z` timestamps, money as decimal strings (a response walker over scenario responses; glossary §9) | S | P0 |
-| API-08 | `GET /health` → 200 `{"status": "ok"}` when the database is reachable, 503 `{"status": "unavailable"}` (`HealthRead`, not problem+json) when it is not (Railway health check, D13; spec 03) | A | P0 |
+| API-08 | `GET /health` → 200 `{"status": "ok", "database": "ok"}` when `SELECT 1` succeeds within 2 s, 503 `{"status": "degraded", "database": "error"}` (`HealthRead`, not problem+json) when it does not; both `Cache-Control: no-store` (Railway health check, D13; D84; spec 03). As built: `tests/api/test_health.py` | A | P0 |
 | API-09 | The OpenAPI schema is generated, `/docs` renders, and every operation in it declares its response model and documented errors — operations enumerated from the generated document, never `app.routes` (§3.4) (§9.1 optional API docs) | A | P1 |
 | API-10 | An unknown action slug → 404 `NOT_FOUND`; any action on a terminal booking → 409 `INVALID_TRANSITION` (D48, spec 08) | A | P0 |
 | API-11 | N+1 guard: list endpoints issue the same number of SQL statements for 1 and for 20 items (statement counter on the engine; §8 below) | A | P1 |
@@ -1031,7 +1131,7 @@ Spec 04 defines SEC-01…SEC-43 and the expected result of each. This table repe
 
 | ID | Check | How | Pri |
 |---|---|---|---|
-| DEV-01 | `./start.sh` on a machine with Docker: PostgreSQL starts on host port 5434, migrations run, the seed runs (demo data on a fresh database: `.env.example` sets `SEED_ON_DEPLOY=true` locally; `--seed` forces it, D73), the API listens on 4000 and the web app on 3000 (logs in `logs/`, PIDs in `.run/`); `GET http://localhost:4000/health` → 200 and `http://localhost:3000` → 200 within a timeout. Then `./stop.sh`: both apps and the DB container stop (its volume is kept) and nothing listens on 3000, 4000 or 5434 any more. Windows: the same with `start.bat` / `stop.bat` | scripted on Linux/macOS (by hand before each checkpoint, or an optional CI job on `ubuntu-latest`); by hand on Windows | P1 |
+| DEV-01 | `./start.sh` on a machine with Docker: PostgreSQL starts on host port 5434, migrations run, the seed runs (demo data on a fresh database: `.env.example` sets `SEED_ON_DEPLOY=true` locally; `--seed` forces it, D73), the API listens on 4000 and the web app on 3000 (logs in `logs/`, PIDs in `.run/`); `GET http://localhost:4000/health` → 200 and `http://localhost:3000` → 200 within a timeout. Then `./stop.sh`: both apps and the DB container stop (its volume is kept) and nothing listens on 3000, 4000 or 5434 any more. Windows: the same with `start.bat` / `stop.bat`. **Status:** passed by hand on Linux at the end of PH0 (2026-10-09: start → `/health` 200 and web 200 → stop frees 3000/4000; spec 14) | scripted on Linux/macOS (by hand before each checkpoint, or an optional CI job on `ubuntu-latest`); by hand on Windows | P1 |
 
 ### Bonus track index (owned by spec 05; P2, D36)
 
@@ -1046,13 +1146,26 @@ Listed so spec 15 can trace the bonus decisions to tests; spec 05 §14 holds the
 | D69 call-start limit (5 per caller per 10 minutes) | CALL-12 |
 | Glossary §6 bonus recipients (`CALL_MISSED` direction split, `AI_TASK_CREATED`) | NOT-13 (= CALL-04, CALL-08, FD-07) |
 
+**Proposed by `modules/calls.md`, numbered here for spec 05 to adopt** (that module spec called them CALL-15…CALL-18; spec 05 already owns CALL-15 and CALL-16, so they become CALL-17…CALL-20; its later proposal keeps its number, CALL-21, which spec 05 §14.1 already lists; all P2):
+
+| ID | Test | Layer | Pri |
+|---|---|---|---|
+| CALL-17 | D77: a customer → shop call with nobody online rings the full `AI_RING_TIMEOUT_SECONDS`, then dispatches the AI. Same subject as spec 05's CALL-15 — implement it once; this ID only records the module spec's proposal | A | P2 |
+| CALL-18 | A socket that connects while a call is `RINGING` for that user receives `call.incoming` again | A | P2 |
+| CALL-19 | Accept pushes `call.updated` to every rung user (their pop-ups close) and to the caller | A | P2 |
+| CALL-20 | With `CALL_PROVIDER_*` blank: both start routes → 503, nothing stored; the OpenAPI document still lists the 14 call and task operations | A | P2 |
+| CALL-21 | Eligibility (spec 05 §3.3): an active SA who was not rung can accept a ringing customer → shop call (200); the Owner of a shop that has an active SA gets 403 on accept and decline; with no active SA the Owner is the eligible callee and may accept | A | P2 |
+| FD-13 | A repeated task kind for the same call updates the description and returns 200 `created: false` with no new `AI_TASK_CREATED` | A | P2 |
+| FD-14 | An AI leg that ends with an `ai_error` creates exactly one `CALLBACK` task | A | P2 |
+| FD-15 | Monthly-minutes formula (unit) and the 503 when it is reached | U + A | P2 |
+
 ---
 
 ## 6. CI quality gates (GitHub Actions)
 
 The workflow `.github/workflows/ci.yml` is defined in spec 07 (§CI/CD). It runs jobs `api`, `web`, `contract` and `secrets` on every pull request and every push to `main`, with a PostgreSQL service container (`postgres:16`, the same major as Railway, D12). All four are required checks for merging into `main` (branch protection, §2.2 above). Merges to `main` auto-deploy, so `main` stays green and deployable.
 
-This section defines what the gates must enforce. Spec 07 implements them.
+This section defines what the gates must enforce. Spec 07 implements them; **as built (2026-10-09) every P0 gate below is in `.github/workflows/ci.yml`**, and the P1 rows are not yet.
 
 | Gate | Job (spec 07) | Command | Blocks merge | Pri |
 |---|---|---|---|---|
@@ -1060,16 +1173,16 @@ This section defines what the gates must enforce. Spec 07 implements them.
 | Python format | `api` | `uv run ruff format --check .` | ✅ | P0 |
 | Python types | `api` | `uv run mypy app` (strict) | ✅ | P0 |
 | Layering contracts | `api` | `uv run lint-imports` | ✅ | P0 |
-| Backend tests (U, I, A, C, S, D) with PostgreSQL | `api` | `uv run pytest` | ✅ | P0 |
-| Models ↔ migrations | `api` | `uv run alembic check` (to add, see below) | ✅ | P0 |
+| Backend tests (U, I, A, C, S, D) with PostgreSQL, coverage reported | `api` | `uv run pytest --cov=app --cov-report=term-missing` | ✅ | P0 |
+| Migration round trip + single head | `api` (inside pytest) | `tests/db/test_migrations.py`: `alembic downgrade base` → `upgrade head` → `check` on `bayflow_test` | ✅ | P0 (as built) |
+| Models ↔ migrations | `api` | `uv run alembic upgrade head` then `uv run alembic check` on the empty `bayflow` database | ✅ | P0 |
 | Web lint (Next 16 no longer lints in `next build`) | `web` | `pnpm lint` = `eslint . --max-warnings 0` (D80) | ✅ | P0 |
 | Web types | `web` | `pnpm typecheck` = `next typegen && tsc --noEmit` (D80) | ✅ | P0 |
 | Web format | `web` | `pnpm format:check` = `prettier --check .` | ✅ | P0 |
 | Web unit tests | `web` | `pnpm test` = `vitest run` | ✅ | P0 |
 | Web build | `web` | `pnpm build` | ✅ | P0 |
-| OpenAPI drift (WEB-07; D76) | `contract` | `make gen-api` + `git diff --exit-code -- apps/web/src/lib/api` | ✅ | P0 |
-| Secrets | `secrets` | gitleaks, full history | ✅ | P0 |
-| Migration round-trip | `api` | `alembic downgrade base && alembic upgrade head` | ✅ | P1 |
+| OpenAPI drift (WEB-07; D76) | `contract` | `make gen-api` + `git status --porcelain -- apps/web/src/lib/api` (any output fails) | ✅ | P0 |
+| Secrets | `secrets` | gitleaks, full history (`pull-requests: read` for PR events) | ✅ | P0 |
 | Domain coverage 100 % | `api` | `uv run pytest tests/unit/bookings --cov=app.modules.bookings.domain --cov-branch --cov-fail-under=100` | ✅ | P1 |
 | Live smoke | `smoke` workflow | `scripts/smoke.sh` + Playwright against `WEB_URL` | manual trigger | P1 |
 
@@ -1077,8 +1190,8 @@ The `web` job runs its steps in this order: `pnpm install --frozen-lockfile` →
 
 Target: the whole `ci` workflow finishes in under 10 minutes (the jobs run in parallel).
 
-**What spec 07's `ci.yml` must contain** (spec 07 implements it; listed here so the gates can be reviewed):
-1. **`api` job:** `uv run alembic check` after `pytest` (the drift gate; Alembic ≥ 1.9), and `--cov=app --cov-report=term-missing` on `pytest` (report only).
+**What spec 07's `ci.yml` must contain** (spec 07 implements it; listed here so the gates can be reviewed; items 1–3 ✅ present as built):
+1. **`api` job:** `uv run alembic check` after `pytest` (the drift gate; Alembic ≥ 1.9), and `--cov=app --cov-report=term-missing` on `pytest` (report only). `astral-sh/setup-uv` is pinned to the commit SHA of v10.2.0 (no `@v10` tag exists, spec 07).
 2. **`web` and `contract` jobs — pnpm setup.** pnpm is pinned to **10.34.6** by `"packageManager"` in `apps/web/package.json`; there is no root `package.json` (D1, D5, D11), and Vercel supports pnpm 6–10. CI installs it with the official `pnpm/action-setup`, pointed at that file, followed by `actions/setup-node`:
 
 ```yaml
@@ -1095,8 +1208,8 @@ Target: the whole `ci` workflow finishes in under 10 minutes (the jobs run in pa
 ```
 
    Do not also pass `version:` to `pnpm/action-setup`; the version comes from `packageManager` only, so the two can never disagree. pnpm's newer `pnpm/setup` action is not an option: it installs pnpm 11+ only (§9).
-3. **`contract` job:** `make gen-api`, then `git diff --exit-code -- apps/web/src/lib/api` (D76; WEB-07).
-4. **(P1)** Add the migration round-trip and the domain coverage gate to `api`. Add a `smoke.yml` workflow:
+3. **`contract` job:** `make gen-api`, then `git status --porcelain -- apps/web/src/lib/api`, failing on any output (D76; WEB-07). `git status` also catches a generated file that was never committed, which `git diff --exit-code` would miss.
+4. **(P1)** Add the domain coverage gate to `api` (the migration round trip already runs inside pytest, row above). Add a `smoke.yml` workflow:
    - triggered by `workflow_dispatch`, with inputs `web_url` and `api_url`;
    - runs spec 07's `scripts/smoke.sh`, then the Playwright smoke with `WEB_URL`;
    - optionally also triggered by Vercel's `repository_dispatch` event `vercel.deployment.success` (URL in `github.event.client_payload.url`), filtered to production deployments. If Deployment Protection is on, use Vercel's "Protection Bypass for Automation".
@@ -1164,6 +1277,7 @@ The project-level done is the brief's §7.8 plus the submission checklist in spe
 | Playwright `baseURL` from env, `retries`, `trace: 'on-first-retry'`, projects | https://playwright.dev/docs/test-configuration |
 | openapi-typescript CLI incl. `--check` | https://openapi-ts.dev/cli |
 | `alembic check` (since 1.9); naming-convention recipe | https://alembic.sqlalchemy.org/en/latest/autogenerate.html · https://alembic.sqlalchemy.org/en/latest/naming.html |
+| Alembic 1.20 + SQLAlchemy 2.1.4 autogenerate emits every non-native enum CHECK twice (SQLAlchemy 2.1 keeps the type-bound create rule as a `functools.partial`); the `alembic/env.py` `render_item` hook renders `String(32)` + one named CHECK, and `alembic check` is clean with it (D84; spec 02 §9) | Observed while generating the baseline `23165172278b` (2026-10-09); re-check on every Alembic or SQLAlchemy upgrade |
 | RFC 9457 members (`type`, `status`, `title`, `detail`, `instance`), `application/problem+json`, extension members | https://www.rfc-editor.org/rfc/rfc9457.html |
 | `pg_stat_activity.wait_event_type = 'Lock'` (`transactionid`, `tuple`); `lock_timeout` / `statement_timeout` settable per database | https://www.postgresql.org/docs/current/monitoring-stats.html · https://www.postgresql.org/docs/current/runtime-config-client.html |
 | gitleaks-action v3 (`fetch-depth: 0`; license only for organizations); gitleaks CLI `git`/`dir`, `.gitleaksignore` | https://github.com/gitleaks/gitleaks-action · https://github.com/gitleaks/gitleaks |
@@ -1191,7 +1305,8 @@ The project-level done is the brief's §7.8 plus the submission checklist in spe
 
 ## Dependencies
 
-- **Foundation:** [00-overview.md](00-overview.md), [18-glossary.md](18-glossary.md) (names, error codes §10, env vars §12, naming §13, demo cast §14), [17-decisions.md](17-decisions.md) (D3–D5, D7–D14, D16, D20–D21, D24–D47, D49–D54, D60–D83), [08-booking-state-machine.md](08-booking-state-machine.md) (SM-01…SM-20, check order, worked-example trace).
+- **Foundation:** [00-overview.md](00-overview.md), [18-glossary.md](18-glossary.md) (names, error codes §10, env vars §12, naming §13, demo cast §14), [17-decisions.md](17-decisions.md) (D3–D5, D7–D14, D16, D20–D21, D24–D47, D49–D54, D60–D88), [08-booking-state-machine.md](08-booking-state-machine.md) (SM-01…SM-20, check order, worked-example trace).
+- **Module specs** whose proposed tests are numbered in §5: [identity](modules/identity.md) (IDN), [shops](modules/shops.md) (SHP), [scheduling](modules/scheduling.md) (SCH), [bookings](modules/bookings.md) (BK-33…42), [estimates](modules/estimates.md) (EST-21…27), [inventory](modules/inventory.md) (INV-27…34), [qc](modules/qc.md) (QC-12…17), [notifications](modules/notifications.md) (NOT-14…21), [reporting](modules/reporting.md) (RPT-04…09), [calls](modules/calls.md) (CALL-17…21, FD-13…15).
 - **Sibling specs this one relies on:**
   - 01 — layer table, the import-linter contracts (§Dependency rules), `app.shared.clock` (`Clock`, `SystemClock`, `SimulatedClock`, D63), the test-folder layout.
   - 02 — constraints (incl. whole rupees), indexes, composite FKs, `NAMING_CONVENTION`, action times from the injected clock (D63) and the ledgers' `seq` column (D79).
@@ -1213,13 +1328,14 @@ The project-level done is the brief's §7.8 plus the submission checklist in spe
    - ✅ Resolved: spec 11 designates **Lyallpur Motors** (`lyallpur-motors`, Faisalabad) as the smoke-test shop; spec 07's smoke script, DEP-10 and WEB-08 book only there, so automation never touches Lahore Auto Care's worked-example stock.
    - ✅ Resolved by D71: the seed never restores stock or slots that rehearsals or judges used up (D51; D60 repairs accounts and memberships only). This is accepted drift, kept as a documented limitation (§3.10): DEP-08 detects it, and the judge notes say how to continue (pick another slot; Usman adjusts stock, INV-21). `make db-reset` stays local-only and refuses with exit code 2 when `APP_ENV=production` or the `DATABASE_URL` host is not local (SEED-16).
 5. ✅ Resolved by D12: **CI Postgres image.** PostgreSQL 16 everywhere (Railway, local Docker, CI `postgres:16`); DEP-05 re-checks Railway's major on day 1.
-6. **Rate limits in tests.** Spec 04 keeps the limits as constants in `app.core.security`, not env vars. Tests need one seam to raise them (a test-settings override) plus a reset of the in-memory storage after each test (§4.2); SEC-27 and SEC-49 use the real thresholds. D69 fixes which endpoints are limited and that per-account limits are primary; spec 04 should name the seam.
+6. **Rate limits in tests.** Spec 04 keeps the limits as constants in `app.core.security`, not env vars. Tests need one seam to raise them (a test-settings override) plus a reset of the in-memory storage after each test (§4.2); SEC-27 and SEC-49 use the real thresholds. D69 fixes which endpoints are limited and that per-account limits are primary; spec 04 should name the seam. *Half done as built:* the reset exists (`reset_rate_limits()`, autouse fixture); the raise seam is still open and is needed with the first rate-limited route (PH1).
 7. ✅ Resolved by D75: **ID collisions across specs.** QC Inspector screens are QI-xx (QC-xx stays this spec's QC test prefix), AI Front Desk tests are FD-xx (AI-xx stays spec 13's backlog prefix), and roadmap phases are PH0…PH10 (P0–P3 stay D36 priorities).
 8. ✅ Resolved by D76: **Type-generation naming.** The schema is exported to `apps/web/src/lib/api/openapi.json`, the web script `api:types` writes `schema.d.ts`, `make gen-api` runs both, and CI fails on drift (WEB-07, now P0).
 9. ✅ Resolved by D11: **Toolchain pins.** TypeScript 5.9.3, ESLint 9.39.x and `sqlalchemy[asyncio]` are recorded in D11 (§1.1, §1.2).
 10. **Proposals to merge.**
     - ✅ Spec 04 adopted SEC-44…SEC-47 and added SEC-48…SEC-50; SEC-32 now carries D61's `no-store` for every `/api/*` response and SEC-33 the glossary §11 fan-out rule. ✅ SEC-27 now also covers booking creation (cross-referencing BK-32).
-    - Into spec 01: the `thin-routers` and `seed-through-services` contracts; `SimulatedClock`'s test-facing `step` / `set` / `advance` (§4.4).
+    - ✅ Into spec 01: the `thin-routers` and `seed-through-services` contracts (now in spec 01 and `apps/api/pyproject.toml`, KEPT); `SimulatedClock`'s test-facing `step` / `set` / `advance` (§4.4) — as built in `app.shared.clock` (D84), with `use_clock()` / `set_clock()` to install it.
+    - ✅ Module specs' proposed tests numbered in §5 (2026-10-09): IDN-01…06, SHP-01…10, SCH-01…07, BK-33…42, EST-21…27, INV-27…34, QC-12…17, NOT-14…21, RPT-04…09, CALL-17…21, FD-13…15. ✅ **For spec 05:** done — spec 05 §14.1 adopts CALL-17…20 and FD-13…15 and lists CALL-21; CALL-17 repeats CALL-15's subject (D77), so one implementation serves both.
     - ✅ Done in spec 05: CALL-15 (D77's empty rung set) and CALL-16 (D78's non-modal panel); the rest of the bonus index (§5) already maps to its rows.
     - ✅ Spec 11 proposed SEED-11…SEED-19; this spec adopted them with those numbers.
 
@@ -1230,10 +1346,10 @@ The project-level done is the brief's §7.8 plus the submission checklist in spe
 | Clock classes | `Clock`, `SystemClock`, `SimulatedClock` | ✅ merged (glossary §1 "Clock", §7 `app.shared.clock`; D63). Tests use a frozen or stepping `SimulatedClock` (§4.4); no separate test clock classes |
 | ID prefixes `PH`, `QI`, `FD` | Roadmap phases, QC Inspector screens, AI Front Desk tests | ✅ decided by D75 (glossary change log) |
 | Database | `<db>_test` (e.g. `bayflow_test`) | Test database derived from `DATABASE_URL` (§4.1) — *pending* |
-| Test ID prefixes | `SM` (spec 08), `SEC` (spec 04), `BK`, `EST`, `INV`, `QC`, `NOT`, `RPT`, `API`, `SEED` (shared with spec 11), `WEB`, `CON`, `DEP`, `DEV` (new: D73 local scripts); spec 05's `CALL`, `FD`, `AG` | Test catalogue groups (this spec §5) — *pending* |
+| Test ID prefixes | `SM` (spec 08), `SEC` (spec 04), `IDN`, `SHP`, `SCH` (new: module-spec proposals), `BK`, `EST`, `INV`, `QC`, `NOT`, `RPT`, `API`, `SEED` (shared with spec 11), `WEB`, `CON`, `DEP`, `DEV` (new: D73 local scripts); spec 05's `CALL`, `FD`, `AG` | Test catalogue groups (this spec §5) — *pending* |
 | pytest markers | `db`, `concurrency`, `scenario`, `seed`, `slow`, `live` | §4.2 — *pending* |
 | Test helpers | `SimulatedClock` test API (`step`, `set`, `advance`); fixtures `clock`, `as_user`; builders `make_*`, `drive_booking_to`; `assert_problem`, `assert_invariants`; `hold_row_lock`, `wait_for_lock_waiters` | §4 — *pending* |
 | Workflow | `smoke` (`.github/workflows/smoke.yml`, P1) | §6 — *pending* |
-| import-linter contract ids | `thin-routers`, `seed-through-services` (proposed for spec 01) | §1.1 — *pending* |
+| import-linter contract ids | `thin-routers`, `seed-through-services` (adopted by spec 01 and `pyproject.toml`) | §1.1 — glossary entry *pending* |
 | Live-check inputs | `WEB_URL`, `API_URL` (spec 07's `scripts/smoke.sh` inputs; reused by Playwright and `pytest -m live`) | §3.10 — *pending* |
 | Commit scopes | glossary §7 module names + `web`, `api`, `infra`, `ci`, `seed`, `specs`, `deps` | §1.4 — *pending* |
