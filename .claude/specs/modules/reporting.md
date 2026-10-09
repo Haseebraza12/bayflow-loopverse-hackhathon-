@@ -99,7 +99,7 @@ Contracts: [spec 03 §3.7 and §4.13](../03-api-contracts.md). Neither route tak
 | `inventory.parts_count` | Active parts |
 | `inventory.low_stock_count` | Active parts whose `stock_state` is `LOW` **or** `OUT` |
 | `inventory.out_of_stock_count` | Active parts with available = 0 |
-| `inventory.stock_value` | Σ `on_hand × unit_cost` over active parts |
+| `inventory.stock_value` | Σ `on_hand × unit_cost` over active parts. As built it is `MoneyTotal`: the same wire form as `Money` (whole rupees, 2-decimal string) without `Money`'s 10-digit cap, because a sum can exceed 9,999,999,999 and `Money` would turn the overview into a 500 |
 | `inventory.open_purchase_orders` | POs `ORDERED` or `PARTIALLY_RECEIVED` |
 | `low_stock[]` | Up to 5 active `LOW`/`OUT` parts as `PartRead`: `OUT` first, then by available ascending, then by SKU |
 | `setup` | `has_services` = ≥ 1 active service; `has_team` = ≥ 1 active non-owner membership; `has_parts` = ≥ 1 active part; `is_listed` = `shops.is_listed` (drives spec 10 O-01's checklist) |

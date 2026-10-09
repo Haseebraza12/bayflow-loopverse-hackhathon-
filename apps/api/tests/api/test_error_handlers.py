@@ -7,10 +7,15 @@ from typing import Any
 import httpx
 import pytest
 from fastapi import APIRouter, Body, FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from pydantic import BaseModel, ConfigDict, Field
 from starlette.requests import Request as StarletteRequest
 
-from app.core.error_handlers import PROBLEM_JSON, unhandled_exception_handler
+from app.core.error_handlers import (
+    PROBLEM_JSON,
+    unhandled_exception_handler,
+    validation_field_errors,
+)
 from app.core.errors import SlotFull, Unauthenticated, ValidationFailed
 from app.core.middleware import LARGE_BODY_ROUTES, MAX_REQUEST_BODY_BYTES, body_limit_for
 from app.core.security import Password, limiter
@@ -294,3 +299,30 @@ async def test_openapi_documents_problem_responses(client: httpx.AsyncClient) ->
     assert "HTTPValidationError" not in components
     health_503 = schema["paths"]["/health"]["get"]["responses"]["503"]["content"]
     assert set(health_503) == {"application/json"}  # infrastructure body, not a problem
+
+
+def test_identical_field_errors_are_reported_once() -> None:
+    """FastAPI re-solves a failed dependency: one bad path parameter can arrive twice."""
+    bad_uuid = {"type": "uuid_parsing", "loc": ("path", "shop_id"), "msg": "Input should be a UUID"}
+    missing = {"type": "missing", "loc": ("body", "name"), "msg": "Field required"}
+    errors = validation_field_errors(RequestValidationError([bad_uuid, missing, bad_uuid, missing]))
+    assert [(e["field"], e["code"]) for e in errors] == [
+        ("path.shop_id", "uuid_parsing"),
+        ("name", "missing"),
+    ]
+
+
+@pytest.mark.parametrize("offset", ["2147483648", "9223372036854775808", "-1"])
+async def test_offsets_outside_the_supported_range_are_422(
+    client: httpx.AsyncClient, offset: str
+) -> None:
+    """A huge offset once overflowed asyncpg's int64 encoder and became a 500 on every list."""
+    response = await client.get(f"/api/v1/_test/items?offset={offset}")
+    assert response.status_code == 422
+    assert [error["field"] for error in response.json()["errors"]] == ["query.offset"]
+
+
+async def test_the_largest_supported_offset_is_accepted(client: httpx.AsyncClient) -> None:
+    response = await client.get("/api/v1/_test/items?offset=2147483647")
+    assert response.status_code == 200
+    assert response.json()["offset"] == 2147483647

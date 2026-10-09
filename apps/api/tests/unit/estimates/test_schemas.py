@@ -493,3 +493,15 @@ def test_nul_characters_are_refused_before_they_reach_postgresql() -> None:
     assert errors_of({"lines": [labour_line()], "inspection_notes": "Coil\u0000"}) == [
         ("inspection_notes", "value_error")
     ]
+
+
+@pytest.mark.parametrize("version", ["3", 3.0, True])
+def test_expected_version_is_a_strict_integer_like_the_action_bodies(version: object) -> None:
+    with pytest.raises(ValidationError) as caught:
+        EstimateUpdate.model_validate({"lines": [labour_line()], "expected_version": version})
+    assert caught.value.errors()[0]["loc"] == ("expected_version",)
+
+
+def test_expected_version_accepts_a_plain_integer() -> None:
+    update = EstimateUpdate.model_validate({"lines": [labour_line()], "expected_version": 3})
+    assert update.expected_version == 3
