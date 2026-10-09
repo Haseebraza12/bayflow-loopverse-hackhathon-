@@ -7,17 +7,18 @@ import { useEffect } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { useMockStore } from '@/hooks/use-mock-store'
+import { useMockStore, useMockStoreReady } from '@/hooks/use-mock-store'
 import { getCurrentUser, getShops } from '@/lib/mock-data'
 
 export default function PosHubPage() {
   const router = useRouter()
   const user = useMockStore(() => getCurrentUser())
   const shops = useMockStore(() => getShops())
+  const storeReady = useMockStoreReady()
 
   useEffect(() => {
     // If user has an active shop, redirect immediately to their role home
-    if (user?.shopId) {
+    if (storeReady && user?.shopId) {
       let targetSegment = 'overview'
       if (user.role === 'SERVICE_ADVISOR') targetSegment = 'bookings'
       else if (user.role === 'TECHNICIAN') targetSegment = 'jobs'
@@ -26,7 +27,7 @@ export default function PosHubPage() {
 
       router.replace(`/pos/shops/${user.shopId}/${targetSegment}`)
     }
-  }, [user, router])
+  }, [storeReady, user, router])
 
   return (
     <main id="main" tabIndex={-1} className="flex-1 outline-none py-12 px-4 sm:px-6">

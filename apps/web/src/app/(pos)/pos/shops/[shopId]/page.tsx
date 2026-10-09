@@ -12,7 +12,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 
 import { Card, CardContent } from '@/components/ui/card'
-import { useMockStore } from '@/hooks/use-mock-store'
+import { useMockStore, useMockStoreReady } from '@/hooks/use-mock-store'
 import { getCurrentUser } from '@/lib/mock-data'
 
 const ROLE_HOMES = [
@@ -28,9 +28,10 @@ export default function ShopHomePage() {
   const params = useParams()
   const shopId = typeof params?.shopId === 'string' ? params.shopId : 'shop-lahore-auto-care'
   const user = useMockStore(() => getCurrentUser())
+  const storeReady = useMockStoreReady()
 
   useEffect(() => {
-    if (user?.role) {
+    if (storeReady && user?.role) {
       let target = 'overview'
       if (user.role === 'SERVICE_ADVISOR') target = 'bookings'
       else if (user.role === 'TECHNICIAN') target = 'jobs'
@@ -39,7 +40,7 @@ export default function ShopHomePage() {
 
       router.replace(`/pos/shops/${shopId}/${target}`)
     }
-  }, [user, shopId, router])
+  }, [storeReady, user, shopId, router])
 
   const base = `/pos/shops/${encodeURIComponent(shopId)}`
 

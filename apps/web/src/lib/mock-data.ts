@@ -589,14 +589,60 @@ export const INITIAL_BOOKINGS: MockBooking[] = [
 ]
 
 // State Manager supporting browser persistence
+//
+// `useMockStore` hands these getters to React's useSyncExternalStore, which needs every read to
+// return the *same* object or array (Object.is) until the data really changes. A fresh array per
+// read makes React re-render forever (error #185). So:
+// - a key's parsed data is cached by its raw localStorage string (the seed constant is returned
+//   while nothing is stored);
+// - derived lists (one shop's services, bookings, …) are cached per source array and argument;
+// - writes never mutate a cached array or a seed constant: they store an updated copy, which
+//   changes the raw string, so the next read parses once and derived lists are rebuilt once.
+// Writes from other tabs arrive through the `storage` event and are picked up the same way.
+
+const parsedByKey = new Map<string, { raw: string; data: unknown }>()
+let seedOnlyReads = 0
+
 export function getStoredData<T>(key: string, fallback: T): T {
-  if (typeof window === 'undefined') return fallback
+  if (seedOnlyReads > 0 || typeof window === 'undefined') return fallback
   try {
     const raw = localStorage.getItem(`bf:${key}`)
-    return raw ? JSON.parse(raw) : fallback
+    if (!raw) return fallback
+    const cached = parsedByKey.get(key)
+    if (cached && cached.raw === raw) return cached.data as T
+    const data = JSON.parse(raw) as T
+    parsedByKey.set(key, { raw, data })
+    return data
   } catch {
     return fallback
   }
+}
+
+/**
+ * Runs `read` against the seed data only, ignoring anything stored in this browser. Used as the
+ * server snapshot of `useMockStore`: the server has no localStorage, so the first client render
+ * must show the same seed data to match the server HTML (no hydration mismatch).
+ */
+export function readSeedSnapshot<T>(read: () => T): T {
+  seedOnlyReads += 1
+  try {
+    return read()
+  } finally {
+    seedOnlyReads -= 1
+  }
+}
+
+const derivedBySource = new WeakMap<object, Map<string, unknown>>()
+
+/** `compute(source)`, memoised per source array and `key`, so repeated reads share one result. */
+function derive<S extends object, R>(source: S, key: string, compute: (source: S) => R): R {
+  let byKey = derivedBySource.get(source)
+  if (!byKey) {
+    byKey = new Map()
+    derivedBySource.set(source, byKey)
+  }
+  if (!byKey.has(key)) byKey.set(key, compute(source))
+  return byKey.get(key) as R
 }
 
 export function setStoredData<T>(key: string, value: T): void {
@@ -625,7 +671,7 @@ export function getShopById(id: string): MockShop | undefined {
 }
 
 export function saveShop(updated: MockShop): void {
-  const shops = getShops()
+  const shops = [...getShops()]
   const idx = shops.findIndex((s) => s.id === updated.id)
   if (idx >= 0) {
     shops[idx] = updated
@@ -638,13 +684,15 @@ export function saveShop(updated: MockShop): void {
 export function getServices(shopId?: string): MockService[] {
   const services = getStoredData('services', INITIAL_SERVICES)
   if (shopId) {
-    return services.filter((s) => s.shopId === shopId || s.shopId === 'shop-lahore-auto-care')
+    return derive(services, `shop:${shopId}`, (all) =>
+      all.filter((s) => s.shopId === shopId || s.shopId === 'shop-lahore-auto-care'),
+    )
   }
   return services
 }
 
 export function saveService(service: MockService): void {
-  const services = getServices()
+  const services = [...getServices()]
   const idx = services.findIndex((s) => s.id === service.id)
   if (idx >= 0) {
     services[idx] = service
@@ -657,7 +705,9 @@ export function saveService(service: MockService): void {
 export function getBookings(shopId?: string): MockBooking[] {
   const bookings = getStoredData('bookings', INITIAL_BOOKINGS)
   if (shopId) {
-    return bookings.filter((b) => b.shopId === shopId || b.shopSlug === shopId)
+    return derive(bookings, `shop:${shopId}`, (all) =>
+      all.filter((b) => b.shopId === shopId || b.shopSlug === shopId),
+    )
   }
   return bookings
 }
@@ -668,7 +718,7 @@ export function getBookingById(id: string): MockBooking | undefined {
 }
 
 export function saveBooking(booking: MockBooking): void {
-  const bookings = getBookings()
+  const bookings = [...getBookings()]
   const idx = bookings.findIndex((b) => b.id === booking.id)
   booking.updatedAt = new Date().toISOString()
   if (idx >= 0) {
@@ -682,13 +732,15 @@ export function saveBooking(booking: MockBooking): void {
 export function getInventory(shopId?: string): MockPart[] {
   const parts = getStoredData('inventory', INITIAL_PARTS)
   if (shopId) {
-    return parts.filter((p) => p.shopId === shopId || p.shopId === 'shop-lahore-auto-care')
+    return derive(parts, `shop:${shopId}`, (all) =>
+      all.filter((p) => p.shopId === shopId || p.shopId === 'shop-lahore-auto-care'),
+    )
   }
   return parts
 }
 
 export function savePart(part: MockPart): void {
-  const parts = getInventory()
+  const parts = [...getInventory()]
   const idx = parts.findIndex((p) => p.id === part.id || p.sku === part.sku)
   if (idx >= 0) {
     parts[idx] = part
@@ -699,25 +751,29 @@ export function savePart(part: MockPart): void {
 }
 
 export function adjustPartStock(partId: string, quantityDelta: number): MockPart | undefined {
-  const parts = getInventory()
-  const part = parts.find((p) => p.id === partId || p.sku === partId)
-  if (part) {
-    part.on_hand = Math.max(0, part.on_hand + quantityDelta)
-    setStoredData('inventory', parts)
-  }
+  const parts = [...getInventory()]
+  const idx = parts.findIndex((p) => p.id === partId || p.sku === partId)
+  const current = parts[idx]
+  if (!current) return undefined
+  // A new object: the current one may be part of a snapshot React is still showing.
+  const part = { ...current, on_hand: Math.max(0, current.on_hand + quantityDelta) }
+  parts[idx] = part
+  setStoredData('inventory', parts)
   return part
 }
 
 export function getPurchaseOrders(shopId?: string): MockPurchaseOrder[] {
   const pos = getStoredData('purchase_orders', INITIAL_PURCHASE_ORDERS)
   if (shopId) {
-    return pos.filter((p) => p.shopId === shopId || p.shopId === 'shop-lahore-auto-care')
+    return derive(pos, `shop:${shopId}`, (all) =>
+      all.filter((p) => p.shopId === shopId || p.shopId === 'shop-lahore-auto-care'),
+    )
   }
   return pos
 }
 
 export function savePurchaseOrder(po: MockPurchaseOrder): void {
-  const pos = getPurchaseOrders()
+  const pos = [...getPurchaseOrders()]
   const idx = pos.findIndex((p) => p.id === po.id || p.po_number === po.po_number)
   if (idx >= 0) {
     pos[idx] = po
@@ -730,13 +786,15 @@ export function savePurchaseOrder(po: MockPurchaseOrder): void {
 export function getTeamMembers(shopId?: string): MockTeamMember[] {
   const team = getStoredData('team', INITIAL_TEAM)
   if (shopId) {
-    return team.filter((t) => t.shopId === shopId || t.shopId === 'shop-lahore-auto-care')
+    return derive(team, `shop:${shopId}`, (all) =>
+      all.filter((t) => t.shopId === shopId || t.shopId === 'shop-lahore-auto-care'),
+    )
   }
   return team
 }
 
 export function saveTeamMember(member: MockTeamMember): void {
-  const team = getTeamMembers()
+  const team = [...getTeamMembers()]
   const idx = team.findIndex((t) => t.id === member.id)
   if (idx >= 0) {
     team[idx] = member
