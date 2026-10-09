@@ -13,6 +13,7 @@ import Link from 'next/link'
 import { useState } from 'react'
 
 import { CapabilityArt } from '@/components/landing/capability-art'
+import { HeroCollage } from '@/components/landing/hero-collage'
 import { Button } from '@/components/ui/button'
 
 /** Hugeicons (free stroke-rounded set) under the names this page already uses. */
@@ -167,34 +168,10 @@ export default function LandingPage() {
           </div>
 
           {/* ========================================================
-              HERO IMAGE: BayFlow itself (screenshots of the running app)
+              HERO COLLAGE: workshop photos with BayFlow highlights
               ======================================================== */}
           <div className="relative mx-auto mt-12 flex max-w-[1020px] justify-center md:mt-16">
-            {/* Desktop Hero Image */}
-            <div className="hidden w-full md:block">
-              <Image
-                src="/landing/hero-desktop.webp"
-                alt="BayFlow shop overview: bookings by status, active jobs and the workshop team"
-                width={1020}
-                height={580}
-                priority
-                sizes="(min-width: 1280px) 1020px, (min-width: 768px) 90vw, 100vw"
-                className="pointer-events-none h-auto w-full object-contain drop-shadow-md select-none"
-              />
-            </div>
-
-            {/* Mobile Hero Image */}
-            <div className="block w-full max-w-[480px] md:hidden">
-              <Image
-                src="/landing/hero-mobile.webp"
-                alt="BayFlow booking page on a phone, with an estimate waiting for the customer's approval"
-                width={480}
-                height={480}
-                priority
-                sizes="(max-width: 640px) 100vw, 480px"
-                className="pointer-events-none h-auto w-full object-contain select-none"
-              />
-            </div>
+            <HeroCollage />
           </div>
 
           {/* ========================================================

@@ -1,15 +1,17 @@
 'use client'
 
+import { Cancel01Icon, GridViewIcon } from '@hugeicons/core-free-icons'
+import { HugeiconsIcon } from '@hugeicons/react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useId, useMemo, useState } from 'react'
 
 import { cn } from '@/lib/utils'
 
 /**
- * Development-only design navigator: a floating button that jumps straight to any screen so the
- * UI can be reviewed one page at a time. Dynamic routes use IDs from `lib/mock-data.ts`.
- * Rendered from the root layout only when NODE_ENV !== 'production'.
+ * Development-only design navigator: a small floating icon (bottom right) that opens a panel to
+ * jump straight to any screen, so the UI can be reviewed one page at a time. Dynamic routes use
+ * IDs from `lib/mock-data.ts`. Rendered from the root layout only when NODE_ENV !== 'production'.
  */
 
 /** Cookie the dev proxy honours to skip the login redirect (see `proxy.ts`). */
@@ -95,6 +97,7 @@ export function ScreenNavigator() {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
+  const panelId = useId()
 
   // Let protected screens open without logging in (dev proxy checks this cookie).
   useEffect(() => {
@@ -109,14 +112,20 @@ export function ScreenNavigator() {
     if (next) router.push(next.href)
   }
 
-  // Shortcuts: ` toggles the panel, [ and ] step through screens. Ignored while typing.
+  // Shortcuts: ` toggles the panel, [ and ] step through screens (ignored while typing), Escape
+  // closes it from anywhere, including the search box.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setOpen(false)
+        return
+      }
       const t = e.target as HTMLElement
       if (t.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName)) return
-      if (e.key === '`') setOpen((o) => !o)
-      else if (e.key === 'Escape') setOpen(false)
-      else if (e.key === '[') go(-1)
+      if (e.key === '`') {
+        e.preventDefault() // or the ` lands in the search box the panel has just focused
+        setOpen((o) => !o)
+      } else if (e.key === '[') go(-1)
       else if (e.key === ']') go(1)
     }
     window.addEventListener('keydown', onKey)
@@ -135,9 +144,44 @@ export function ScreenNavigator() {
   }, [query])
 
   return (
-    <div className="fixed bottom-5 left-1/2 z-[60] flex -translate-x-1/2 flex-col items-center gap-2 font-sans">
+    // Bottom right, just left of the TanStack Query devtools button; Next's indicator is bottom left.
+    <div className="fixed right-[78px] bottom-4 z-[60] flex flex-col items-end gap-2 font-sans">
       {open && (
-        <div className="flex max-h-[min(70vh,560px)] w-80 flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-2xl">
+        <div
+          id={panelId}
+          className="flex max-h-[min(70vh,560px)] w-80 flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-2xl"
+        >
+          {/* Current screen, with previous / next */}
+          <div className="flex items-center gap-1 border-b border-neutral-100 p-1.5">
+            <button
+              type="button"
+              onClick={() => go(-1)}
+              aria-label="Previous screen"
+              className="flex size-8 shrink-0 items-center justify-center rounded-full text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900"
+            >
+              ←
+            </button>
+            <p className="min-w-0 flex-1 truncate text-center text-xs font-medium text-neutral-800">
+              {current ? (
+                <>
+                  <span className="text-neutral-400">{current.group} /</span> {current.label}
+                </>
+              ) : (
+                'Not a listed screen'
+              )}
+              <span className="ml-1.5 text-neutral-400 tabular-nums">
+                {index >= 0 ? index + 1 : '–'}/{ALL.length}
+              </span>
+            </p>
+            <button
+              type="button"
+              onClick={() => go(1)}
+              aria-label="Next screen"
+              className="flex size-8 shrink-0 items-center justify-center rounded-full text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900"
+            >
+              →
+            </button>
+          </div>
           <div className="border-b border-neutral-100 p-3">
             <input
               autoFocus
@@ -194,42 +238,17 @@ export function ScreenNavigator() {
         </div>
       )}
 
-      <div className="flex items-center gap-1 rounded-full bg-neutral-900 p-1 text-white shadow-xl">
-        <button
-          type="button"
-          onClick={() => go(-1)}
-          aria-label="Previous screen"
-          className="flex size-8 items-center justify-center rounded-full text-white/70 hover:bg-white/10 hover:text-white"
-        >
-          ←
-        </button>
-        <button
-          type="button"
-          onClick={() => setOpen((o) => !o)}
-          aria-expanded={open}
-          className="flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap hover:bg-white/10"
-        >
-          <span className="size-1.5 rounded-full bg-[#00c070]" />
-          {current ? (
-            <span>
-              <span className="text-white/50">{current.group} /</span> {current.label}
-            </span>
-          ) : (
-            'Screens'
-          )}
-          <span className="text-white/40 tabular-nums">
-            {index >= 0 ? index + 1 : '–'}/{ALL.length}
-          </span>
-        </button>
-        <button
-          type="button"
-          onClick={() => go(1)}
-          aria-label="Next screen"
-          className="flex size-8 items-center justify-center rounded-full text-white/70 hover:bg-white/10 hover:text-white"
-        >
-          →
-        </button>
-      </div>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        aria-controls={open ? panelId : undefined}
+        aria-label={open ? 'Close screen navigator' : 'Open screen navigator'}
+        title="Design screens ( ` )"
+        className="flex size-10 items-center justify-center rounded-full bg-neutral-900 text-white shadow-lg transition hover:bg-neutral-700 focus-visible:ring-2 focus-visible:ring-neutral-900/30 focus-visible:ring-offset-2 focus-visible:outline-none"
+      >
+        <HugeiconsIcon icon={open ? Cancel01Icon : GridViewIcon} className="size-[18px]" />
+      </button>
     </div>
   )
 }
