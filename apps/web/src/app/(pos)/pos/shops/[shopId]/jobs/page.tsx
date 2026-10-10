@@ -1,207 +1,280 @@
 'use client'
 
-import { CheckCircle2, ChevronRight, Play, ScanSearch, Wrench } from 'lucide-react'
-import Link from 'next/link'
+import { CheckCheck, ChevronDown, SearchX, Wrench } from 'lucide-react'
 import { useParams } from 'next/navigation'
+import { useState } from 'react'
+import { flushSync } from 'react-dom'
+import { toast } from 'sonner'
 
-import { StatusBadge } from '@/components/status-badge'
+import { EmptyState } from '@/components/layout/empty-state'
+import { PageHeader } from '@/components/layout/page-header'
+import { JobCard, JobRow, jobActionSelector } from '@/components/pos/technician/job-card'
+import {
+  ACTION_GROUPS,
+  countLabel,
+  groupJobs,
+  JOB_GROUP_META,
+  vehicleLabel,
+  type JobGroup,
+} from '@/components/pos/technician/job-model'
+import { JobsSkeleton } from '@/components/pos/technician/job-skeletons'
+import { GroupHeading, ReadOnlyBanner } from '@/components/pos/technician/job-ui'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { useMockStore } from '@/hooks/use-mock-store'
-import { formatPKR } from '@/lib/format'
-import { getBookings, saveBooking, type MockBooking } from '@/lib/mock-data'
+import { Card } from '@/components/ui/card'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import { useMockStore, useMockStoreReady } from '@/hooks/use-mock-store'
+import {
+  getBookings,
+  getCurrentUser,
+  getTeamMembers,
+  saveBooking,
+  type MockBooking,
+} from '@/lib/mock-data'
+import { sectionAccess } from '@/lib/pos-access'
+import { cn } from '@/lib/utils'
 
+function headingId(group: JobGroup) {
+  return `jobs-${group}`
+}
+
+/**
+ * T-01 My jobs (spec 10): the technician's jobs grouped by what they need now — QC sent back,
+ * to inspect, inspecting, repair — then the jobs waiting on others and the finished ones. The
+ * Owner opens it as the read-only "Technician jobs" role view (D16).
+ */
 export default function TechnicianJobsPage() {
   const params = useParams()
   const shopId = typeof params?.shopId === 'string' ? params.shopId : 'shop-lahore-auto-care'
 
+  const ready = useMockStoreReady()
   const allBookings = useMockStore(() => getBookings(shopId))
+  const user = useMockStore(getCurrentUser)
+  const team = useMockStore(() => getTeamMembers(shopId))
+  const [technicianFilter, setTechnicianFilter] = useState('all')
+  const [doneOpen, setDoneOpen] = useState(false)
   const base = `/pos/shops/${encodeURIComponent(shopId)}`
 
-  // Group technician jobs by stage
-  const toInspect = allBookings.filter((b) => b.status === 'ASSIGNED')
-  const inInspection = allBookings.filter((b) => b.status === 'INSPECTING')
-  const inRepair = allBookings.filter((b) => b.status === 'IN_REPAIR')
-  const completedJobs = allBookings.filter(
-    (b) => b.status === 'READY_FOR_PICKUP' || b.status === 'COMPLETED',
+  // The seed data stands in for this browser's jobs until they load (no flash of stale cards).
+  if (!ready) return <JobsSkeleton />
+
+  const readOnly = sectionAccess(user.role, 'jobs') === 'read'
+  const technicians = team.filter((member) => member.role === 'TECHNICIAN')
+  const filtering = readOnly && technicianFilter !== 'all'
+  const groups = groupJobs(
+    filtering
+      ? allBookings.filter((b) => b.assignedTechnicianId === technicianFilter)
+      : allBookings,
   )
+  const needsYou = ACTION_GROUPS.reduce((count, group) => count + groups[group].length, 0)
+  const total = needsYou + groups.waiting.length + groups.done.length
+
+  const jobHref = (booking: MockBooking) => `${base}/jobs/${booking.id}`
+  const showTechnician = (booking: MockBooking) =>
+    readOnly ||
+    (booking.assignedTechnicianName !== undefined && booking.assignedTechnicianName !== user.name)
+
+  // The job moves to another group (or its button becomes a link), so the clicked control is
+  // gone: save, let React render the move right away, then put focus on the job's new control.
+  const saveAndFollow = (updated: MockBooking) => {
+    flushSync(() => saveBooking(updated))
+    document.querySelector<HTMLElement>(jobActionSelector(updated.id))?.focus()
+  }
 
   const handleStartInspection = (booking: MockBooking) => {
     const updated: MockBooking = {
       ...booking,
       status: 'INSPECTING',
     }
-    saveBooking(updated)
+    saveAndFollow(updated)
+    toast.success('Inspection started', {
+      description: `${booking.reference} · ${vehicleLabel(booking)}`,
+    })
   }
 
+  const handleStartRepair = (booking: MockBooking) => {
+    const updated: MockBooking = {
+      ...booking,
+      status: 'IN_REPAIR',
+    }
+    saveAndFollow(updated)
+    toast.success('Repair started', {
+      description: `${booking.reference} · ${vehicleLabel(booking)}`,
+    })
+  }
+
+  const summary = readOnly
+    ? 'Every technician’s jobs, grouped by what happens next.'
+    : needsYou > 0
+      ? `${countLabel(needsYou, 'job needs', 'jobs need')} you now${
+          groups.waiting.length > 0 ? `, ${groups.waiting.length} waiting on others` : ''
+        }.`
+      : 'Inspections, estimates and repairs assigned to you.'
+
+  const filterName = technicians.find((t) => t.id === technicianFilter)?.name
+
   return (
-    <div className="space-y-6 pb-12">
-      {/* Header */}
-      <div>
-        <span className="text-xs font-bold tracking-[0.32px] text-brand-blue-ink">
-          Technician Bay Floor
-        </span>
-        <h1 className="mt-1 text-2xl font-semibold text-foreground sm:text-3xl">
-          Assigned Workshop Jobs
-        </h1>
-        <p className="mt-0.5 text-xs text-helper">
-          Execute physical vehicle inspections, prepare itemized estimates, and perform repair
-          tasks.
-        </p>
-      </div>
+    <div className="space-y-8">
+      <PageHeader
+        eyebrow={readOnly ? 'Role view' : 'Technician'}
+        title={readOnly ? 'Technician jobs' : 'My jobs'}
+        description={summary}
+      />
 
-      {/* Sections */}
-      <div className="space-y-6">
-        {/* Section 1: To Inspect (ASSIGNED) */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="flex items-center gap-2 text-sm font-bold text-foreground">
-              <ScanSearch className="size-4 text-brand-blue-ink" />
-              Awaiting Physical Inspection ({toInspect.length})
-            </h2>
-            <span className="text-xs text-subtle-foreground">Arrived at bay hoist</span>
-          </div>
-
-          {toInspect.length === 0 ? (
-            <p className="text-xs text-subtle-foreground italic">
-              No vehicles currently waiting for inspection.
-            </p>
-          ) : (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              {toInspect.map((b) => (
-                <Card
-                  key={b.id}
-                  className="border-border bg-card hover:border-blue-400 dark:hover:border-blue-600"
-                >
-                  <CardContent className="space-y-3 p-4">
-                    <div className="flex items-center justify-between">
-                      <span className="font-mono text-sm font-bold text-brand-blue-ink">
-                        {b.reference}
-                      </span>
-                      <StatusBadge status={b.status} audience="staff" size="sm" />
-                    </div>
-                    <div>
-                      <p className="font-mono text-sm font-bold text-foreground">
-                        {b.licensePlate}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {b.vehicleYear} {b.vehicleMake} {b.vehicleModel}
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap gap-1 text-xs text-helper">
-                      {b.services.map((s, idx) => (
-                        <span key={idx} className="rounded bg-secondary px-1.5 py-0.5 font-medium">
-                          {s}
-                        </span>
-                      ))}
-                    </div>
-                    <div className="flex items-center justify-between border-t border-border-faint pt-2">
-                      <span className="text-[11px] text-subtle-foreground">
-                        Slot: {b.scheduledTime} ({b.scheduledDate})
-                      </span>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          size="sm"
-                          onClick={() => handleStartInspection(b)}
-                          className="h-7 bg-brand-blue text-xs font-bold text-white hover:bg-blue-700"
-                        >
-                          <Play className="mr-1 size-3" />
-                          Start Inspection
-                        </Button>
-                        <Button
-                          asChild
-                          variant="outline"
-                          size="sm"
-                          className="h-7 rounded-full text-xs"
-                        >
-                          <Link href={`${base}/jobs/${b.id}`}>Open</Link>
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+      {readOnly ? (
+        <div className="space-y-4">
+          <ReadOnlyBanner href={`${base}/bookings`} scope="list" />
+          {technicians.length > 1 ? (
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+              <span id="technician-filter" className="text-sm font-medium text-foreground">
+                Technician
+              </span>
+              <ToggleGroup
+                type="single"
+                variant="outline"
+                size="lg"
+                value={technicianFilter}
+                onValueChange={(value) => setTechnicianFilter(value || 'all')}
+                aria-labelledby="technician-filter"
+                className="flex-wrap"
+              >
+                <ToggleGroupItem value="all">All technicians</ToggleGroupItem>
+                {technicians.map((member) => (
+                  <ToggleGroupItem key={member.id} value={member.id}>
+                    {member.name}
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
             </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {total === 0 ? (
+        filtering ? (
+          <EmptyState
+            icon={SearchX}
+            title={`No jobs for ${filterName ?? 'this technician'}`}
+            description="Choose another technician, or show everyone’s jobs."
+            action={
+              <Button variant="outline" size="lg" onClick={() => setTechnicianFilter('all')}>
+                Show all technicians
+              </Button>
+            }
+          />
+        ) : (
+          <EmptyState
+            icon={Wrench}
+            title="No jobs assigned yet"
+            description={
+              readOnly
+                ? 'Jobs appear here as soon as the service advisor assigns a technician.'
+                : 'New assignments appear here as soon as the service advisor assigns you.'
+            }
+          />
+        )
+      ) : (
+        <>
+          {needsYou === 0 ? (
+            <EmptyState
+              tone="success"
+              icon={CheckCheck}
+              title={readOnly ? 'No jobs need a technician now' : 'You’re all caught up'}
+              description={`Nothing needs ${readOnly ? 'a technician' : 'you'} right now. The jobs below are waiting on others or done.`}
+            />
+          ) : null}
+
+          {ACTION_GROUPS.map((group) =>
+            groups[group].length > 0 ? (
+              <section key={group} aria-labelledby={headingId(group)} className="space-y-4">
+                <GroupHeading
+                  id={headingId(group)}
+                  {...JOB_GROUP_META[group]}
+                  count={groups[group].length}
+                />
+                <ul className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,26rem),1fr))] gap-4">
+                  {groups[group].map((booking) => (
+                    <li key={booking.id}>
+                      <JobCard
+                        booking={booking}
+                        href={jobHref(booking)}
+                        showTechnician={showTechnician(booking)}
+                        readOnly={readOnly}
+                        onStartInspection={handleStartInspection}
+                        onStartRepair={handleStartRepair}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null,
           )}
-        </div>
 
-        {/* Section 2: Inspecting & In Repair */}
-        <div className="space-y-3 border-t border-border pt-4">
-          <div className="flex items-center justify-between">
-            <h2 className="flex items-center gap-2 text-sm font-bold text-foreground">
-              <Wrench className="size-4 text-brand-blue-ink" />
-              Active Bay Diagnostics & Repairs ({inInspection.length + inRepair.length})
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            {[...inInspection, ...inRepair].map((b) => (
-              <Card
-                key={b.id}
-                className="border-border bg-card hover:border-blue-400 dark:hover:border-blue-600"
-              >
-                <CardContent className="space-y-3 p-4">
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-sm font-bold text-brand-blue-ink">
-                      {b.reference}
-                    </span>
-                    <StatusBadge status={b.status} audience="staff" size="sm" />
-                  </div>
-                  <div>
-                    <p className="font-mono text-sm font-bold text-foreground">{b.licensePlate}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {b.vehicleYear} {b.vehicleMake} {b.vehicleModel}
-                    </p>
-                  </div>
-                  <div className="text-xs text-helper">
-                    Services:{' '}
-                    <span className="font-medium text-foreground">{b.services.join(', ')}</span>
-                  </div>
-                  <div className="flex items-center justify-between border-t border-border-faint pt-2">
-                    <span className="text-xs font-bold text-foreground">
-                      Estimate: {formatPKR(b.estimateTotal)}
-                    </span>
-                    <Button
-                      asChild
-                      size="sm"
-                      className="h-7 rounded-full bg-brand-blue text-xs text-white"
-                    >
-                      <Link href={`${base}/jobs/${b.id}`}>
-                        Manage Job
-                        <ChevronRight className="ml-1 size-3" />
-                      </Link>
-                    </Button>
-                  </div>
-                </CardContent>
+          {groups.waiting.length > 0 ? (
+            <section aria-labelledby={headingId('waiting')} className="space-y-4">
+              <GroupHeading
+                id={headingId('waiting')}
+                {...JOB_GROUP_META.waiting}
+                count={groups.waiting.length}
+              />
+              <Card className="gap-0 py-0">
+                <ul className="divide-y divide-border-faint">
+                  {groups.waiting.map((booking) => (
+                    <JobRow
+                      key={booking.id}
+                      booking={booking}
+                      href={jobHref(booking)}
+                      showTechnician={showTechnician(booking)}
+                    />
+                  ))}
+                </ul>
               </Card>
-            ))}
-          </div>
-        </div>
+            </section>
+          ) : null}
 
-        {/* Section 3: Completed / Handed Over */}
-        <div className="space-y-3 border-t border-border pt-4">
-          <div className="flex items-center justify-between">
-            <h2 className="flex items-center gap-2 text-sm font-bold text-foreground">
-              <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400" />
-              Passed QC & Completed Jobs ({completedJobs.length})
-            </h2>
-          </div>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            {completedJobs.slice(0, 3).map((b) => (
-              <div
-                key={b.id}
-                className="space-y-1 rounded-xl border border-border bg-card p-3 text-xs"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-mono font-bold text-foreground">{b.reference}</span>
-                  <StatusBadge status={b.status} audience="staff" size="sm" />
+          {groups.done.length > 0 ? (
+            <Collapsible open={doneOpen} onOpenChange={setDoneOpen}>
+              <section aria-labelledby={headingId('done')} className="space-y-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <GroupHeading
+                    id={headingId('done')}
+                    {...JOB_GROUP_META.done}
+                    count={groups.done.length}
+                  />
+                  <CollapsibleTrigger asChild>
+                    <Button variant="outline" size="lg">
+                      {doneOpen ? 'Hide' : 'Show'}
+                      <span className="sr-only"> done jobs</span>
+                      <ChevronDown
+                        aria-hidden="true"
+                        data-icon="inline-end"
+                        className={cn(
+                          'transition-transform duration-150',
+                          doneOpen && 'rotate-180',
+                        )}
+                      />
+                    </Button>
+                  </CollapsibleTrigger>
                 </div>
-                <p className="font-mono text-helper">{b.licensePlate}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+                <CollapsibleContent>
+                  <Card className="gap-0 py-0">
+                    <ul className="divide-y divide-border-faint">
+                      {groups.done.map((booking) => (
+                        <JobRow
+                          key={booking.id}
+                          booking={booking}
+                          href={jobHref(booking)}
+                          showTechnician={showTechnician(booking)}
+                        />
+                      ))}
+                    </ul>
+                  </Card>
+                </CollapsibleContent>
+              </section>
+            </Collapsible>
+          ) : null}
+        </>
+      )}
     </div>
   )
 }
