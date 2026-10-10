@@ -138,7 +138,7 @@ export default function LandingPage() {
             <h1 className="text-4xl leading-[1.12] font-extrabold tracking-tight text-foreground sm:text-5xl md:text-6xl lg:text-[68px]">
               Auto Repair Garage Management <br className="hidden sm:inline" />
               Software{' '}
-              <span className="align-baseline font-handwriting text-5xl font-normal text-muted-foreground italic sm:text-6xl md:text-7xl lg:text-[76px]">
+              <span className="align-baseline font-handwriting text-5xl font-normal text-brand-green italic sm:text-6xl md:text-7xl lg:text-[76px]">
                 in Pakistan
               </span>
             </h1>
