@@ -106,6 +106,8 @@ export function TableSearch({
         onChange={(event) => onValueChange(event.target.value)}
         placeholder={placeholder}
         aria-label={label}
+        // The clear button below replaces the browser's own, which would show a second ✕.
+        className="[&::-webkit-search-cancel-button]:hidden"
       />
       {value ? (
         <InputGroupAddon align="inline-end">
