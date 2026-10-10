@@ -4,6 +4,7 @@ import {
   Banknote,
   Boxes,
   CheckCheck,
+  Info,
   PackageCheck,
   PackageX,
   Plus,
@@ -21,6 +22,7 @@ import { StatCard, type StatTone } from '@/components/layout/stat-card'
 import { AdjustStockSheet } from '@/components/pos/inventory/adjust-stock-sheet'
 import {
   adjustmentError,
+  canManageStock,
   categoriesOf,
   countLabel,
   filterParts,
@@ -33,12 +35,14 @@ import {
 import { InventorySkeleton } from '@/components/pos/inventory/inventory-skeleton'
 import { PartSheet, type PartDraft } from '@/components/pos/inventory/part-sheet'
 import { PartsList } from '@/components/pos/inventory/parts-list'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { useMockStore, useMockStoreReady } from '@/hooks/use-mock-store'
 import { formatPKR } from '@/lib/format'
 import {
   adjustPartStock,
+  getCurrentUser,
   getInventory,
   getPurchaseOrders,
   savePart,
@@ -63,13 +67,15 @@ const FILTER_CAPTION: Record<StockFilter, string> = {
 /**
  * PP-03 Inventory (spec 10): the shop's parts with on hand, reserved and available stock, the
  * reorder level, unit cost and stock state (D45); search and stock filters; a part create / edit
- * sheet and a stock adjustment sheet (D44, D82).
+ * sheet and, for the Parts Person, a stock adjustment sheet (D44, D82). The Owner edits the
+ * catalogue only, with a notice saying so.
  */
 export default function InventoryManagementPage() {
   const params = useParams()
   const shopId = typeof params?.shopId === 'string' ? params.shopId : 'shop-lahore-auto-care'
 
   const ready = useMockStoreReady()
+  const user = useMockStore(getCurrentUser)
   const inventory = useMockStore(() => getInventory(shopId))
   const purchaseOrders = useMockStore(() => getPurchaseOrders(shopId))
 
@@ -85,6 +91,7 @@ export default function InventoryManagementPage() {
   if (!ready) return <InventorySkeleton />
 
   const base = `/pos/shops/${encodeURIComponent(shopId)}`
+  const canAdjust = canManageStock(user.role)
   const summary = inventorySummary(inventory, purchaseOrders)
   const rows = filterParts(inventory, filter, query)
   const searching = query.trim() !== ''
@@ -125,18 +132,14 @@ export default function InventoryManagementPage() {
 
   /** Create or edit; returns the SKU field's error when another part already uses the SKU. */
   const saveDraft = (draft: PartDraft): string | null => {
-    // `savePart` matches on id or SKU across the whole store, so a SKU in use would overwrite
-    // that other part (the API answers 409 CONFLICT, shown on the SKU field).
-    const everyPart = getInventory()
-    const taken = skuTakenBy(everyPart, draft.sku, partSheet.partId ?? undefined)
-    if (taken) {
-      return inventory.some((p) => p.id === taken.id)
-        ? `${draft.sku} is already used by ${taken.name}.`
-        : `${draft.sku} is already used by another part.`
-    }
+    // A SKU is unique inside the shop (the API answers 409 CONFLICT, shown on the SKU field);
+    // other shops may use the same SKU for their own parts.
+    const shopParts = getInventory(shopId)
+    const taken = skuTakenBy(shopParts, draft.sku, partSheet.partId ?? undefined)
+    if (taken) return `${draft.sku} is already used by ${taken.name}.`
 
     if (partSheet.partId !== null) {
-      const current = everyPart.find((p) => p.id === partSheet.partId)
+      const current = shopParts.find((p) => p.id === partSheet.partId)
       if (!current) return 'This part no longer exists. Close the sheet and try again.'
       // Catalogue fields only: stock changes go through Adjust stock (D44).
       savePart({
@@ -166,18 +169,24 @@ export default function InventoryManagementPage() {
     }
     savePart(part)
     setPartSheet((sheet) => ({ ...sheet, open: false }))
-    // Spec 09 §4.9: toasts with an action stay 6 s (hover or focus pauses them).
-    toast.success('Part added', {
-      description: `${part.sku} · ${part.name} starts at 0 on hand.`,
-      action: { label: 'Set opening stock', onClick: () => openAdjust(part.id, null) },
-      duration: 6000,
-    })
+    if (canAdjust) {
+      // Spec 09 §4.9: toasts with an action stay 6 s (hover or focus pauses them).
+      toast.success('Part added', {
+        description: `${part.sku} · ${part.name} starts at 0 on hand.`,
+        action: { label: 'Set opening stock', onClick: () => openAdjust(part.id, null) },
+        duration: 6000,
+      })
+    } else {
+      toast.success('Part added', {
+        description: `${part.sku} · ${part.name} starts at 0 on hand. Your Parts Person sets the opening stock.`,
+      })
+    }
     return null
   }
 
   /** Applies a stock adjustment; returns the 409 message when it would break the stock rules. */
   const applyAdjustment = (delta: number, reason: string): string | null => {
-    const current = getInventory().find((p) => p.id === adjustSheet.partId)
+    const current = getInventory(shopId).find((p) => p.id === adjustSheet.partId)
     if (!current) return 'This part no longer exists. Close the sheet and try again.'
     const problem = adjustmentError(current, delta)
     if (problem) return problem
@@ -210,6 +219,17 @@ export default function InventoryManagementPage() {
           ) : null
         }
       />
+
+      {/* Spec 10 PP-03: the Owner's view (D44) — the catalogue, not the stock. */}
+      {canAdjust ? null : (
+        <Alert variant="info">
+          <Info aria-hidden="true" />
+          <AlertTitle>Catalogue only</AlertTitle>
+          <AlertDescription>
+            <p>Stock operations are done by Parts Persons; you can edit the parts catalogue.</p>
+          </AlertDescription>
+        </Alert>
+      )}
 
       {inventory.length === 0 ? (
         <EmptyState
@@ -275,7 +295,12 @@ export default function InventoryManagementPage() {
             }
           >
             {rows.length > 0 ? (
-              <PartsList parts={rows} caption={caption} onAdjust={openAdjust} onEdit={openEdit} />
+              <PartsList
+                parts={rows}
+                caption={caption}
+                onAdjust={canAdjust ? openAdjust : undefined}
+                onEdit={openEdit}
+              />
             ) : searching ? (
               <EmptyState
                 variant="inline"
@@ -321,10 +346,11 @@ export default function InventoryManagementPage() {
         part={editingPart}
         formKey={`${partSheet.partId ?? 'new'}-${partSheet.session}`}
         categories={categoriesOf(inventory)}
+        canManageStock={canAdjust}
         onSave={saveDraft}
       />
       <AdjustStockSheet
-        open={adjustSheet.open && adjustPart !== null}
+        open={canAdjust && adjustSheet.open && adjustPart !== null}
         onOpenChange={(open) => setAdjustSheet((sheet) => ({ ...sheet, open }))}
         onCloseAutoFocus={restoreFocus}
         part={adjustPart}

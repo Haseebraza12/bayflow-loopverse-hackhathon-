@@ -114,14 +114,6 @@ const SHOP_JOINED: Record<string, string> = {
   'shop-lyallpur-motors': '2026-09-28T10:45:00Z',
 }
 
-/** Owners of the shops outside the Lahore cast, as seeded (`owner.<slug>@bayflow.test`, spec 11). */
-const OTHER_OWNERS: Record<string, { id: string; name: string }> = {
-  'shop-clifton-car-clinic': { id: 'usr-owner-clifton', name: 'Asif Memon' },
-  'shop-margalla-motor-works': { id: 'usr-owner-margalla', name: 'Nida Abbasi' },
-  'shop-pindi-auto-garage': { id: 'usr-owner-pindi', name: 'Tariq Mehmood' },
-  'shop-lyallpur-motors': { id: 'usr-owner-lyallpur', name: 'Khalid Chaudhry' },
-}
-
 /** Recent sign-ins, so the console has a security trail before anyone uses it. */
 const SEED_LOGINS: ReadonlyArray<{ email: string; at: string; ua: number }> = [
   { email: 'fatima.owner@bayflow.test', at: '2026-10-09T03:30:00Z', ua: 0 },
@@ -165,6 +157,9 @@ function demoRequestId(seed: string): string {
 }
 
 const STAFF_JOINED_BASE = Date.parse('2026-09-03T06:00:00Z')
+
+/** An owner registers, then creates the shop a quarter of an hour later. */
+const OWNER_REGISTERED_BEFORE_SHOP = 15 * 60e3
 
 // --- Stores --------------------------------------------------------------------------------------
 
@@ -245,6 +240,9 @@ const baseDirectory = memo(
       seedAdmin: true,
     })
 
+    // Spec 11: each seeded shop's owner registers (a quarter of an hour before the shop is
+    // created, as the audit log records it), then adds the team, one person an hour, in team order.
+    const placeInShop = new Map<string, number>()
     team.forEach((member, index) => {
       const email = member.email.toLowerCase()
       const membership: AdminMembership = {
@@ -252,36 +250,29 @@ const baseDirectory = memo(
         role: member.role,
         isActive: member.is_active,
       }
+      const place = placeInShop.get(member.shopId) ?? 0
+      placeInShop.set(member.shopId, place + 1)
       const existing = byEmail.get(email)
       if (existing) {
         existing.memberships.push(membership)
         return
       }
+      const shopJoined = SHOP_JOINED[member.shopId]
+      const joined = !shopJoined
+        ? STAFF_JOINED_BASE + index * 36e5
+        : member.role === 'OWNER'
+          ? Date.parse(shopJoined) - OWNER_REGISTERED_BEFORE_SHOP
+          : Date.parse(shopJoined) + place * 36e5
       byEmail.set(email, {
         id: member.id,
         name: member.name,
         email,
         phone: null,
-        createdAt: new Date(STAFF_JOINED_BASE + index * 36e5).toISOString(),
+        createdAt: new Date(joined).toISOString(),
         memberships: [membership],
         seedAdmin: false,
       })
     })
-
-    for (const [shopId, owner] of Object.entries(OTHER_OWNERS)) {
-      const ref = shopRef(shops, shopId)
-      const email = `owner.${ref.shopSlug}@bayflow.test`
-      if (byEmail.has(email)) continue
-      byEmail.set(email, {
-        id: owner.id,
-        name: owner.name,
-        email,
-        phone: null,
-        createdAt: SHOP_JOINED[shopId] ?? new Date(STAFF_JOINED_BASE).toISOString(),
-        memberships: [{ ...ref, role: 'OWNER', isActive: true }],
-        seedAdmin: false,
-      })
-    }
 
     const firstBooking = new Map<string, MockBooking>()
     for (const b of bookings) {
@@ -420,19 +411,20 @@ const auditLog = memo(
     }
     const events: AuditEvent[] = []
 
-    // Owners registered and created their shops.
+    // Owners registered (once, before their first shop) and created their shops.
+    const ownerOf = (shopId: string) =>
+      base.find((u) => u.memberships.some((m) => m.shopId === shopId && m.role === 'OWNER'))
+    const registered = new Set<string>()
     for (const shop of shops) {
-      const ownerEmail =
-        shop.id === 'shop-lahore-auto-care' || shop.id === 'shop-raza-auto-works'
-          ? 'fatima.owner@bayflow.test'
-          : `owner.${shop.slug}@bayflow.test`
-      const owner = userByEmail.get(ownerEmail)
+      const owner = ownerOf(shop.id)
       const at = SHOP_JOINED[shop.id] ?? '2026-09-01T00:00:00Z'
-      if (owner && shop.id !== 'shop-raza-auto-works') {
+      // Seeded owners only: a shop created in this browser has no seeded registration.
+      if (owner && SHOP_JOINED[shop.id] && !registered.has(owner.id)) {
+        registered.add(owner.id)
         events.push(
           seedEvent({
             id: `seed:auth.owner_registered:${owner.id}`,
-            occurredAt: new Date(Date.parse(at) - 15 * 60e3).toISOString(),
+            occurredAt: new Date(Date.parse(at) - OWNER_REGISTERED_BEFORE_SHOP).toISOString(),
             category: 'AUTH',
             action: 'auth.owner_registered',
             summary: `${owner.name} registered as a shop owner`,
@@ -458,18 +450,19 @@ const auditLog = memo(
       )
     }
 
-    // The Lahore team was added by its owner.
+    // Each shop's team was added by that shop's owner.
     for (const user of base) {
       for (const membership of user.memberships) {
         if (membership.role === 'OWNER') continue
+        const owner = ownerOf(membership.shopId)
         events.push(
           seedEvent({
             id: `seed:membership.added:${membership.shopId}:${user.id}`,
             occurredAt: user.createdAt,
             category: 'MEMBERSHIP',
             action: 'membership.added',
-            summary: `Fatima Raza added ${user.name} to ${membership.shopName} as ${ROLE_LABEL[membership.role]}`,
-            actor: { name: 'Fatima Raza', email: 'fatima.owner@bayflow.test', role: 'OWNER' },
+            summary: `${owner?.name ?? 'The owner'} added ${user.name} to ${membership.shopName} as ${ROLE_LABEL[membership.role]}`,
+            actor: owner ? { name: owner.name, email: owner.email, role: 'OWNER' } : null,
             shop: shopOf(membership.shopId),
             target: {
               type: 'MEMBERSHIP',

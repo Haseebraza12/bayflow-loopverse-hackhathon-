@@ -26,7 +26,7 @@ describe('EstimateCard', () => {
     expect(title).toHaveTextContent('Estimate')
     expect(within(title).getByText('v2')).toBeInTheDocument()
     expect(within(title).getByText('Awaiting approval')).toBeInTheDocument()
-    expect(screen.getByText('Sent to Tariq Jamil on Fri, 9 Oct 2026 at 11:15 am')).toBeVisible()
+    expect(screen.getByText('Sent to Ayesha Khan on Fri, 9 Oct 2026 at 11:15 am')).toBeVisible()
     expect(screen.getByText('Grand total').nextElementSibling).toHaveTextContent('Rs 10,800')
     expect(screen.queryByRole('button', { name: 'Edit estimate' })).toBeNull()
   })

@@ -59,7 +59,7 @@ describe('directory', () => {
     })
     expect(userByEmail('bilal.sa@bayflow.test').kind).toBe('STAFF')
     expect(userByEmail('ayesha.customer@bayflow.test').kind).toBe('CUSTOMER')
-    expect(userByEmail('tariq.jamil@example.test').kind).toBe('CUSTOMER')
+    expect(userByEmail('zainab.customer@bayflow.test').kind).toBe('CUSTOMER')
   })
 
   it('gives every shop at least one owner', () => {
@@ -119,18 +119,18 @@ describe('account safeguards (spec 19 §1)', () => {
   })
 
   it('needs a reason to deactivate, refuses no-op changes and inactive grants', () => {
-    const tariq = userByEmail('tariq.jamil@example.test')
-    expectRefusal(() => setUserActive(tariq.id, false, '', areeba), 'VALIDATION_ERROR')
-    setUserActive(tariq.id, false, 'Chargeback fraud reported by the shop', areeba)
-    expect(userByEmail('tariq.jamil@example.test').isActive).toBe(false)
-    expect(isAccountActive('Tariq.Jamil@example.test')).toBe(false)
+    const zainab = userByEmail('zainab.customer@bayflow.test')
+    expectRefusal(() => setUserActive(zainab.id, false, '', areeba), 'VALIDATION_ERROR')
+    setUserActive(zainab.id, false, 'Chargeback fraud reported by the shop', areeba)
+    expect(userByEmail('zainab.customer@bayflow.test').isActive).toBe(false)
+    expect(isAccountActive('Zainab.Customer@bayflow.test')).toBe(false)
     expectRefusal(
-      () => setUserActive(tariq.id, false, 'Twice for good measure', areeba),
+      () => setUserActive(zainab.id, false, 'Twice for good measure', areeba),
       'CONFLICT',
     )
-    expectRefusal(() => setPlatformAdmin(tariq.id, true, areeba), 'VALIDATION_ERROR')
-    setUserActive(tariq.id, true, null, areeba)
-    expect(isAccountActive('tariq.jamil@example.test')).toBe(true)
+    expectRefusal(() => setPlatformAdmin(zainab.id, true, areeba), 'VALIDATION_ERROR')
+    setUserActive(zainab.id, true, null, areeba)
+    expect(isAccountActive('zainab.customer@bayflow.test')).toBe(true)
   })
 
   it('grants and revokes platform admin', () => {
@@ -175,6 +175,22 @@ describe('audit log (D95)', () => {
     })
     expect(userByEmail('bilal.sa@bayflow.test').lastLoginAt).toBe(
       live.find((e) => e.action === 'auth.login_succeeded')!.occurredAt,
+    )
+  })
+
+  it("credits each shop's own owner for its team and its creation", () => {
+    const events = getAuditEvents()
+    const added = (shopId: string, userId: string) =>
+      events.find((e) => e.id === `seed:membership.added:${shopId}:${userId}`)
+    expect(added('shop-clifton-car-clinic', 'usr-sadia')).toMatchObject({
+      summary: 'Asif Memon added Sadia Qureshi to Clifton Car Clinic as Service Advisor',
+      actor: { email: 'owner.clifton-car-clinic@bayflow.test', role: 'OWNER' },
+    })
+    expect(added('shop-raza-auto-works', 'usr-adeel')?.actor?.name).toBe('Fatima Raza')
+    // Fatima registered once, before her first shop.
+    expect(events.filter((e) => e.action === 'auth.owner_registered')).toHaveLength(5)
+    expect(events.find((e) => e.id === 'seed:shop.created:shop-lyallpur-motors')?.actor?.name).toBe(
+      'Khalid Chaudhry',
     )
   })
 

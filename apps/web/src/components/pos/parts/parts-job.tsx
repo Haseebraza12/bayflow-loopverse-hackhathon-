@@ -6,6 +6,7 @@ import { useRef, useState, type ComponentProps, type ReactNode } from 'react'
 
 import { DetailLayout, StickyActionBar } from '@/components/layout/detail-layout'
 import { PageHeader } from '@/components/layout/page-header'
+import { newPurchaseOrderIdentity } from '@/components/pos/purchase-orders/po-model'
 import { StatusBadge } from '@/components/status-badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -15,6 +16,7 @@ import {
   getBookingById,
   getCurrentUser,
   getInventory,
+  getPurchaseOrders,
   saveBooking,
   savePurchaseOrder,
   type MockPurchaseOrder,
@@ -33,17 +35,6 @@ import {
 } from './parts-data'
 import { PartsJobNotFound, PartsJobSkeleton, ReadOnlyNotice } from './parts-states'
 import { RequirementsCard } from './requirements-card'
-
-/**
- * A fresh id and number for a new mock purchase order. Impure on purpose (clock and random), so
- * it lives outside the component and only the "Create purchase order" handler calls it.
- */
-function newPurchaseOrderIdentity(): Pick<MockPurchaseOrder, 'id' | 'po_number'> {
-  return {
-    id: `po-${Date.now()}`,
-    po_number: `PO-2026-${Math.floor(100 + Math.random() * 900)}`,
-  }
-}
 
 type ActionDialog = 'order' | 'ready' | 'allocate'
 
@@ -74,6 +65,7 @@ export function PartsJob({ shopId, bookingId }: PartsJobProps) {
   const user = useMockStore(getCurrentUser)
   const booking = useMockStore(() => getBookingById(bookingId))
   const inventory = useMockStore(() => getInventory(shopId))
+  const purchaseOrders = useMockStore(() => getPurchaseOrders(shopId))
 
   const [openDialog, setOpenDialog] = useState<ActionDialog | null>(null)
   const [supplierName, setSupplierName] = useState('Toyota Genuine Parts Wholesale')
@@ -133,8 +125,11 @@ export function PartsJob({ shopId, bookingId }: PartsJobProps) {
   const handleCreatePo = () => {
     const shortRows = rows.filter((r) => r.shortage > 0)
     const newPo: MockPurchaseOrder = {
-      ...newPurchaseOrderIdentity(),
+      // Never a number already in use: saving replaces the shop's order with the same number.
+      ...newPurchaseOrderIdentity(getPurchaseOrders()),
       shopId,
+      // D43: an order raised by `order-parts` belongs to its job (PP-02, PP-04, PP-05 link it).
+      bookingId: booking.id,
       supplier: supplierName.trim(),
       created_at: new Date().toISOString(),
       status: 'ORDERED',
@@ -211,11 +206,21 @@ export function PartsJob({ shopId, bookingId }: PartsJobProps) {
       if (summary.allAvailable) {
         primary = markReady('default')
       } else {
+        // The job's own open order when it is known, else the list to find it in.
+        const jobOrder = purchaseOrders.find(
+          (po) => po.bookingId === booking.id && po.status !== 'RECEIVED',
+        )
         primary = (
           <Button key="receive" asChild>
-            <Link href={`${base}/purchase-orders`}>
+            <Link
+              href={
+                jobOrder
+                  ? `${base}/purchase-orders/${encodeURIComponent(jobOrder.id)}`
+                  : `${base}/purchase-orders`
+              }
+            >
               <Truck aria-hidden="true" />
-              Open purchase orders
+              {jobOrder ? `Open ${jobOrder.po_number}` : 'Open purchase orders'}
             </Link>
           </Button>
         )

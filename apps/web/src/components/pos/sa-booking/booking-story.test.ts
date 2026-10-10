@@ -34,7 +34,7 @@ describe('describeNextStep', () => {
   it('says whose turn it is', () => {
     expect(describeNextStep(seed('bk-002'), context)).toMatchObject({
       kind: 'wait',
-      label: 'Waiting on Tariq Jamil',
+      label: 'Waiting on Ayesha Khan',
       title: 'Estimate sent for approval',
     })
     expect(describeNextStep(seed('bk-004'), context)).toMatchObject({

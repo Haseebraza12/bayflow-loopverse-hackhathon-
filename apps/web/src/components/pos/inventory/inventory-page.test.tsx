@@ -4,9 +4,24 @@ import { renderToString } from 'react-dom/server'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import InventoryPage from '@/app/(pos)/pos/shops/[shopId]/inventory/page'
-import { getInventory, INITIAL_PARTS, setStoredData, type MockPart } from '@/lib/mock-data'
+import {
+  DEFAULT_USER,
+  getInventory,
+  INITIAL_PARTS,
+  setCurrentUser,
+  setStoredData,
+  type MockPart,
+} from '@/lib/mock-data'
 
 const SHOP = 'shop-lahore-auto-care'
+
+/** Stock operations are the Parts Person's (D44); the seed's signed-in user is the Owner. */
+const USMAN = {
+  ...DEFAULT_USER,
+  name: 'Usman',
+  email: 'usman.parts@bayflow.test',
+  role: 'PARTS_PERSON' as const,
+}
 
 vi.mock('next/navigation', () => ({
   useParams: () => ({ shopId: 'shop-lahore-auto-care' }),
@@ -116,7 +131,7 @@ describe('PP-03 inventory', () => {
         'OF-TY-01 is already used by Oil Filter Cartridge (Toyota/Honda).',
       ),
     ).toBeInTheDocument()
-    expect(getInventory()).toHaveLength(6)
+    expect(getInventory(SHOP)).toHaveLength(6)
     expect(stored('part-of-01')).toMatchObject({ name: 'Oil Filter Cartridge (Toyota/Honda)' })
 
     type(within(sheet).getByLabelText('SKU'), 'wb-26in')
@@ -141,6 +156,7 @@ describe('PP-03 inventory', () => {
   })
 
   it('adjusts stock with a reason and refuses leaving less than is reserved', async () => {
+    setCurrentUser(USMAN)
     render(<InventoryPage />)
     const sheet = openRowAction('BP-FR-02', 'Adjust stock')
     expect(within(sheet).getByLabelText('Quantity')).toHaveFocus()
@@ -169,6 +185,7 @@ describe('PP-03 inventory', () => {
   })
 
   it('needs a quantity above 0 and a reason before adding stock', async () => {
+    setCurrentUser(USMAN)
     render(<InventoryPage />)
     const sheet = openRowAction('OF-TY-01', 'Adjust stock')
     type(within(sheet).getByLabelText('Quantity'), '0')
@@ -208,7 +225,57 @@ describe('PP-03 inventory', () => {
       on_hand: 10,
       reserved: 0,
     })
-    expect(getInventory()).toHaveLength(6)
+    expect(getInventory(SHOP)).toHaveLength(6)
+  })
+
+  it('lets the Owner edit the catalogue but not the stock (D44)', () => {
+    // The seed's signed-in user is Fatima, the Owner.
+    render(<InventoryPage />)
+    expect(screen.getByText('Catalogue only')).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        'Stock operations are done by Parts Persons; you can edit the parts catalogue.',
+      ),
+    ).toBeInTheDocument()
+
+    const trigger = within(row('OF-TY-01')).getByRole('button', { name: /^Actions for/ })
+    fireEvent.keyDown(trigger, { key: 'Enter' })
+    expect(screen.getByRole('menuitem', { name: 'Edit part' })).toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: 'Adjust stock' })).toBeNull()
+    fireEvent.keyDown(screen.getByRole('menuitem', { name: 'Edit part' }), { key: 'Escape' })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add part' }))
+    expect(screen.getByRole('dialog', { name: 'Add part' })).toHaveTextContent(
+      'New parts start at 0 on hand. Your Parts Person sets the opening stock.',
+    )
+  })
+
+  it('gives the Parts Person stock operations without the Owner’s notice', () => {
+    setCurrentUser(USMAN)
+    render(<InventoryPage />)
+    expect(screen.queryByText('Catalogue only')).toBeNull()
+    fireEvent.keyDown(within(row('OF-TY-01')).getByRole('button', { name: /^Actions for/ }), {
+      key: 'Enter',
+    })
+    expect(screen.getByRole('menuitem', { name: 'Adjust stock' })).toBeInTheDocument()
+  })
+
+  it('checks a SKU inside this shop only, and never changes another shop’s part (D20)', async () => {
+    const elsewhere = INITIAL_PARTS.filter((part) => part.sku === 'FLT-OIL-01')
+    expect(elsewhere.length).toBeGreaterThan(1)
+    expect(elsewhere.some((part) => part.shopId === SHOP)).toBe(false)
+
+    render(<InventoryPage />)
+    fireEvent.click(screen.getByRole('button', { name: 'Add part' }))
+    const sheet = screen.getByRole('dialog', { name: 'Add part' })
+    type(within(sheet).getByLabelText('SKU'), 'FLT-OIL-01')
+    type(within(sheet).getByLabelText('Part name'), 'Oil filter')
+    type(within(sheet).getByLabelText('Unit cost'), '900')
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Add part' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+
+    expect(getInventory(SHOP).filter((part) => part.sku === 'FLT-OIL-01')).toHaveLength(1)
+    for (const part of elsewhere) expect(stored(part.id)).toEqual(part)
   })
 
   it('shows a skeleton while hydrating, then this browser’s stock without a mismatch', async () => {

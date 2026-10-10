@@ -140,12 +140,14 @@ export function RegisterForm() {
     }
 
     setLoading(true)
+    // A new owner has no shop yet (`memberships: []` until S-03 creates one), so no shop is
+    // current: never another shop, which would open its POS as Owner (D20).
     setCurrentUser({
       name: fullName.trim(),
       email: email.trim().toLowerCase(),
       role: 'OWNER',
-      shopId: 'shop-lahore-auto-care',
-      shopName: garageName.trim() || 'My Auto Repair Shop',
+      shopId: '',
+      shopName: '',
     })
     // The proxy only checks that a session cookie exists (spec 09 §2.8).
     document.cookie = `bf_session=active_${Date.now()}; path=/; max-age=86400; SameSite=Lax`

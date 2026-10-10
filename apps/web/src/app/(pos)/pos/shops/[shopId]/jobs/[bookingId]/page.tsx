@@ -111,7 +111,10 @@ export default function TechnicianJobDetailPage() {
   const bookingId = typeof params?.bookingId === 'string' ? params.bookingId : ''
 
   const ready = useMockStoreReady()
-  const booking = useMockStore(() => getBookingById(bookingId))
+  const stored = useMockStore(() => getBookingById(bookingId))
+  // D20: another shop's booking reads as not found, never as someone else's job.
+  const booking =
+    stored && (stored.shopId === shopId || stored.shopSlug === shopId) ? stored : undefined
   const user = useMockStore(getCurrentUser)
   const shop = useMockStore(() => getShopById(shopId))
 

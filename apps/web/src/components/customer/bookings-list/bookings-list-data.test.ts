@@ -110,7 +110,9 @@ describe('toListItems', () => {
 })
 
 describe('list order (spec 10 C-01)', () => {
-  const active = INITIAL_BOOKINGS.filter(isActive)
+  // Lahore Auto Care's active bookings: one of each case the order has to handle (the seeded
+  // bookings at other shops are further upcoming slots of other customers).
+  const active = INITIAL_BOOKINGS.filter((b) => b.shopId === LAHORE && isActive(b))
 
   it('puts what needs the customer first, then upcoming slots, then the latest updates', () => {
     const early = toListItems(active, context()).sort(compareActive)

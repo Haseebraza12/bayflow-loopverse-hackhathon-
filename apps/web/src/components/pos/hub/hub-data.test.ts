@@ -103,14 +103,16 @@ describe('ownerSummary (O-07, E-32)', () => {
     expect(suspended).toEqual([])
     expect(rows.map(({ shop, ...counts }) => [shop.id, counts])).toEqual([
       [LAHORE, { today: 1, needsAction: 2, inProgress: 3, ready: 1, lowStock: 0 }],
-      [RAZA, { today: 0, needsAction: 0, inProgress: 0, ready: 0, lowStock: 0 }],
+      // Spec 11: Raza Auto Works' pending booking (12 Oct) and its own catalogue, where the
+      // ignition coil, front brake disc and battery are LOW and the AC gas is OUT.
+      [RAZA, { today: 0, needsAction: 1, inProgress: 0, ready: 0, lowStock: 4 }],
     ])
     expect(summaryTotals(rows)).toEqual({
       today: 1,
-      needsAction: 2,
+      needsAction: 3,
       inProgress: 3,
       ready: 1,
-      lowStock: 0,
+      lowStock: 4,
     })
   })
 
@@ -118,7 +120,8 @@ describe('ownerSummary (O-07, E-32)', () => {
     const { rows, suspended } = ownerSummary({ ...base, suspendedIds: new Set([LAHORE]) })
     expect(rows.map((row) => row.shop.id)).toEqual([RAZA])
     expect(suspended.map((shop) => shop.id)).toEqual([LAHORE])
-    expect(summaryTotals(rows).needsAction).toBe(0)
+    // Only Raza Auto Works' pending booking is left in the totals.
+    expect(summaryTotals(rows).needsAction).toBe(1)
   })
 
   it("reads today on each shop's own calendar (D38)", () => {
@@ -144,7 +147,8 @@ describe('ownerSummary (O-07, E-32)', () => {
       { ...lahorePart, id: 'low', sku: 'LOW-1', on_hand: 3, reserved: 1, reorder_level: 2 },
       { ...lahorePart, id: 'raza', sku: 'RZ-1', shopId: RAZA, on_hand: 0, reorder_level: 1 },
     ]
-    expect(ownerSummary({ ...base, parts }).rows.map((row) => row.lowStock)).toEqual([1, 1])
+    // Raza Auto Works: its 4 seeded LOW/OUT parts (spec 11) and the OUT part added here.
+    expect(ownerSummary({ ...base, parts }).rows.map((row) => row.lowStock)).toEqual([1, 5])
   })
 
   it('falls back to the default time zone for an unknown one', () => {

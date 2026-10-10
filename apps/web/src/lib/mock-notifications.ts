@@ -1,7 +1,10 @@
 import { formatPKR } from '@/lib/format'
-import { bookingHistory } from '@/lib/mock-booking-history'
+import { bookingHistory, passedStatuses } from '@/lib/mock-booking-history'
 import {
   getStoredData,
+  INITIAL_BOOKINGS,
+  isBookingCustomer,
+  normaliseEmail,
   setStoredData,
   type CurrentUserSession,
   type MockBooking,
@@ -185,12 +188,19 @@ function receives(
   team: ReadonlyArray<MockTeamMember>,
 ): boolean {
   if (audience === 'CUSTOMER') {
-    return (
-      user.role === 'CUSTOMER' &&
-      (b.customerEmail.toLowerCase() === user.email || b.customerName === user.name)
-    )
+    // The booking's own customer only, by account (D21) — never someone with the same name.
+    return user.role === 'CUSTOMER' && isBookingCustomer(b, user.email)
   }
   if (b.shopId !== user.shopId) return false
+  // Staff hand-offs reach active members of the booking's own shop in that role only (D20),
+  // whatever shop or role the session claims.
+  const membership = team.find(
+    (m) =>
+      m.shopId === b.shopId &&
+      m.is_active &&
+      normaliseEmail(m.email) === normaliseEmail(user.email),
+  )
+  if (membership?.role !== user.role) return false
   switch (audience) {
     case 'SA': {
       if (user.role === 'SERVICE_ADVISOR') return true
@@ -240,11 +250,50 @@ export function deriveNotifications(
 }
 
 const READ_KEY = 'notifications-read'
-const NONE_READ: string[] = []
+
+/** Whose move each status waits on: spec 11's "owns the next step". */
+const NEXT_STEP_OWNER: Partial<Record<MockBooking['status'], Audience>> = {
+  PENDING: 'SA',
+  CONFIRMED: 'SA',
+  ESTIMATE_REVIEW: 'SA',
+  ESTIMATE_APPROVED: 'SA',
+  ESTIMATE_REJECTED: 'SA',
+  READY_FOR_PICKUP: 'SA',
+  ASSIGNED: 'TECHNICIAN',
+  INSPECTING: 'TECHNICIAN',
+  IN_REPAIR: 'TECHNICIAN',
+  AWAITING_CUSTOMER: 'CUSTOMER',
+  PARTS_PENDING: 'PARTS',
+  PARTS_ORDERED: 'PARTS',
+  PARTS_READY: 'PARTS',
+  QC_PENDING: 'QC',
+  QC_IN_PROGRESS: 'QC',
+}
+
+let seedRead: string[] | null = null
+
+/**
+ * Spec 11 "Notifications after seeding": the seed leaves its sample bookings' notifications read,
+ * except the latest one per recipient and booking when that recipient owns the booking's next step.
+ * So each demo account starts with what waits on them only (Ayesha: her estimate; Bilal: the new
+ * booking and the passed QC), and every browser starts from this read state.
+ */
+function seedReadIds(): string[] {
+  if (seedRead) return seedRead
+  const read: string[] = []
+  for (const b of INITIAL_BOOKINGS) {
+    const fired = passedStatuses(b.status).flatMap((status) => BY_STATUS[status] ?? [])
+    // QC_FAILED is not a status rule, so it is never in this list: a QC failure stays unread.
+    const latest = [...fired].reverse().find((rule) => rule.to === NEXT_STEP_OWNER[b.status])
+    for (const rule of fired) if (rule !== latest) read.push(`${rule.type}:${b.id}`)
+  }
+  seedRead = read
+  return seedRead
+}
 
 /** IDs the user has read (stable array until it changes, as `useMockStore` requires). */
 export function getReadNotificationIds(): string[] {
-  return getStoredData<string[]>(READ_KEY, NONE_READ)
+  return getStoredData<string[]>(READ_KEY, seedReadIds())
 }
 
 /** E-19 / E-20: marks the given notifications read. */

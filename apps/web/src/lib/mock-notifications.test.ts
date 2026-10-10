@@ -1,8 +1,12 @@
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 
 import { resolveMockSession } from './mock-auth'
 import { INITIAL_BOOKINGS, INITIAL_TEAM, type MockBooking } from './mock-data'
-import { deriveNotifications } from './mock-notifications'
+import {
+  deriveNotifications,
+  getReadNotificationIds,
+  markNotificationsRead,
+} from './mock-notifications'
 
 const forEmail = (email: string, bookings: ReadonlyArray<MockBooking> = INITIAL_BOOKINGS) =>
   deriveNotifications(resolveMockSession(email), bookings, INITIAL_TEAM)
@@ -56,12 +60,28 @@ describe('deriveNotifications (glossary §6 recipients, D67 links)', () => {
     const items = forEmail('ayesha.customer@bayflow.test')
     expect(items.length).toBeGreaterThan(0)
     const ayeshaBookings = new Set(
-      INITIAL_BOOKINGS.filter((b) => b.customerName === 'Ayesha Khan').map((b) => b.reference),
+      INITIAL_BOOKINGS.filter((b) => b.customerEmail === 'ayesha.customer@bayflow.test').map(
+        (b) => b.reference,
+      ),
     )
     for (const n of items) {
       expect(ayeshaBookings.has(n.reference)).toBe(true)
       expect(n.link).toMatch(/^\/bookings\/[^/]+$/)
     }
+  })
+
+  it('never gives one customer the updates of another with the same name (D21)', () => {
+    const namesake = { ...resolveMockSession('ayesha.customer@bayflow.test') }
+    namesake.email = 'ayesha.k@example.pk'
+    expect(deriveNotifications(namesake, INITIAL_BOOKINGS, INITIAL_TEAM)).toEqual([])
+  })
+
+  it('gives staff nothing from a shop they are not a member of, whatever the session claims', () => {
+    const bilal = resolveMockSession('bilal.sa@bayflow.test')
+    const elsewhere = { ...bilal, shopId: 'shop-clifton-car-clinic', shopName: 'Clifton' }
+    expect(deriveNotifications(elsewhere, INITIAL_BOOKINGS, INITIAL_TEAM)).toEqual([])
+    // Clifton Car Clinic's own Service Advisor gets its new booking.
+    expect(types('sa.clifton-car-clinic@bayflow.test')).toEqual(['BOOKING_CREATED'])
   })
 
   it('lists newest first, with one stable id per hand-off', () => {
@@ -81,5 +101,45 @@ describe('deriveNotifications (glossary §6 recipients, D67 links)', () => {
     const after = forEmail('ayesha.customer@bayflow.test', [{ ...pending, status: 'CONFIRMED' }])
     expect(before.map((n) => n.type)).not.toContain('BOOKING_CONFIRMED')
     expect(after.map((n) => n.type)).toContain('BOOKING_CONFIRMED')
+  })
+})
+
+describe('read state after seeding (spec 11 "What each demo account sees on first login")', () => {
+  beforeEach(() => {
+    localStorage.clear()
+  })
+
+  const unread = (email: string) => {
+    const read = new Set(getReadNotificationIds())
+    return forEmail(email)
+      .filter((n) => !read.has(n.id))
+      .map((n) => `${n.type} ${n.reference}`)
+  }
+
+  it('leaves unread only what waits on each demo account', () => {
+    expect(unread('ayesha.customer@bayflow.test')).toEqual(['ESTIMATE_SENT BF-2026-002'])
+    expect(unread('bilal.sa@bayflow.test').sort()).toEqual([
+      'BOOKING_CREATED BF-2026-004',
+      'QC_PASSED BF-2026-005',
+    ])
+    expect(unread('imran.tech@bayflow.test')).toEqual(['PARTS_READY BF-2026-001'])
+    expect(unread('hamza.tech@bayflow.test')).toEqual([])
+    expect(unread('sara.qc@bayflow.test')).toEqual(['QC_REQUESTED BF-2026-003'])
+    expect(unread('hina.qc@bayflow.test')).toEqual(['QC_REQUESTED BF-2026-003'])
+    expect(unread('fatima.owner@bayflow.test')).toEqual([])
+  })
+
+  it("gives each other shop's Service Advisor its new booking, and Lyallpur Motors nothing", () => {
+    expect(unread('sa.raza-auto-works@bayflow.test')).toEqual(['BOOKING_CREATED BF-2026-008'])
+    expect(unread('sa.clifton-car-clinic@bayflow.test')).toEqual(['BOOKING_CREATED BF-2026-010'])
+    expect(unread('sa.margalla-motor-works@bayflow.test')).toEqual(['BOOKING_CREATED BF-2026-011'])
+    expect(unread('sa.pindi-auto-garage@bayflow.test')).toEqual(['BOOKING_CREATED BF-2026-012'])
+    expect(unread('sa.lyallpur-motors@bayflow.test')).toEqual([])
+  })
+
+  it('keeps the seed read state when the user marks more as read', () => {
+    markNotificationsRead(['ESTIMATE_SENT:bk-002'])
+    expect(unread('ayesha.customer@bayflow.test')).toEqual([])
+    expect(unread('bilal.sa@bayflow.test')).toHaveLength(2)
   })
 })

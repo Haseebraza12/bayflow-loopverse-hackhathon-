@@ -114,8 +114,13 @@ describe('helpers', () => {
       'QC_INSPECTOR:Hina',
       'QC_INSPECTOR:Sara',
     ])
+    // Raza Auto Works has its own team (spec 11), with Fatima as its owner.
     expect(shopTeam(getAdminUsers(), 'shop-raza-auto-works').map((m) => m.user.name)).toEqual([
       'Fatima Raza',
+      'Adeel Anwar',
+      'Naveed Akhtar',
+      'Faisal Javed',
+      'Rabia Saeed',
     ])
   })
 })

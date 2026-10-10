@@ -55,7 +55,7 @@ describe('BookingsQueue (SA-01)', () => {
     open()
     expect(screen.getByRole('radio', { name: 'Needs action 2' })).toBeChecked()
     expect(screen.getByRole('radio', { name: 'In progress 3' })).not.toBeChecked()
-    expect(screen.getByRole('radio', { name: 'All 6' })).not.toBeChecked()
+    expect(screen.getByRole('radio', { name: 'All 7' })).not.toBeChecked()
     expect(screen.getByRole('table', { name: 'Bookings that need your action' })).toBeVisible()
     expect(tableRefs()).toEqual(['BF-2026-005', 'BF-2026-004'])
     // Only the advisor's own moves carry the "action needed" chip.
@@ -64,7 +64,7 @@ describe('BookingsQueue (SA-01)', () => {
 
   it('honours ?status= from the overview and removes it with one click', () => {
     open('status=AWAITING_CUSTOMER')
-    expect(screen.getByRole('radio', { name: 'All 6' })).toBeChecked()
+    expect(screen.getByRole('radio', { name: 'All 7' })).toBeChecked()
     expect(screen.getByRole('button', { name: 'Status: Awaiting customer' })).toBeVisible()
     expect(tableRefs()).toEqual(['BF-2026-002'])
 
@@ -74,8 +74,8 @@ describe('BookingsQueue (SA-01)', () => {
 
   it.each([
     ['filter=needs_action', 'Needs action 2', ['BF-2026-005', 'BF-2026-004'], null],
-    ['filter=ready', 'All 6', ['BF-2026-005'], 'Status: Ready for pick-up'],
-    ['filter=completed', 'All 6', ['BF-2026-006'], 'Status: Completed'],
+    ['filter=ready', 'All 7', ['BF-2026-005'], 'Status: Ready for pick-up'],
+    ['filter=completed', 'All 7', ['BF-2026-006'], 'Status: Completed'],
     ['filter=bogus&status=NOPE', 'Needs action 2', ['BF-2026-005', 'BF-2026-004'], null],
   ])('reads ?%s', (query, pressed, refs, chip) => {
     open(query)
@@ -113,12 +113,18 @@ describe('BookingsQueue (SA-01)', () => {
     routeTo(rerender, 'filter=all&q=le')
     expect(input).toHaveValue('le')
     // "le" is in the plates LEE-, LEA- and LEB-.
-    expect(tableRefs()).toEqual(['BF-2026-002', 'BF-2026-001', 'BF-2026-005', 'BF-2026-006'])
+    expect(tableRefs()).toEqual([
+      'BF-2026-002',
+      'BF-2026-001',
+      'BF-2026-005',
+      'BF-2026-006',
+      'BF-2026-007',
+    ])
 
     // A link (or Back) with another search replaces what is in the field.
-    routeTo(rerender, 'filter=all&q=tariq')
-    expect(input).toHaveValue('tariq')
-    expect(tableRefs()).toEqual(['BF-2026-002'])
+    routeTo(rerender, 'filter=all&q=zainab')
+    expect(input).toHaveValue('zainab')
+    expect(tableRefs()).toEqual(['BF-2026-004'])
   })
 
   it('offers the other views when a search only matches there', () => {

@@ -191,7 +191,8 @@ describe("slotMinutes and today's schedule", () => {
 
 describe('inventoryHealth (OverviewInventory, D45)', () => {
   it('sums the seeded stock and counts open purchase orders', () => {
-    const health = inventoryHealth(INITIAL_PARTS, INITIAL_PURCHASE_ORDERS)
+    const parts = INITIAL_PARTS.filter((p) => p.shopId === LAHORE)
+    const health = inventoryHealth(parts, INITIAL_PURCHASE_ORDERS)
     expect(health).toMatchObject({
       partsCount: 6,
       lowCount: 0,

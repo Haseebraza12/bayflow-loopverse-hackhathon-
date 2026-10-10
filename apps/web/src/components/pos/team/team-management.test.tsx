@@ -2,7 +2,13 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { renderToString } from 'react-dom/server'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { DEFAULT_USER, getTeamMembers, setCurrentUser } from '@/lib/mock-data'
+import {
+  DEFAULT_USER,
+  getTeamMembers,
+  INITIAL_TEAM,
+  setCurrentUser,
+  setStoredData,
+} from '@/lib/mock-data'
 
 import { TeamManagement } from './team-management'
 
@@ -17,6 +23,14 @@ const RAZA = 'shop-raza-auto-works'
 
 const member = (shopId: string, email: string) =>
   getTeamMembers(shopId).find((m) => m.email === email)
+
+/** A shop whose owner has not added anyone yet (as right after S-03 creates it). */
+function ownerOnly(shopId: string) {
+  setStoredData(
+    'team',
+    INITIAL_TEAM.filter((m) => m.shopId !== shopId || m.role === 'OWNER'),
+  )
+}
 
 /** Opens a member's row menu (the table's copy; phones get the same menu in the list). */
 function openMenu(name: string) {
@@ -107,6 +121,7 @@ describe('O-02 team management', () => {
   })
 
   it('adds an existing account as a membership only, keeping its name (D18)', () => {
+    ownerOnly(RAZA)
     render(<TeamManagement shopId={RAZA} />)
     // Only the owner so far: the first-use prompt.
     expect(screen.getByText('Add your team')).toBeInTheDocument()
@@ -127,6 +142,7 @@ describe('O-02 team management', () => {
   })
 
   it("returns focus to the header's button when the first-use prompt that opened the sheet is gone", async () => {
+    ownerOnly(RAZA)
     render(<TeamManagement shopId={RAZA} />)
     const prompt = within(
       screen.getByText('Add your team').closest('[data-slot=empty]')!,

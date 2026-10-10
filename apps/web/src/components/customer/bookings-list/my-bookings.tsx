@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useMockStore, useMockStoreReady } from '@/hooks/use-mock-store'
 import { useNowMinute } from '@/hooks/use-now'
 import { getShopSuspensions } from '@/lib/mock-admin'
-import { getBookings, getShops } from '@/lib/mock-data'
+import { getCurrentUser, getCustomerBookings, getShops } from '@/lib/mock-data'
 
 import { BookingCard } from './booking-card'
 import {
@@ -56,13 +56,15 @@ function BookingsListSkeleton() {
 }
 
 /**
- * C-01 My bookings (spec 10): the customer's bookings in two tabs, Active and Past. Bookings that
- * wait on the customer come first, each with its action-needed callout; decisions are taken on
- * the booking itself (C-02).
+ * C-01 My bookings (spec 10): the signed-in person's own bookings (D21: E-11 returns only the
+ * caller's; staff see only bookings they made as customers), in two tabs, Active and Past.
+ * Bookings that wait on the customer come first, each with its action-needed callout; decisions
+ * are taken on the booking itself (C-02).
  */
 export function MyBookings() {
   const ready = useMockStoreReady()
-  const allBookings = useMockStore(() => getBookings())
+  const user = useMockStore(getCurrentUser)
+  const allBookings = useMockStore(() => getCustomerBookings(user.email))
   const shops = useMockStore(getShops)
   const suspensions = useMockStore(getShopSuspensions)
   const now = useNowMinute()

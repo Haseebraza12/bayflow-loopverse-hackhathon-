@@ -236,3 +236,16 @@ describe('T-01 my jobs', () => {
     expect(screen.queryByRole('button', { name: /start inspection/i })).toBeNull()
   })
 })
+
+describe('T-02 tenant isolation (D20)', () => {
+  it("does not open another shop's job, even by its id", () => {
+    // BF-2026-009 is Raza Auto Works' job; Imran works at Lahore Auto Care.
+    nav.params = { shopId: SHOP, bookingId: 'bk-009' }
+    const { container } = render(<JobDetailPage />)
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'We couldn’t find this job' }),
+    ).toBeInTheDocument()
+    expect(container).not.toHaveTextContent('Hilux')
+    expect(container).not.toHaveTextContent('BF-2026-009')
+  })
+})

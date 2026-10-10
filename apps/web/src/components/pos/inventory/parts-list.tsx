@@ -28,7 +28,8 @@ import { STOCK_INK, StockBadge } from './stock-badge'
 
 /** `menuButton` is the row's menu button: focus goes back to it when the sheet closes. */
 export interface PartActionHandlers {
-  onAdjust: (partId: string, menuButton: HTMLElement | null) => void
+  /** Stock operations (D44): Parts Persons only; without it the menu has no "Adjust stock". */
+  onAdjust?: (partId: string, menuButton: HTMLElement | null) => void
   onEdit: (partId: string, menuButton: HTMLElement | null) => void
 }
 
@@ -190,7 +191,7 @@ function PartCard({ part, ...handlers }: { part: MockPart } & PartActionHandlers
   )
 }
 
-/** The row menu (spec 10 PP-03): Adjust stock and Edit part. */
+/** The row menu (spec 10 PP-03): Adjust stock (`stock.manage`) and Edit part (`parts.manage`). */
 function PartActions({ part, onAdjust, onEdit }: { part: MockPart } & PartActionHandlers) {
   const menuButton = useRef<HTMLButtonElement>(null)
   return (
@@ -207,10 +208,12 @@ function PartActions({ part, onAdjust, onEdit }: { part: MockPart } & PartAction
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-44">
-        <DropdownMenuItem onSelect={() => onAdjust(part.id, menuButton.current)}>
-          <SlidersHorizontal aria-hidden="true" />
-          Adjust stock
-        </DropdownMenuItem>
+        {onAdjust ? (
+          <DropdownMenuItem onSelect={() => onAdjust(part.id, menuButton.current)}>
+            <SlidersHorizontal aria-hidden="true" />
+            Adjust stock
+          </DropdownMenuItem>
+        ) : null}
         <DropdownMenuItem onSelect={() => onEdit(part.id, menuButton.current)}>
           <Pencil aria-hidden="true" />
           Edit part

@@ -66,6 +66,7 @@ export function PartSheet({
   part,
   formKey,
   categories,
+  canManageStock,
   onSave,
 }: {
   open: boolean
@@ -77,6 +78,8 @@ export function PartSheet({
   /** Changes on every opening, so the form starts again from the part's current values. */
   formKey: string
   categories: ReadonlyArray<string>
+  /** D44: the Parts Person sets the opening stock; the Owner's helper says who does. */
+  canManageStock: boolean
   onSave: (draft: PartDraft) => string | null
 }) {
   return (
@@ -95,7 +98,9 @@ export function PartSheet({
           <SheetDescription>
             {part
               ? part.name
-              : 'New parts start at 0 on hand. Set the opening stock with Adjust stock once the part is added.'}
+              : canManageStock
+                ? 'New parts start at 0 on hand. Set the opening stock with Adjust stock once the part is added.'
+                : 'New parts start at 0 on hand. Your Parts Person sets the opening stock.'}
           </SheetDescription>
         </SheetHeader>
         <PartForm key={formKey} part={part} categories={categories} onSave={onSave} />

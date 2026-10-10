@@ -1,4 +1,4 @@
-import type { MockBooking } from '@/lib/mock-data'
+import { getTeamMembers, type MockBooking, type MockTeamMember } from '@/lib/mock-data'
 
 /**
  * A mock booking's history while the screens run on mock data: the statuses it passed through to
@@ -70,18 +70,44 @@ export function passedStatuses(status: Status): ReadonlyArray<Status> {
   return index < 0 ? [] : HAPPY_PATH.slice(0, index + 1)
 }
 
+const ROLE_LABEL: Record<Exclude<HistoryActorRole, 'CUSTOMER'>, string> = {
+  SERVICE_ADVISOR: 'Service Advisor',
+  TECHNICIAN: 'Technician',
+  PARTS_PERSON: 'Parts Person',
+  QC_INSPECTOR: 'QC Inspector',
+}
+
+/**
+ * Who acted in a staff role: the booking's assignee when it names one, else a member of the
+ * booking's own shop with that role (an Owner acts for a shop without Service Advisors, D26).
+ * Never someone from another shop.
+ */
+function staffName(
+  b: MockBooking,
+  role: Exclude<HistoryActorRole, 'CUSTOMER'>,
+  memberId: string | undefined,
+): string {
+  const team = getTeamMembers(b.shopId)
+  const byRole = (r: MockTeamMember['role']) => team.find((m) => m.role === r)
+  const member =
+    (memberId ? team.find((m) => m.id === memberId) : undefined) ??
+    byRole(role) ??
+    (role === 'SERVICE_ADVISOR' ? byRole('OWNER') : undefined)
+  return member?.name ?? ROLE_LABEL[role]
+}
+
 function actorName(b: MockBooking, role: HistoryActorRole): string {
   switch (role) {
     case 'CUSTOMER':
       return b.customerName
     case 'SERVICE_ADVISOR':
-      return 'Bilal'
+      return staffName(b, role, undefined)
     case 'TECHNICIAN':
-      return b.assignedTechnicianName ?? 'Imran'
+      return b.assignedTechnicianName ?? staffName(b, role, b.assignedTechnicianId)
     case 'PARTS_PERSON':
-      return 'Usman'
+      return staffName(b, role, b.assignedPartsPersonId)
     case 'QC_INSPECTOR':
-      return 'Sara'
+      return staffName(b, role, b.qcInspectorId)
   }
 }
 

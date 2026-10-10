@@ -29,7 +29,7 @@ import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/
 import { Skeleton } from '@/components/ui/skeleton'
 import { useMockStore, useMockStoreReady } from '@/hooks/use-mock-store'
 import { formatDateKey } from '@/lib/booking-slots'
-import { getBookingById, getShopById, type MockBooking } from '@/lib/mock-data'
+import { getCurrentUser, getCustomerBooking, getShopById, type MockBooking } from '@/lib/mock-data'
 import { cn } from '@/lib/utils'
 
 /** Spec 10 C-03 "What happens next", in the customer's words (UX rule R5: no "QC", no "SA"). */
@@ -70,7 +70,9 @@ export function BookingConfirmation({
   newAccount: boolean
 }) {
   const ready = useMockStoreReady()
-  const booking = useMockStore(() => getBookingById(bookingId))
+  const user = useMockStore(getCurrentUser)
+  // C-03 is for the booking's customer only (D21): anyone else gets the not-found state.
+  const booking = useMockStore(() => getCustomerBooking(bookingId, user.email))
 
   if (!ready) return <ConfirmationSkeleton />
   if (!booking) return <BookingNotFound />

@@ -14,6 +14,9 @@ import {
 } from './inventory-model'
 import { adjustSchemaFor, partSchema, signedDelta } from './inventory-schemas'
 
+/** One shop's parts, as the screen passes them (the seed also holds the other shops' parts). */
+const LAHORE_PARTS = INITIAL_PARTS.filter((p) => p.shopId === 'shop-lahore-auto-care')
+
 function part(changes: Partial<MockPart>): MockPart {
   return { ...INITIAL_PARTS[0]!, ...changes }
 }
@@ -40,7 +43,7 @@ describe('stock state (D45)', () => {
 
 describe('inventory summary', () => {
   it('values the stock on hand and counts what needs restocking and what is on order', () => {
-    const summary = inventorySummary(INITIAL_PARTS, INITIAL_PURCHASE_ORDERS)
+    const summary = inventorySummary(LAHORE_PARTS, INITIAL_PURCHASE_ORDERS)
     expect(summary).toEqual({
       partCount: 6,
       unitsOnHand: 37,
@@ -84,13 +87,13 @@ describe('search and stock filters', () => {
 
 describe('part catalogue helpers', () => {
   it('finds a SKU in use, ignoring case and the part being edited', () => {
-    expect(skuTakenBy(INITIAL_PARTS, 'of-ty-01')?.id).toBe('part-of-01')
-    expect(skuTakenBy(INITIAL_PARTS, 'OF-TY-01', 'part-of-01')).toBeUndefined()
-    expect(skuTakenBy(INITIAL_PARTS, 'NEW-01')).toBeUndefined()
+    expect(skuTakenBy(LAHORE_PARTS, 'of-ty-01')?.id).toBe('part-of-01')
+    expect(skuTakenBy(LAHORE_PARTS, 'OF-TY-01', 'part-of-01')).toBeUndefined()
+    expect(skuTakenBy(LAHORE_PARTS, 'NEW-01')).toBeUndefined()
   })
 
   it('suggests the most used categories first', () => {
-    expect(categoriesOf(INITIAL_PARTS)).toEqual(['Brakes', 'Filters', 'Fluids', 'Ignition'])
+    expect(categoriesOf(LAHORE_PARTS)).toEqual(['Brakes', 'Filters', 'Fluids', 'Ignition'])
   })
 })
 

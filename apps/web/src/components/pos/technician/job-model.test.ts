@@ -98,7 +98,8 @@ describe('groupJobs', () => {
   })
 
   it('groups the seed jobs without losing any technician job', () => {
-    const groups = groupJobs(INITIAL_BOOKINGS)
+    // One shop's bookings, as T-01 reads them (the other shops have their own jobs).
+    const groups = groupJobs(INITIAL_BOOKINGS.filter((b) => b.shopId === 'shop-lahore-auto-care'))
     expect(groups.repair.map((b) => b.id)).toEqual(['bk-001'])
     expect(groups.waiting.map((b) => b.id).sort()).toEqual(['bk-002', 'bk-003'])
     expect(groups.done.map((b) => b.id)).toEqual(['bk-005', 'bk-006'])

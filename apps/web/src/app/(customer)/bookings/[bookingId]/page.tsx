@@ -53,7 +53,13 @@ import { useNowMinute } from '@/hooks/use-now'
 import { DEFAULT_SHOP_TZ, formatDateTime, formatPKR } from '@/lib/format'
 import { getShopSuspensions } from '@/lib/mock-admin'
 import { bookingHistory } from '@/lib/mock-booking-history'
-import { getBookingById, getShops, saveBooking, type MockBooking } from '@/lib/mock-data'
+import {
+  getCurrentUser,
+  getCustomerBooking,
+  getShops,
+  saveBooking,
+  type MockBooking,
+} from '@/lib/mock-data'
 import { CANCELLABLE_STATUSES, type BookingStatus } from '@/lib/status'
 
 /** Statuses in which the customer has seen the estimate and it was not declined. */
@@ -116,7 +122,9 @@ export default function CustomerBookingDetailPage() {
   const bookingId = typeof params?.bookingId === 'string' ? params.bookingId : ''
 
   const ready = useMockStoreReady()
-  const booking = useMockStore(() => getBookingById(bookingId))
+  const user = useMockStore(getCurrentUser)
+  // D21 / SM-17: only the booking's own customer sees it; anyone else gets the not-found state.
+  const booking = useMockStore(() => getCustomerBooking(bookingId, user.email))
   const shops = useMockStore(getShops)
   const suspensions = useMockStore(getShopSuspensions)
   const now = useNowMinute()

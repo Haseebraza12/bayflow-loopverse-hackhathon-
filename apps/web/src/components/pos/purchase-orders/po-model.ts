@@ -111,9 +111,9 @@ export interface ReceiptLine {
 
 /**
  * What receiving `po` does to stock, line by line, worked out exactly as the receive action applies
- * it: `adjustPartStock(line.part_sku, line.quantity)` for each line in order, on the first part
- * whose id or SKU matches, never below 0. `parts` must be the whole inventory (`getInventory()`),
- * the list `adjustPartStock` searches.
+ * it: `adjustPartStock(line.part_sku, line.quantity, po.shopId)` for each line in order, on the
+ * part whose id or SKU matches, never below 0. `parts` must be the order's shop's inventory
+ * (`getInventory(shopId)`): a SKU names a part inside one shop only.
  */
 export function receiptPreview(
   po: Pick<MockPurchaseOrder, 'items'>,

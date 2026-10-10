@@ -69,10 +69,11 @@ describe('platformStats (E-61)', () => {
 
   it('leaves completed bookings out of the open count and the phases', () => {
     const s = stats()
-    // Six seeded bookings, one of them completed (BF-2026-006).
-    expect(s.open).toBe(5)
+    // Thirteen seeded bookings: three completed (BF-2026-006, -009, -013) and one cancelled
+    // (BF-2026-007). Open: Lahore's five, plus the pending booking at each of four other shops.
+    expect(s.open).toBe(9)
     expect(s.openByPhase).toEqual([
-      { phase: 'INTAKE', count: 1 },
+      { phase: 'INTAKE', count: 5 },
       { phase: 'INSPECTION', count: 0 },
       { phase: 'ESTIMATE', count: 1 },
       { phase: 'PARTS', count: 0 },
@@ -127,7 +128,8 @@ describe('dailyActivity', () => {
   it('counts bookings by the day they were created, in Karachi time', () => {
     const days = dailyActivity(INITIAL_BOOKINGS, [], NOW)
     const byDay = Object.fromEntries(days.map((d) => [d.day, d.bookings]))
-    expect(byDay['2026-10-09']).toBe(3)
+    // BF-2026-001, -002 and -004, plus the four other shops' pending bookings made that evening.
+    expect(byDay['2026-10-09']).toBe(7)
     expect(byDay['2026-10-08']).toBe(2)
     expect(days.reduce((sum, d) => sum + d.bookings, 0)).toBe(
       INITIAL_BOOKINGS.filter((b) => b.createdAt >= '2026-09-26T19:00:00Z').length,
@@ -171,7 +173,7 @@ describe('overviewSummary', () => {
   it('says when nothing needs attention', () => {
     const accounts = getAdminUsers().length
     expect(overviewSummary({ ...stats(), failedSignIns: 0 })).toBe(
-      `6 shops and ${accounts} accounts on BayFlow, with 5 open bookings. No shop is suspended and no sign-in failed in the last 24 hours.`,
+      `6 shops and ${accounts} accounts on BayFlow, with 9 open bookings. No shop is suspended and no sign-in failed in the last 24 hours.`,
     )
   })
 

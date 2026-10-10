@@ -57,8 +57,8 @@ export default function PurchaseOrderDetailPage() {
 
   const ready = useMockStoreReady()
   const pos = useMockStore(() => getPurchaseOrders(shopId))
-  // The whole inventory: the part list `adjustPartStock` updates when an order is received.
-  const parts = useMockStore(() => getInventory())
+  // This shop's inventory: receiving adds each line to the shop's own part with that SKU (D20).
+  const parts = useMockStore(() => getInventory(shopId))
   const user = useMockStore(getCurrentUser)
   const shop = useMockStore(() => getShopById(shopId))
   const base = `/pos/shops/${encodeURIComponent(shopId)}`
@@ -152,7 +152,7 @@ function PurchaseOrderDetail({
     // RECEIVED. The updated parts feed the confirmation.
     const lines = po.items.map((line) => ({
       line,
-      part: adjustPartStock(line.part_sku, line.quantity),
+      part: adjustPartStock(line.part_sku, line.quantity, po.shopId),
     }))
     const updated: MockPurchaseOrder = {
       ...po,

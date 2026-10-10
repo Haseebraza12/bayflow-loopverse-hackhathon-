@@ -257,8 +257,9 @@ describe('O-07 all shops summary', () => {
         .map((cell) => cell.textContent)
     expect(rows.slice(1).map(cells)).toEqual([
       ['Lahore Auto CareLahore', '1', '2', '3', '1', '0'],
-      ['Raza Auto WorksLahore', '0', '0', '0', '0', '0'],
-      ['All shops', '1', '2', '3', '1', '0'],
+      // Spec 11: Raza Auto Works' own pending booking and its 4 LOW/OUT parts.
+      ['Raza Auto WorksLahore', '0', '1', '0', '0', '4'],
+      ['All shops', '1', '3', '3', '1', '4'],
     ])
 
     fireEvent.click(within(rows[2]!).getByRole('button', { name: 'Open Raza Auto Works' }))

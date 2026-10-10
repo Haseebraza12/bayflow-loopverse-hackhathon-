@@ -1,10 +1,18 @@
 import { isLowStock } from '@/lib/kpis'
-import type { MockPart, MockPurchaseOrder } from '@/lib/mock-data'
+import type { CurrentUserSession, MockPart, MockPurchaseOrder } from '@/lib/mock-data'
 
 /**
  * PP-03 Inventory (spec 10): the stock rules and the list's search and filters, kept apart from
  * the screen so they can be tested on their own.
  */
+
+/**
+ * D44: stock operations (opening stock, adjustments: `stock.manage`) belong to the Parts Person.
+ * The Owner edits the parts catalogue only (`parts.manage`); the API answers 403 otherwise.
+ */
+export function canManageStock(role: CurrentUserSession['role']): boolean {
+  return role === 'PARTS_PERSON'
+}
 
 /** D45 stock state, as the API's `stock_state`: `OUT` wins over `LOW`. */
 export type StockState = 'OK' | 'LOW' | 'OUT'
@@ -108,8 +116,9 @@ export function categoriesOf(parts: ReadonlyArray<MockPart>): string[] {
 }
 
 /**
- * Another part (any shop: the mock's `savePart` matches on SKU across the whole store) already
- * using `sku`; `exceptId` is the part being edited.
+ * Another part already using `sku`. Pass one shop's parts: a SKU is unique inside its shop
+ * (`uq_parts_shop_id_sku`, spec 02), and other shops' catalogues are none of this shop's
+ * business (D20). `exceptId` is the part being edited.
  */
 export function skuTakenBy(
   parts: ReadonlyArray<MockPart>,

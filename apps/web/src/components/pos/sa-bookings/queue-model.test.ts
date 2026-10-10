@@ -52,7 +52,8 @@ describe('presets (spec 10 SA-01, lib/kpis)', () => {
 
   it('counts each preset and status over all bookings', () => {
     const counts = countBookings(seed)
-    expect(counts.presets).toEqual({ needs_action: 2, in_progress: 3, all: 6 })
+    // Lahore Auto Care's 7 bookings: BF-2026-006 completed and BF-2026-007 cancelled are "All" only.
+    expect(counts.presets).toEqual({ needs_action: 2, in_progress: 3, all: 7 })
     expect(counts.statuses.READY_FOR_PICKUP).toBe(1)
     expect(counts.statuses.PENDING).toBe(0)
     expect(Object.keys(counts.statuses)).toHaveLength(17)
@@ -83,6 +84,7 @@ describe('selectBookings', () => {
       'BF-2026-003',
       'BF-2026-005',
       'BF-2026-006',
+      'BF-2026-007',
     ])
   })
 
@@ -92,7 +94,7 @@ describe('selectBookings', () => {
       'BF-2026-006',
     ])
     expect(refs(selectBookings(seed, { ...all, date: 'today' }, TODAY))).toEqual(['BF-2026-004'])
-    expect(refs(selectBookings(seed, { ...all, query: 'tariq' }, TODAY))).toEqual(['BF-2026-002'])
+    expect(refs(selectBookings(seed, { ...all, query: 'zainab' }, TODAY))).toEqual(['BF-2026-004'])
   })
 
   it('does not change the array it reads', () => {
