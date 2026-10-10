@@ -1,26 +1,43 @@
 'use client'
 
 import {
-  ArrowLeft,
-  Car,
-  CheckCircle2,
+  Ban,
+  CarFront,
   CircleAlert,
-  Clock,
-  Copy,
-  FileCheck,
-  FileX,
+  CircleCheck,
+  CircleCheckBig,
+  ClipboardList,
   Phone,
   ShieldCheck,
-  Sparkles,
 } from 'lucide-react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { useState } from 'react'
 
+import {
+  ActionNeededCallout,
+  StateBanner,
+} from '@/components/customer/booking-detail/booking-banners'
+import {
+  BookingDetailSkeleton,
+  BookingNotFound,
+} from '@/components/customer/booking-detail/booking-detail-states'
+import { ShopCard, VehicleCard } from '@/components/customer/booking-detail/booking-info-cards'
+import { BookingProgress } from '@/components/customer/booking-detail/booking-progress'
+import { CopyReferenceButton } from '@/components/customer/booking-detail/copy-reference-button'
+import {
+  EstimateCard,
+  type EstimateDecision,
+} from '@/components/customer/booking-detail/estimate-card'
+import { bookingSlot, telHref, todaysHours } from '@/components/customer/booking-detail/format'
+import { DetailLayout, StickyActionBar } from '@/components/layout/detail-layout'
+import { EmptyState } from '@/components/layout/empty-state'
+import { PageHeader } from '@/components/layout/page-header'
 import { StatusBadge } from '@/components/status-badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardAction, CardContent, CardDescription, CardHeader } from '@/components/ui/card'
 import {
   Dialog,
   DialogContent,
@@ -29,44 +46,91 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Label } from '@/components/ui/label'
+import { Field, FieldLabel } from '@/components/ui/field'
 import { Textarea } from '@/components/ui/textarea'
-import { useMockStore } from '@/hooks/use-mock-store'
-import { formatPKR } from '@/lib/format'
+import { useMockStore, useMockStoreReady } from '@/hooks/use-mock-store'
+import { useNowMinute } from '@/hooks/use-now'
+import { DEFAULT_SHOP_TZ, formatDateTime, formatPKR } from '@/lib/format'
 import { getShopSuspensions } from '@/lib/mock-admin'
-import { getBookingById, saveBooking, type MockBooking } from '@/lib/mock-data'
+import { bookingHistory } from '@/lib/mock-booking-history'
+import { getBookingById, getShops, saveBooking, type MockBooking } from '@/lib/mock-data'
+import { CANCELLABLE_STATUSES, type BookingStatus } from '@/lib/status'
+
+/** Statuses in which the customer has seen the estimate and it was not declined. */
+const ESTIMATE_APPROVED_OR_LATER: ReadonlySet<BookingStatus> = new Set([
+  'ESTIMATE_APPROVED',
+  'PARTS_PENDING',
+  'PARTS_ORDERED',
+  'PARTS_READY',
+  'IN_REPAIR',
+  'QC_PENDING',
+  'QC_IN_PROGRESS',
+  'READY_FOR_PICKUP',
+  'COMPLETED',
+])
+
+/**
+ * The estimate the customer may see (D39: only a version the shop has sent): awaiting their
+ * decision, declined, or approved. Null before the shop sends one.
+ */
+function estimateDecisionOf(booking: MockBooking): EstimateDecision | null {
+  if (booking.status === 'AWAITING_CUSTOMER') return 'pending'
+  if (booking.status === 'ESTIMATE_REJECTED') return 'declined'
+  if (booking.estimateItems.length === 0) return null
+  if (ESTIMATE_APPROVED_OR_LATER.has(booking.status)) return 'approved'
+  if (booking.status === 'CANCELLED' && booking.estimateApproved) return 'approved'
+  return null
+}
+
+/** What the estimate section says before there is an estimate to show. */
+function estimatePlaceholder(status: BookingStatus): { title: string; description: string } {
+  if (status === 'ESTIMATE_REVIEW') {
+    return {
+      title: 'Your estimate is being prepared',
+      description: "We'll notify you when it's ready to review.",
+    }
+  }
+  if (status === 'CANCELLED') {
+    return {
+      title: 'Nothing to approve',
+      description: 'This booking is cancelled, so there is no estimate to review.',
+    }
+  }
+  return {
+    title: 'Your estimate comes after the inspection',
+    description:
+      'A technician checks your car first. You will see the price here and approve it before any work starts.',
+  }
+}
+
+/**
+ * Moves focus to the confirmation when it appears (the button that was pressed is gone by then),
+ * so keyboard and screen reader users land on the outcome.
+ */
+function focusOnMount(node: HTMLDivElement | null) {
+  node?.focus()
+}
 
 export default function CustomerBookingDetailPage() {
   const params = useParams()
   const bookingId = typeof params?.bookingId === 'string' ? params.bookingId : ''
 
+  const ready = useMockStoreReady()
   const booking = useMockStore(() => getBookingById(bookingId))
+  const shops = useMockStore(getShops)
   const suspensions = useMockStore(getShopSuspensions)
+  const now = useNowMinute()
 
-  const [copied, setCopied] = useState(false)
   const [declineDialogOpen, setDeclineDialogOpen] = useState(false)
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false)
   const [declineReason, setDeclineReason] = useState('')
   const [cancelReason, setCancelReason] = useState('')
-  const [actionSuccess, setActionSuccess] = useState<string | null>(null)
+  const [actionSuccess, setActionSuccess] = useState<{ title: string; body: string } | null>(null)
 
-  if (!booking) {
-    return (
-      <div className="mx-auto max-w-4xl px-4 py-16 text-center">
-        <h1 className="text-2xl font-bold text-foreground">Booking Not Found</h1>
-        <p className="mt-2 text-muted-foreground">We could not locate this booking reference.</p>
-        <Button asChild className="mt-6 rounded-full bg-brand-blue text-white">
-          <Link href="/bookings">Go to My Bookings</Link>
-        </Button>
-      </div>
-    )
-  }
-
-  const handleCopyRef = () => {
-    navigator.clipboard.writeText(booking.reference)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
+  // Until this browser's stored bookings are read, the seed data could show a stale status or
+  // "not found" for a booking made in this browser.
+  if (!ready) return <BookingDetailSkeleton />
+  if (!booking) return <BookingNotFound />
 
   // Customer Actions: Approve Estimate
   const handleApproveEstimate = () => {
@@ -76,9 +140,10 @@ export default function CustomerBookingDetailPage() {
       estimateApproved: true,
     }
     saveBooking(updated)
-    setActionSuccess(
-      'Estimate approved! The workshop is now preparing parts and commencing repairs.',
-    )
+    setActionSuccess({
+      title: 'Estimate approved — thank you!',
+      body: 'The shop will now get the parts ready and start the repair.',
+    })
   }
 
   // Customer Actions: Decline Estimate
@@ -90,9 +155,10 @@ export default function CustomerBookingDetailPage() {
     }
     saveBooking(updated)
     setDeclineDialogOpen(false)
-    setActionSuccess(
-      'Estimate declined. The Service Advisor will review your notes and contact you with options.',
-    )
+    setActionSuccess({
+      title: 'Estimate declined',
+      body: 'The service advisor will review your note and contact you with options.',
+    })
   }
 
   // Customer Actions: Collected Vehicle
@@ -103,7 +169,10 @@ export default function CustomerBookingDetailPage() {
       paidAmount: booking.estimateTotal,
     }
     saveBooking(updated)
-    setActionSuccess('Vehicle collection confirmed! Thank you for choosing our workshop.')
+    setActionSuccess({
+      title: 'Collection confirmed',
+      body: `Thank you for choosing ${booking.shopName}. This booking is now complete.`,
+    })
   }
 
   // Customer Actions: Cancel Booking
@@ -114,470 +183,310 @@ export default function CustomerBookingDetailPage() {
     }
     saveBooking(updated)
     setCancelDialogOpen(false)
-    setActionSuccess('Your appointment has been cancelled.')
+    setActionSuccess({
+      title: 'Booking cancelled',
+      body: 'Your slot has been released.',
+    })
   }
 
-  const isAwaitingEstimate = booking.status === 'AWAITING_CUSTOMER'
+  const status = booking.status
+  const shop = shops.find((s) => s.id === booking.shopId || s.slug === booking.shopSlug)
+  const shopName = shop?.name ?? booking.shopName
+  const timeZone = shop?.timezone ?? DEFAULT_SHOP_TZ
   const shopSuspended = Boolean(suspensions[booking.shopId])
-  const isReadyForPickup = booking.status === 'READY_FOR_PICKUP'
-  const isCancellable =
-    booking.status === 'PENDING' ||
-    booking.status === 'CONFIRMED' ||
-    booking.status === 'ASSIGNED' ||
-    booking.status === 'AWAITING_CUSTOMER'
+  const isAwaitingEstimate = status === 'AWAITING_CUSTOMER'
+  const isReadyForPickup = status === 'READY_FOR_PICKUP'
+  // Glossary §3: a customer may cancel until the repair starts (D96: even at a suspended shop).
+  const isCancellable = (CANCELLABLE_STATUSES as ReadonlyArray<BookingStatus>).includes(status)
 
-  // Timeline stage active indicator
-  const getTimelineStage = (status: MockBooking['status']) => {
-    switch (status) {
-      case 'PENDING':
-      case 'CONFIRMED':
-        return 1
-      case 'ASSIGNED':
-      case 'INSPECTING':
-        return 2
-      case 'ESTIMATE_REVIEW':
-      case 'AWAITING_CUSTOMER':
-      case 'ESTIMATE_REJECTED':
-        return 3
-      case 'ESTIMATE_APPROVED':
-      case 'PARTS_PENDING':
-      case 'PARTS_ORDERED':
-      case 'PARTS_READY':
-      case 'IN_REPAIR':
-        return 4
-      case 'QC_PENDING':
-      case 'QC_IN_PROGRESS':
-        return 5
-      case 'READY_FOR_PICKUP':
-      case 'COMPLETED':
-        return 6
-      default:
-        return 1
-    }
-  }
+  const history = bookingHistory(booking)
+  const reachedAt = (s: BookingStatus) => history.find((step) => step.status === s)?.at
+  const decision = estimateDecisionOf(booking)
+  const decidedAt =
+    decision === 'approved'
+      ? reachedAt('ESTIMATE_APPROVED')
+      : decision === 'declined'
+        ? reachedAt('ESTIMATE_REJECTED')
+        : undefined
+  const completedAt = status === 'COMPLETED' ? reachedAt('COMPLETED') : undefined
+  const cancelledAt = status === 'CANCELLED' ? reachedAt('CANCELLED') : undefined
+  const slot = bookingSlot(booking.scheduledDate, booking.scheduledTime)
+  const vehicle = `${booking.vehicleYear} ${booking.vehicleMake} ${booking.vehicleModel}`
+  const hoursToday = shop && now ? todaysHours(shop, now) : null
+  const total = formatPKR(booking.estimateTotal)
 
-  const currentStage = getTimelineStage(booking.status)
+  const declineButton = (
+    <Button variant="outline" onClick={() => setDeclineDialogOpen(true)} disabled={shopSuspended}>
+      Decline
+    </Button>
+  )
+  const approveButton = (
+    <Button onClick={handleApproveEstimate} disabled={shopSuspended} className="max-md:flex-1">
+      <CircleCheck aria-hidden="true" />
+      Approve · {total}
+    </Button>
+  )
+  const bookAgain =
+    shopSuspended || !booking.shopSlug ? undefined : (
+      <Button asChild>
+        <Link href={`/book/${booking.shopSlug}`}>Book again</Link>
+      </Button>
+    )
+  const placeholder = estimatePlaceholder(status)
 
   return (
-    <div className="min-h-screen bg-muted/70 pb-20">
-      {/* Top Breadcrumb */}
-      <div className="border-b border-border bg-card">
-        <div className="mx-auto max-w-5xl px-4 py-4 sm:px-6 lg:px-8">
-          <Link
-            href="/bookings"
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:text-brand-blue-ink"
-          >
-            <ArrowLeft className="size-3.5" />
-            <span>Back to My Bookings</span>
-          </Link>
-        </div>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        back={{ href: '/bookings', label: 'My bookings' }}
+        eyebrow={`Your booking at ${shopName}`}
+        title={<span className="font-mono">{booking.reference}</span>}
+        badges={
+          <>
+            <CopyReferenceButton reference={booking.reference} />
+            <StatusBadge status={status} audience="customer" size="md" />
+          </>
+        }
+        description={
+          <>
+            <span className="font-medium text-foreground">{vehicle}</span>, booked for {slot.date}{' '}
+            at {slot.time}
+            <span className="mt-1 block text-sm text-helper">Times are shop local time.</span>
+          </>
+        }
+        actions={
+          shop?.phone ? (
+            <Button asChild variant="outline">
+              <a href={telHref(shop.phone)}>
+                <Phone aria-hidden="true" />
+                Call shop
+              </a>
+            </Button>
+          ) : null
+        }
+      />
 
-      <div className="mx-auto max-w-5xl space-y-6 px-4 pt-8 sm:px-6 lg:px-8">
-        {actionSuccess && (
-          <Alert className="border-emerald-200 bg-emerald-50 text-emerald-950 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-100">
-            <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400" />
-            <AlertDescription className="text-xs font-semibold">{actionSuccess}</AlertDescription>
-          </Alert>
-        )}
+      {actionSuccess ? (
+        <Alert
+          key={actionSuccess.title}
+          ref={focusOnMount}
+          tabIndex={-1}
+          variant="success"
+          className="outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring focus-visible:outline-solid"
+        >
+          <CircleCheck aria-hidden="true" />
+          <AlertTitle>{actionSuccess.title}</AlertTitle>
+          <AlertDescription>{actionSuccess.body}</AlertDescription>
+        </Alert>
+      ) : null}
 
-        {/* Booking Header Card */}
-        <div className="rounded-2xl border border-border bg-card p-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="space-y-1.5">
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-xl font-semibold text-brand-blue-ink sm:text-2xl">
-                  {booking.reference}
-                </span>
-                <button
-                  type="button"
-                  onClick={handleCopyRef}
-                  className="rounded-full border border-border p-1 text-subtle-foreground hover:text-muted-foreground"
-                  title="Copy Reference"
+      {/* D96: while the shop is suspended, only cancelling is possible. */}
+      {shopSuspended ? (
+        <Alert variant="warning">
+          <CircleAlert aria-hidden="true" />
+          <AlertTitle>{shopName} is temporarily unavailable on BayFlow</AlertTitle>
+          <AlertDescription>
+            For now you can&apos;t approve or decline an estimate or confirm a pick-up here.
+            {isCancellable ? ' You can still cancel this booking.' : null}
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
+      {isAwaitingEstimate && !shopSuspended ? (
+        <ActionNeededCallout
+          action={
+            <Button asChild variant="outline">
+              <a href="#estimate">Review estimate</a>
+            </Button>
+          }
+        >
+          Your estimate is ready. Approve{' '}
+          <span className="font-semibold whitespace-nowrap tabular-nums">{total}</span> to start the
+          repair.
+        </ActionNeededCallout>
+      ) : null}
+
+      {isReadyForPickup ? (
+        <StateBanner
+          tone="success"
+          icon={CarFront}
+          title="Your car is ready to collect"
+          action={
+            <Button size="lg" onClick={handleCollectVehicle} disabled={shopSuspended}>
+              I&apos;ve collected my vehicle
+            </Button>
+          }
+        >
+          <p>
+            It passed the quality check. Collect it from {shopName}
+            {shop ? `, ${shop.address}, ${shop.city}` : ''}.
+          </p>
+          {hoursToday || shop?.phone ? (
+            <p className="text-sm">
+              {hoursToday?.label}
+              {hoursToday && shop?.phone ? ' · ' : null}
+              {shop?.phone ? (
+                <a
+                  href={telHref(shop.phone)}
+                  className="-my-2.5 inline-flex min-h-10 items-center rounded-md font-semibold whitespace-nowrap text-foreground underline underline-offset-4 outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring focus-visible:outline-solid"
                 >
-                  <Copy className="size-3.5" />
-                </button>
-                {copied && (
-                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
-                    Copied!
-                  </span>
-                )}
-                <StatusBadge status={booking.status} audience="customer" size="md" />
-              </div>
-              <h1 className="text-xl font-bold text-foreground sm:text-2xl">{booking.shopName}</h1>
-              <p className="text-xs text-helper">
-                Scheduled for {booking.scheduledDate} at {booking.scheduledTime} (Workshop local
-                time)
+                  {shop.phone}
+                </a>
+              ) : null}
+            </p>
+          ) : null}
+        </StateBanner>
+      ) : null}
+
+      {status === 'COMPLETED' ? (
+        <StateBanner
+          tone="done"
+          icon={CircleCheckBig}
+          title="This booking is complete"
+          action={bookAgain}
+        >
+          <p>
+            {completedAt ? `Completed on ${formatDateTime(completedAt, timeZone)}. ` : null}
+            Thank you for choosing {shopName}.
+          </p>
+        </StateBanner>
+      ) : null}
+
+      {status === 'CANCELLED' ? (
+        <StateBanner icon={Ban} title="This booking was cancelled" action={bookAgain}>
+          <p>
+            {cancelledAt ? `Cancelled on ${formatDateTime(cancelledAt, timeZone)}. ` : null}
+            The slot was released.
+          </p>
+        </StateBanner>
+      ) : null}
+
+      <DetailLayout
+        asideFirstOnMobile={!isAwaitingEstimate}
+        aside={
+          <>
+            <BookingProgress booking={booking} timeZone={timeZone} />
+            {/* Side by side on tablets, where the aside spans the page; stacked from lg. */}
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-1">
+              <VehicleCard booking={booking} />
+              <ShopCard shop={shop} shopName={shopName} />
+            </div>
+          </>
+        }
+      >
+        {booking.qcNotes ? (
+          <Card>
+            <CardHeader>
+              <h2 className="text-lg leading-7 font-semibold text-foreground">Quality check</h2>
+              <CardDescription>Checked by the shop&apos;s quality inspector.</CardDescription>
+              {booking.qcPassed !== false ? (
+                <CardAction>
+                  <Badge variant="success">
+                    <ShieldCheck aria-hidden="true" />
+                    Passed
+                  </Badge>
+                </CardAction>
+              ) : null}
+            </CardHeader>
+            <CardContent>
+              <p className="rounded-xl bg-layer px-4 py-3.5 text-base text-muted-foreground">
+                {booking.qcNotes}
+              </p>
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {decision ? (
+          <EstimateCard
+            booking={booking}
+            decision={decision}
+            sentAt={reachedAt('AWAITING_CUSTOMER')}
+            decidedAt={decidedAt}
+            timeZone={timeZone}
+            actions={
+              isAwaitingEstimate ? (
+                <>
+                  {declineButton}
+                  {approveButton}
+                </>
+              ) : null
+            }
+          />
+        ) : (
+          <Card>
+            <CardHeader>
+              <h2 className="text-lg leading-7 font-semibold text-foreground">Your estimate</h2>
+            </CardHeader>
+            <CardContent>
+              <EmptyState
+                variant="inline"
+                tone="neutral"
+                icon={ClipboardList}
+                title={placeholder.title}
+                description={placeholder.description}
+                className="p-4 sm:p-6"
+              />
+            </CardContent>
+          </Card>
+        )}
+      </DetailLayout>
+
+      {isCancellable ? (
+        <Card>
+          <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-1">
+              <h2 className="text-base font-semibold text-foreground">Need to cancel?</h2>
+              <p className="text-sm text-muted-foreground">
+                You can cancel until the repair starts. Your slot will be released.
               </p>
             </div>
+            <Button
+              variant="outline"
+              onClick={() => setCancelDialogOpen(true)}
+              className="text-danger-ink hover:border-status-estimate-rejected-border hover:bg-danger-subtle hover:text-danger-ink max-sm:w-full"
+            >
+              <Ban aria-hidden="true" />
+              Cancel booking
+            </Button>
+          </CardContent>
+        </Card>
+      ) : null}
 
-            {/* Quick Actions (Call shop / Cancel) */}
-            <div className="flex items-center gap-2">
-              <Button
-                asChild
-                variant="outline"
-                size="sm"
-                className="rounded-full border-border-medium text-xs font-semibold"
-              >
-                <a href="tel:+924235789011">
-                  <Phone className="mr-1 size-3.5 text-brand-blue-ink" />
-                  Call Shop
-                </a>
-              </Button>
-
-              {isCancellable && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setCancelDialogOpen(true)}
-                  className="text-xs text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/40"
-                >
-                  Cancel Booking
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* D96: while the shop is suspended, only cancelling is possible. */}
-        {shopSuspended && (
-          <Alert variant="warning">
-            <CircleAlert aria-hidden="true" />
-            <AlertTitle>{booking.shopName} is temporarily unavailable on BayFlow</AlertTitle>
-            <AlertDescription>
-              Estimates can&apos;t be approved or declined right now. You can still cancel this
-              booking.
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {/* DECISION CALLOUT: Awaiting Customer Estimate Approval */}
-        {isAwaitingEstimate && (
-          <div className="space-y-4 rounded-2xl border-2 border-amber-400 bg-amber-50/70 p-6 dark:border-amber-600 dark:bg-amber-950/30">
-            <div className="flex items-start justify-between gap-3">
-              <div className="space-y-1">
-                <span className="flex items-center gap-1.5 text-xs font-bold tracking-[0.32px] text-amber-900 dark:text-amber-100">
-                  <FileCheck className="size-4 text-amber-600 dark:text-amber-400" />
-                  Action Required: Approve Estimate
-                </span>
-                <h2 className="text-lg font-bold text-foreground">
-                  Technician Inspection Complete — Total {formatPKR(booking.estimateTotal)}
-                </h2>
-                <p className="max-w-2xl text-xs leading-relaxed text-muted-foreground">
-                  The assigned technician has inspected your car and prepared an itemized estimate.
-                  Review the parts and labor below before approving.
-                </p>
-              </div>
-
-              <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
-                <Button
-                  onClick={handleApproveEstimate}
-                  disabled={shopSuspended}
-                  className="h-10 rounded-full bg-brand-green px-5 text-xs font-bold text-white hover:bg-emerald-600"
-                >
-                  <CheckCircle2 className="mr-1.5 size-4" />
-                  Approve Estimate ({formatPKR(booking.estimateTotal)})
-                </Button>
-
-                <Button
-                  variant="outline"
-                  onClick={() => setDeclineDialogOpen(true)}
-                  disabled={shopSuspended}
-                  className="h-10 border-border-medium bg-card text-xs font-semibold text-muted-foreground hover:text-red-600 dark:hover:text-red-400"
-                >
-                  <FileX className="mr-1.5 size-4 text-red-500 dark:text-red-400" />
-                  Decline Estimate
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* READY FOR PICKUP CALLOUT */}
-        {isReadyForPickup && (
-          <div className="space-y-4 rounded-2xl border-2 border-emerald-400 bg-emerald-50/70 p-6 dark:border-emerald-600 dark:bg-emerald-950/30">
-            <div className="flex items-start justify-between gap-3">
-              <div className="space-y-1">
-                <span className="flex items-center gap-1.5 text-xs font-bold tracking-[0.32px] text-emerald-900 dark:text-emerald-100">
-                  <Sparkles className="size-4 text-emerald-600 dark:text-emerald-400" />
-                  Ready for Collection
-                </span>
-                <h2 className="text-lg font-bold text-foreground">
-                  Repairs & 5-Point Quality Check Completed!
-                </h2>
-                <p className="max-w-2xl text-xs leading-relaxed text-muted-foreground">
-                  Your vehicle has passed quality inspection and is parked in the customer handover
-                  bay.
-                </p>
-              </div>
-
-              <Button
-                onClick={handleCollectVehicle}
-                className="h-10 shrink-0 rounded-full bg-emerald-600 px-6 text-xs font-bold text-white hover:bg-emerald-700"
-              >
-                I Have Collected My Vehicle
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Main Grid: Estimate & Timeline */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          {/* Left Column (2 spans): Itemized Estimate & Inspection Notes */}
-          <div className="space-y-6 lg:col-span-2">
-            {/* Estimate Table */}
-            <Card className="overflow-hidden border-border">
-              <CardHeader className="border-b border-border-faint bg-muted/80 pb-3.5">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2 text-sm font-bold text-foreground">
-                    <FileCheck className="size-4 text-brand-blue-ink" />
-                    Itemized Estimate & Work Order
-                  </CardTitle>
-                  {booking.estimateApproved ? (
-                    <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200">
-                      Approved by You
-                    </span>
-                  ) : booking.status === 'ESTIMATE_REJECTED' ? (
-                    <span className="rounded-full bg-red-100 px-2.5 py-0.5 text-[11px] font-bold text-red-800 dark:bg-red-900/40 dark:text-red-200">
-                      Declined by You
-                    </span>
-                  ) : (
-                    <span className="font-mono text-xs font-semibold text-helper">v1.0</span>
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent className="p-0">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead className="border-b border-border bg-muted text-[11px] font-bold text-subtle-foreground">
-                      <tr>
-                        <th className="px-5 py-2.5">Item / Description</th>
-                        <th className="px-4 py-2.5">Type</th>
-                        <th className="px-4 py-2.5 text-center">Qty</th>
-                        <th className="px-4 py-2.5 text-right">Unit Price</th>
-                        <th className="px-5 py-2.5 text-right">Total</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border-faint text-muted-foreground">
-                      {booking.estimateItems.map((item) => (
-                        <tr key={item.id} className="hover:bg-muted/60">
-                          <td className="px-5 py-3 font-medium text-foreground">
-                            {item.description}
-                          </td>
-                          <td className="px-4 py-3">
-                            <span
-                              className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${
-                                item.type === 'PART'
-                                  ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300'
-                                  : 'bg-secondary text-muted-foreground'
-                              }`}
-                            >
-                              {item.type}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-center">{item.quantity}</td>
-                          <td className="px-4 py-3 text-right">{formatPKR(item.unit_price)}</td>
-                          <td className="px-5 py-3 text-right font-bold text-foreground">
-                            {formatPKR(item.total)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                    <tfoot className="border-t border-border bg-muted/50">
-                      <tr>
-                        <td
-                          colSpan={4}
-                          className="px-5 py-3 text-right font-bold text-muted-foreground"
-                        >
-                          Total Estimate
-                        </td>
-                        <td className="px-5 py-3 text-right text-sm font-semibold text-brand-blue-ink">
-                          {formatPKR(booking.estimateTotal)}
-                        </td>
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
-
-                {booking.inspectionNotes && (
-                  <div className="border-t border-border-faint bg-blue-50/30 p-5 text-xs dark:bg-blue-950/30">
-                    <span className="font-bold text-foreground">Technician Inspection Notes:</span>
-                    <p className="mt-1 leading-relaxed text-muted-foreground italic">
-                      &quot;{booking.inspectionNotes}&quot;
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Quality Check Results if available */}
-            {booking.qcNotes && (
-              <Card className="border-border">
-                <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center gap-2 text-sm font-bold text-foreground">
-                    <ShieldCheck className="size-4 text-emerald-600 dark:text-emerald-400" />
-                    Quality Check Certification
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2 text-xs">
-                  <div className="flex items-center gap-2 font-semibold text-emerald-700 dark:text-emerald-300">
-                    <CheckCircle2 className="size-4" />
-                    <span>5-Point Safety & Road Test Passed by QC Inspector</span>
-                  </div>
-                  <p className="rounded-lg border border-border-faint bg-muted p-3 text-muted-foreground">
-                    {booking.qcNotes}
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-
-          {/* Right Column: Status Timeline & Vehicle Info */}
-          <div className="space-y-6">
-            {/* Live Status Timeline */}
-            <Card className="border-border">
-              <CardHeader className="border-b border-border-faint pb-3">
-                <CardTitle className="flex items-center gap-2 text-sm font-bold text-foreground">
-                  <Clock className="size-4 text-brand-blue-ink" />
-                  Repair Progress Timeline
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4 pt-4 text-xs">
-                {[
-                  { stage: 1, title: 'Booking Confirmed', desc: 'Shop received appointment' },
-                  {
-                    stage: 2,
-                    title: 'Inspection & Diagnosis',
-                    desc: 'OBD scan and mechanical check',
-                  },
-                  { stage: 3, title: 'Estimate Approval', desc: 'Review parts & labor estimate' },
-                  {
-                    stage: 4,
-                    title: 'Parts Allocation & Repair',
-                    desc: 'Technician bench work in progress',
-                  },
-                  {
-                    stage: 5,
-                    title: '5-Point QC Road Test',
-                    desc: 'Safety and clearance inspection',
-                  },
-                  { stage: 6, title: 'Ready for Collection', desc: 'Handover bay release' },
-                ].map((step, idx) => {
-                  const isDone = currentStage > step.stage || booking.status === 'COMPLETED'
-                  const isCurrent = currentStage === step.stage && booking.status !== 'COMPLETED'
-
-                  return (
-                    <div key={step.stage} className="relative flex items-start gap-3">
-                      <div className="flex flex-col items-center">
-                        <div
-                          className={`flex size-6 items-center justify-center rounded-full text-[10px] font-bold ${
-                            isDone
-                              ? 'bg-emerald-600 text-white'
-                              : isCurrent
-                                ? 'bg-brand-blue text-white ring-4 ring-blue-100 dark:ring-blue-800/60'
-                                : 'bg-secondary text-subtle-foreground'
-                          }`}
-                        >
-                          {isDone ? <CheckCircle2 className="size-3.5" /> : step.stage}
-                        </div>
-                        {idx < 5 && (
-                          <div
-                            className={`mt-1 h-7 w-0.5 ${
-                              isDone ? 'bg-emerald-500' : 'bg-layer-accent'
-                            }`}
-                          />
-                        )}
-                      </div>
-
-                      <div className="space-y-0.5 pt-0.5">
-                        <p
-                          className={`font-bold ${
-                            isCurrent
-                              ? 'text-brand-blue-ink'
-                              : isDone
-                                ? 'text-foreground'
-                                : 'text-subtle-foreground'
-                          }`}
-                        >
-                          {step.title}
-                        </p>
-                        <p className="text-[11px] text-helper">{step.desc}</p>
-                      </div>
-                    </div>
-                  )
-                })}
-              </CardContent>
-            </Card>
-
-            {/* Vehicle Details Card */}
-            <Card className="border-border">
-              <CardHeader className="border-b border-border-faint pb-3">
-                <CardTitle className="flex items-center gap-2 text-sm font-bold text-foreground">
-                  <Car className="size-4 text-brand-blue-ink" />
-                  Vehicle & Customer
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 pt-4 text-xs">
-                <div>
-                  <span className="text-[10px] font-bold text-subtle-foreground">
-                    License Plate
-                  </span>
-                  <p className="mt-0.5 font-mono text-sm font-bold text-foreground">
-                    {booking.licensePlate}
-                  </p>
-                  <p className="text-muted-foreground">
-                    {booking.vehicleYear} {booking.vehicleMake} {booking.vehicleModel}
-                  </p>
-                </div>
-
-                <div className="border-t border-border-faint pt-2">
-                  <span className="text-[10px] font-bold text-subtle-foreground">Customer</span>
-                  <p className="mt-0.5 font-medium text-foreground">{booking.customerName}</p>
-                  <p className="text-helper">{booking.customerPhone}</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </div>
+      {/* Phones: the decision stays at the bottom of the screen (spec 10 C-02 Mobile). */}
+      {isAwaitingEstimate ? (
+        <StickyActionBar className="md:hidden">
+          {declineButton}
+          {approveButton}
+        </StickyActionBar>
+      ) : null}
 
       {/* Decline Estimate Dialog */}
       <Dialog open={declineDialogOpen} onOpenChange={setDeclineDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-base font-bold text-foreground">
-              Decline Repair Estimate
+            <DialogTitle>
+              Decline the estimate for{' '}
+              <span className="whitespace-nowrap">{booking.reference}</span>?
             </DialogTitle>
-            <DialogDescription className="text-xs text-helper">
-              Tell the Service Advisor why you are declining so they can adjust the work scope or
-              parts selection.
+            <DialogDescription>
+              Tell the service advisor why you are declining so they can adjust the work or the
+              parts. The shop will contact you to revise it.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-2 py-2">
-            <Label htmlFor="decReason" className="text-xs font-semibold text-muted-foreground">
-              Reason / Comments
-            </Label>
+          <Field>
+            <FieldLabel htmlFor="decReason">Reason (optional)</FieldLabel>
             <Textarea
               id="decReason"
               value={declineReason}
               onChange={(e) => setDeclineReason(e.target.value)}
-              placeholder="e.g. Please skip the cabin filter for now, only replace the brake pads."
-              className="h-24 text-xs"
+              placeholder="For example: skip the cabin filter for now, only replace the brake pads."
             />
-          </div>
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button
-              variant="outline"
-              onClick={() => setDeclineDialogOpen(false)}
-              className="text-xs font-semibold"
-            >
-              Go Back
+          </Field>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeclineDialogOpen(false)}>
+              Go back
             </Button>
-            <Button
-              onClick={handleDeclineEstimate}
-              className="rounded-full bg-red-600 text-xs font-bold text-white hover:bg-red-700"
-            >
-              Confirm Decline
+            <Button variant="destructive" onClick={handleDeclineEstimate}>
+              Decline estimate
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -587,39 +496,28 @@ export default function CustomerBookingDetailPage() {
       <Dialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-base font-bold text-foreground">
-              Cancel Appointment
+            <DialogTitle>
+              Cancel booking <span className="whitespace-nowrap">{booking.reference}</span>?
             </DialogTitle>
-            <DialogDescription className="text-xs text-helper">
-              Are you sure you want to cancel this booking? Your allocated workshop slot will be
-              released.
+            <DialogDescription>
+              Your slot at {shopName} will be released. You can book again at any time.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-2 py-2">
-            <Label htmlFor="cncReason" className="text-xs font-semibold text-muted-foreground">
-              Reason (Optional)
-            </Label>
+          <Field>
+            <FieldLabel htmlFor="cncReason">Reason (optional)</FieldLabel>
             <Textarea
               id="cncReason"
               value={cancelReason}
               onChange={(e) => setCancelReason(e.target.value)}
-              placeholder="e.g. Rescheduling for next week"
-              className="h-20 text-xs"
+              placeholder="For example: rescheduling for next week"
             />
-          </div>
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button
-              variant="outline"
-              onClick={() => setCancelDialogOpen(false)}
-              className="text-xs font-semibold"
-            >
-              Keep Appointment
+          </Field>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCancelDialogOpen(false)}>
+              Keep booking
             </Button>
-            <Button
-              onClick={handleCancelBooking}
-              className="rounded-full bg-red-600 text-xs font-bold text-white hover:bg-red-700"
-            >
-              Cancel Appointment
+            <Button variant="destructive" onClick={handleCancelBooking}>
+              Cancel booking
             </Button>
           </DialogFooter>
         </DialogContent>
