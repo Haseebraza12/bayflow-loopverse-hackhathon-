@@ -4,7 +4,6 @@ import { useState } from 'react'
 
 import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card'
 import {
-  Table,
   TableBody,
   TableCaption,
   TableCell,
@@ -136,8 +135,11 @@ export function ActivityChartCard({
           </div>
         </div>
 
+        {/* The chart's numbers for screen readers. A bare `<table>` in the clipped `sr-only`
+            box: the `Table` primitive's horizontal scroll box would be a scroll region that no
+            keyboard can reach (axe `scrollable-region-focusable`), and nothing here is seen. */}
         <div className="sr-only">
-          <Table>
+          <table>
             <TableCaption>
               New bookings and audit events per day, last {days.length} days
             </TableCaption>
@@ -157,7 +159,7 @@ export function ActivityChartCard({
                 </TableRow>
               ))}
             </TableBody>
-          </Table>
+          </table>
         </div>
       </CardContent>
     </Card>

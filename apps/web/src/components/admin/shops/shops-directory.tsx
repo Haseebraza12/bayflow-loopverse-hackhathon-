@@ -142,8 +142,6 @@ export function ShopsDirectory() {
               }}
               label="Search shops"
               placeholder="Name, city or owner e-mail"
-              // The field has its own clear button; hide the browser's search "x" beside it.
-              className="[&_input::-webkit-search-cancel-button]:hidden"
             />
             <ToggleGroup
               type="single"
@@ -207,7 +205,7 @@ export function ShopsDirectory() {
               </Select>
             </div>
             {/* The count sits at the row's end; on phones it leads and the reset follows. */}
-            <div className="flex min-h-9 items-center justify-between gap-3 sm:ml-auto sm:flex-row-reverse sm:justify-start">
+            <div className="flex min-h-10 items-center justify-between gap-3 sm:ml-auto sm:flex-row-reverse sm:justify-start">
               <p className="text-sm whitespace-nowrap text-muted-foreground" aria-live="polite">
                 <span className="font-semibold text-foreground tabular-nums">
                   {filtered.length}

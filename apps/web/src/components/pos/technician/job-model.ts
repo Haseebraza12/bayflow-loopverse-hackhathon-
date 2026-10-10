@@ -18,8 +18,14 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 
+import type { SaActivity } from '@/components/pos/sa-booking/sa-records'
 import { formatDateKey } from '@/lib/booking-slots'
-import type { MockBooking, MockEstimateItem } from '@/lib/mock-data'
+import {
+  normaliseEmail,
+  type MockBooking,
+  type MockEstimateItem,
+  type MockTeamMember,
+} from '@/lib/mock-data'
 import type { BookingStatus } from '@/lib/status'
 
 /**
@@ -90,6 +96,43 @@ export const JOB_GROUP_META: Record<
     icon: CircleCheckBig,
     tone: 'success',
   },
+}
+
+/**
+ * D21: the signed-in technician's own active membership of the shop, found by e-mail in the
+ * shop's team (a booking's `assignedTechnicianId` is that member's id). Undefined for anyone else.
+ */
+export function ownTechnicianMember(
+  team: ReadonlyArray<MockTeamMember>,
+  email: string,
+): MockTeamMember | undefined {
+  const me = normaliseEmail(email)
+  if (me === '') return undefined
+  return team.find(
+    (member) =>
+      member.role === 'TECHNICIAN' && member.is_active && normaliseEmail(member.email) === me,
+  )
+}
+
+/** D21: a technician sees only the jobs assigned to them (`technician_user_id` = me). */
+export function isOwnJob(
+  booking: Pick<MockBooking, 'assignedTechnicianId'>,
+  member: MockTeamMember | undefined,
+): boolean {
+  return member !== undefined && booking.assignedTechnicianId === member.id
+}
+
+/**
+ * T11: the service advisor's latest return of a declined estimate to the technician, while the
+ * job is back in inspection because of it; undefined otherwise (the note is history once the
+ * technician submits again).
+ */
+export function currentReturn(
+  status: BookingStatus,
+  activity: ReadonlyArray<SaActivity>,
+): SaActivity | undefined {
+  if (status !== 'INSPECTING') return undefined
+  return activity.findLast((entry) => entry.kind === 'returned-to-technician')
 }
 
 /** QC failed the job and sent it back for rework (mock: `qcPassed === false` while in repair). */

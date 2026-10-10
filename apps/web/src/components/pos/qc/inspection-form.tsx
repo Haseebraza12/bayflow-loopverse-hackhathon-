@@ -3,7 +3,7 @@
 import { Check, ShieldCheck, ShieldX, X } from 'lucide-react'
 import { useEffect, useId, useState } from 'react'
 
-import { DetailLayout, StickyActionBar } from '@/components/layout/detail-layout'
+import { DetailLayout, StickyActionBar, detailLayoutOnly } from '@/components/layout/detail-layout'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card'
 import { Field, FieldDescription, FieldLabel } from '@/components/ui/field'
@@ -187,8 +187,8 @@ export function InspectionForm({ booking, onPass, onFail }: InspectionFormProps)
     </Button>
   )
   const failButton = (
-    <Button size="lg" variant="outline" onClick={openFail}>
-      <ShieldX className="text-danger-ink" aria-hidden="true" />
+    <Button size="lg" variant="destructive-outline" onClick={openFail}>
+      <ShieldX aria-hidden="true" />
       Fail QC
     </Button>
   )
@@ -198,7 +198,8 @@ export function InspectionForm({ booking, onPass, onFail }: InspectionFormProps)
       <DetailLayout
         aside={
           <>
-            <Card className="hidden lg:flex">
+            {/* Two columns: the decision beside the checklist. One column: the pinned bar below. */}
+            <Card className={detailLayoutOnly.twoColumns}>
               <CardHeader>
                 <CardHeading>Your decision</CardHeading>
                 <CardDescription>Every check must pass before you can pass QC.</CardDescription>
@@ -329,7 +330,17 @@ export function InspectionForm({ booking, onPass, onFail }: InspectionFormProps)
           </CardContent>
         </Card>
 
-        <StickyActionBar className="flex-col items-stretch gap-3 md:flex-row md:items-center md:justify-between lg:hidden">
+        {/* Pinned on phones and tablets too (the checklist is long), until the decision card
+            shows beside it. */}
+        <StickyActionBar
+          role="region"
+          aria-label="QC decision"
+          pinnedUntil="xl"
+          className={cn(
+            'flex-col items-stretch gap-3 md:flex-row md:items-center md:justify-between',
+            detailLayoutOnly.oneColumn,
+          )}
+        >
           <div className="min-w-0 space-y-1">
             <p className="text-sm font-semibold text-foreground tabular-nums">
               {progress.answered} of {progress.total} checks done

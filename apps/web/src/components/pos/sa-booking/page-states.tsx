@@ -1,12 +1,16 @@
 import { SearchX } from 'lucide-react'
 import Link from 'next/link'
 
+import { DetailLayout } from '@/components/layout/detail-layout'
 import { EmptyState } from '@/components/layout/empty-state'
 import { PageHeader } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 
-/** DESIGN.md §6.9: a skeleton shaped like SA-02 while this browser's data loads. */
+/**
+ * DESIGN.md §6.9: a skeleton shaped like SA-02 while this browser's data loads, in the page's own
+ * `DetailLayout` (next step first, two columns at the same width as the loaded page).
+ */
 export function BookingDetailSkeleton() {
   return (
     <div className="space-y-6" aria-busy="true">
@@ -15,16 +19,17 @@ export function BookingDetailSkeleton() {
         <Skeleton className="h-10 w-72 max-w-full" />
         <Skeleton className="h-5 w-96 max-w-full" />
       </div>
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22.5rem] xl:gap-8">
-        <div className="order-2 space-y-6 lg:order-1">
-          <Skeleton className="h-44 rounded-2xl" />
-          <Skeleton className="h-96 rounded-2xl" />
-        </div>
-        <div className="order-1 space-y-6 lg:order-2">
-          <Skeleton className="h-64 rounded-2xl" />
-          <Skeleton className="h-56 rounded-2xl" />
-        </div>
-      </div>
+      <DetailLayout
+        aside={
+          <>
+            <Skeleton className="h-64 rounded-2xl" />
+            <Skeleton className="h-56 rounded-2xl" />
+          </>
+        }
+      >
+        <Skeleton className="h-44 rounded-2xl" />
+        <Skeleton className="h-96 rounded-2xl" />
+      </DetailLayout>
       <span className="sr-only">Loading the booking…</span>
     </div>
   )

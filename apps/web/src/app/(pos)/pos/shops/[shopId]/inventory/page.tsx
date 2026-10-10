@@ -255,8 +255,6 @@ export default function InventoryManagementPage() {
                   onValueChange={(value) => setQuery(value.slice(0, SEARCH_MAX_LENGTH))}
                   label="Search parts"
                   placeholder="SKU, name or category"
-                  // TableSearch has its own clear button; hide the browser's second one.
-                  className="[&_input::-webkit-search-cancel-button]:appearance-none"
                 />
                 <ToggleGroup
                   type="single"

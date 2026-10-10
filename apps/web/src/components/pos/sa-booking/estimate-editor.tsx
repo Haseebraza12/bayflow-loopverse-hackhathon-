@@ -87,7 +87,8 @@ export function EstimateEditorSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
-        className="gap-0 data-[side=right]:w-full data-[side=right]:sm:max-w-xl"
+        // A wider form than the 448px default (DESIGN.md §6.10): the lines need the room.
+        className="gap-0 data-[side=right]:sm:max-w-xl"
         // A long form: start at its title (WAI-ARIA dialog pattern), not on a line's Remove button.
         onOpenAutoFocus={(event) => {
           event.preventDefault()

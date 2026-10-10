@@ -12,7 +12,6 @@ import {
   AccessItem,
   AuditTrailCard,
   CustomerBookingsCard,
-  DANGER_OUTLINE,
   MembershipsCard,
   ProfileCard,
 } from '@/components/admin/users/user-cards'
@@ -32,7 +31,6 @@ import {
   setUserActive,
 } from '@/lib/mock-admin'
 import { getBookings } from '@/lib/mock-data'
-import { cn } from '@/lib/utils'
 
 /** Why "Make platform admin" is unavailable for a deactivated account (E-70: 422). */
 const GRANT_NEEDS_ACTIVE = 'Reactivate the account before granting admin access.'
@@ -92,10 +90,10 @@ export function UserDetail({ userId }: { userId: string }) {
     <ConfirmDialog
       trigger={
         <Button
-          variant="outline"
+          variant="destructive-outline"
           disabled={Boolean(revokeBlock)}
           aria-describedby={revokeBlock ? adminReasonId : undefined}
-          className={cn('w-full', DANGER_OUTLINE)}
+          className="w-full"
         >
           <ShieldOff data-icon="inline-start" aria-hidden="true" />
           Remove admin access
@@ -133,10 +131,10 @@ export function UserDetail({ userId }: { userId: string }) {
     <ReasonDialog
       trigger={
         <Button
-          variant="outline"
+          variant="destructive-outline"
           disabled={Boolean(deactivateBlock)}
           aria-describedby={deactivateBlock ? accountReasonId : undefined}
-          className={cn('w-full', DANGER_OUTLINE)}
+          className="w-full"
         >
           <UserX data-icon="inline-start" aria-hidden="true" />
           Deactivate account

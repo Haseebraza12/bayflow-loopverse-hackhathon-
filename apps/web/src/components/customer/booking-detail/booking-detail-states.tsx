@@ -1,10 +1,14 @@
 import { SearchX } from 'lucide-react'
 import Link from 'next/link'
 
+import { DetailLayout } from '@/components/layout/detail-layout'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 
-/** Loading (DESIGN.md §6.9): shaped like the page — header, banner, estimate, side cards. */
+/**
+ * Loading (DESIGN.md §6.9): shaped like the page — header, banner, then the page's
+ * `DetailLayout` (progress and side cards first, the estimate beside them in two columns).
+ */
 export function BookingDetailSkeleton() {
   return (
     <div className="space-y-6" aria-busy="true">
@@ -15,13 +19,16 @@ export function BookingDetailSkeleton() {
         <Skeleton className="h-5 w-96 max-w-full" />
       </div>
       <Skeleton className="h-16 rounded-xl" />
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22.5rem] xl:gap-8">
+      <DetailLayout
+        aside={
+          <>
+            <Skeleton className="h-96 rounded-2xl" />
+            <Skeleton className="h-56 rounded-2xl" />
+          </>
+        }
+      >
         <Skeleton className="h-[32rem] rounded-2xl" />
-        <div className="space-y-6">
-          <Skeleton className="h-96 rounded-2xl" />
-          <Skeleton className="h-56 rounded-2xl" />
-        </div>
-      </div>
+      </DetailLayout>
       <span className="sr-only">Loading your booking…</span>
     </div>
   )

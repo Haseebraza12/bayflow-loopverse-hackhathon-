@@ -1,15 +1,19 @@
 import { describe, expect, it } from 'vitest'
 
-import { INITIAL_BOOKINGS, type MockBooking } from '@/lib/mock-data'
+import type { SaActivity } from '@/components/pos/sa-booking/sa-records'
+import { INITIAL_BOOKINGS, INITIAL_TEAM, type MockBooking } from '@/lib/mock-data'
 import { BOOKING_STATUSES } from '@/lib/status'
 
 import {
   cardNextStep,
+  currentReturn,
   estimateNote,
   estimateTotals,
   groupJobs,
+  isOwnJob,
   jobGroup,
   nextStep,
+  ownTechnicianMember,
   parseQcIssue,
   slotLabel,
   technicianAction,
@@ -103,6 +107,63 @@ describe('groupJobs', () => {
     expect(groups.repair.map((b) => b.id)).toEqual(['bk-001'])
     expect(groups.waiting.map((b) => b.id).sort()).toEqual(['bk-002', 'bk-003'])
     expect(groups.done.map((b) => b.id)).toEqual(['bk-005', 'bk-006'])
+  })
+})
+
+describe('own jobs (D21)', () => {
+  const lahore = INITIAL_TEAM.filter((m) => m.shopId === 'shop-lahore-auto-care')
+
+  it('finds the signed-in technician by e-mail, whatever its case', () => {
+    expect(ownTechnicianMember(lahore, ' Imran.Tech@BayFlow.test ')?.id).toBe('usr-imran')
+    expect(ownTechnicianMember(lahore, 'hamza.tech@bayflow.test')?.id).toBe('usr-hamza')
+  })
+
+  it('finds no technician for other roles, an empty e-mail or an inactive membership', () => {
+    expect(ownTechnicianMember(lahore, 'bilal.sa@bayflow.test')).toBeUndefined()
+    expect(ownTechnicianMember(lahore, '')).toBeUndefined()
+    const inactive = lahore.map((m) => (m.id === 'usr-imran' ? { ...m, is_active: false } : m))
+    expect(ownTechnicianMember(inactive, 'imran.tech@bayflow.test')).toBeUndefined()
+  })
+
+  it('keeps a technician to the jobs assigned to them', () => {
+    const imran = ownTechnicianMember(lahore, 'imran.tech@bayflow.test')
+    const own = INITIAL_BOOKINGS.filter((b) => isOwnJob(b, imran)).map((b) => b.id)
+    expect(own).toEqual(['bk-001', 'bk-003', 'bk-006'])
+    expect(isOwnJob(booking({ assignedTechnicianId: undefined }), imran)).toBe(false)
+    expect(isOwnJob(booking({}), undefined)).toBe(false)
+  })
+})
+
+describe('currentReturn (T11)', () => {
+  const returned = (at: string, note?: string): SaActivity => ({
+    id: `returned-${at}`,
+    kind: 'returned-to-technician',
+    at,
+    by: 'Bilal',
+    role: 'SERVICE_ADVISOR',
+    version: 2,
+    ...(note ? { note } : {}),
+  })
+  const edited: SaActivity = {
+    id: 'edited',
+    kind: 'estimate-edited',
+    at: '2026-10-09T11:00:00.000Z',
+    by: 'Bilal',
+    role: 'SERVICE_ADVISOR',
+    version: 3,
+  }
+
+  it('is the latest return while the job is back in inspection', () => {
+    const activity = [returned('2026-10-08T09:00:00.000Z', 'first'), edited]
+    activity.push(returned('2026-10-09T12:00:00.000Z', 'second'))
+    expect(currentReturn('INSPECTING', activity)?.note).toBe('second')
+  })
+
+  it('is nothing once the job has moved on, or without a return', () => {
+    const activity = [returned('2026-10-08T09:00:00.000Z', 'first')]
+    expect(currentReturn('ESTIMATE_REVIEW', activity)).toBeUndefined()
+    expect(currentReturn('IN_REPAIR', activity)).toBeUndefined()
+    expect(currentReturn('INSPECTING', [edited])).toBeUndefined()
   })
 })
 

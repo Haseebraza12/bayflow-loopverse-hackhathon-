@@ -71,11 +71,7 @@ function FilterPill({
             variant="outline"
             size="sm"
             data-active={active}
-            className={cn(
-              'min-w-0 flex-1 max-sm:h-10',
-              ACTIVE_PILL,
-              active && 'rounded-r-none pr-3',
-            )}
+            className={cn('min-w-0 flex-1', ACTIVE_PILL, active && 'rounded-r-none pr-3')}
           >
             <Icon aria-hidden="true" />
             <span className="truncate">{label}</span>
@@ -90,7 +86,7 @@ function FilterPill({
           data-active
           aria-label={removeLabel}
           onClick={onRemove}
-          className={cn('rounded-l-none border-l-0 px-2.5 max-sm:h-10', ACTIVE_PILL)}
+          className={cn('rounded-l-none border-l-0 px-2.5', ACTIVE_PILL)}
         >
           <X aria-hidden="true" />
         </Button>
@@ -141,11 +137,7 @@ export function QueueToolbar({
         className="flex-wrap"
       >
         {QUEUE_PRESETS.map((preset) => (
-          <ToggleGroupItem
-            key={preset}
-            value={preset}
-            className="max-sm:h-10 max-sm:gap-1 max-sm:px-2.5"
-          >
+          <ToggleGroupItem key={preset} value={preset} className="max-sm:gap-1 max-sm:px-2.5">
             {/* The space keeps the name "Needs action 2" for screen readers; flex hides it. */}
             {PRESET_LABELS[preset]}{' '}
             <span
@@ -167,8 +159,7 @@ export function QueueToolbar({
         onValueChange={onQuery}
         label="Search bookings by reference, plate or customer"
         placeholder="Reference, plate or customer"
-        // TableSearch draws its own clear button; hide Chrome's second one on type="search".
-        className="max-sm:h-10 sm:w-60 [&_input::-webkit-search-cancel-button]:hidden"
+        className="sm:w-60"
       />
 
       <div className="flex flex-wrap gap-2">

@@ -173,13 +173,13 @@ export function ServicesCatalogue({ shopId }: { shopId: string }) {
                 onValueChange={(value) => setFilter((value as ServiceFilter) || 'all')}
                 aria-label="Show services"
               >
-                <ToggleGroupItem value="all" className={TALL_TARGET}>
+                <ToggleGroupItem value="all">
                   All <span className="tabular-nums">{services.length}</span>
                 </ToggleGroupItem>
-                <ToggleGroupItem value="active" className={TALL_TARGET}>
+                <ToggleGroupItem value="active">
                   Active <span className="tabular-nums">{activeCount}</span>
                 </ToggleGroupItem>
-                <ToggleGroupItem value="inactive" className={TALL_TARGET}>
+                <ToggleGroupItem value="inactive">
                   Inactive <span className="tabular-nums">{services.length - activeCount}</span>
                 </ToggleGroupItem>
               </ToggleGroup>
@@ -497,8 +497,8 @@ function CatalogueSkeleton() {
       </div>
       <div className="overflow-clip rounded-2xl border border-border bg-card shadow-xs">
         <div className="flex flex-wrap items-center gap-3 border-b border-border-faint px-5 py-3">
-          <Skeleton className="h-9 w-full rounded-full sm:w-72" />
-          <Skeleton className="h-8 w-56 rounded-full" />
+          <Skeleton className="h-10 w-full rounded-full sm:w-72" />
+          <Skeleton className="h-10 w-56 rounded-full" />
         </div>
         <div className="divide-y divide-border-faint">
           {[0, 1, 2, 3, 4].map((row) => (

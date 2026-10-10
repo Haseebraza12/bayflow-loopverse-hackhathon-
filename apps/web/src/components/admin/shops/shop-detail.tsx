@@ -65,9 +65,6 @@ export function ShopDetail({ shopId }: { shopId: string }) {
   return (
     <div className="space-y-6">
       <PageHeader
-        // With the sidebar open on a tablet the content is narrow: let the actions wrap below
-        // the title instead of squeezing it to a word per line.
-        className="[&>div:last-child]:flex-wrap"
         back={{ href: '/admin/shops', label: 'All shops' }}
         title={shop.name}
         badges={<ShopStatusBadges tenant={tenant} />}
@@ -103,7 +100,7 @@ export function ShopDetail({ shopId }: { shopId: string }) {
             ) : (
               <ReasonDialog
                 trigger={
-                  <Button variant="outline">
+                  <Button variant="destructive-outline">
                     <Ban data-icon="inline-start" aria-hidden="true" />
                     Suspend shop
                   </Button>
@@ -143,10 +140,7 @@ export function ShopDetail({ shopId }: { shopId: string }) {
         </Alert>
       ) : null}
 
-      <DetailLayout
-        className="lg:grid-cols-1 xl:grid-cols-[minmax(0,1fr)_22.5rem]"
-        aside={<ShopProfileCard tenant={tenant} />}
-      >
+      <DetailLayout aside={<ShopProfileCard tenant={tenant} />}>
         <ShopTeamCard team={team} activeMembers={tenant.activeMembers} />
         <ShopBookingsCard bookings={shopBookings} />
         <Card className="gap-0 py-0">

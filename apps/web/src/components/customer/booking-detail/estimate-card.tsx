@@ -12,14 +12,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import type { EstimateDecision } from '@/components/customer/estimate-decision'
 import { formatDateTime, formatPKR } from '@/lib/format'
 import type { MockBooking, MockEstimateItem } from '@/lib/mock-data'
 import { cn } from '@/lib/utils'
 
 import { formatShortDateTime } from './format'
-
-/** Where the customer's decision on the estimate stands. */
-export type EstimateDecision = 'pending' | 'approved' | 'declined'
 
 const DECISION_BADGE = {
   pending: { variant: 'warning', label: 'Awaiting approval' },

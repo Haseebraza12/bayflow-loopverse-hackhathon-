@@ -69,7 +69,7 @@ export function AdjustStockSheet({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
-        className="gap-0 data-[side=right]:w-full"
+        className="gap-0"
         onOpenAutoFocus={(event) => {
           // Start in the quantity field: the change already defaults to "Add stock".
           event.preventDefault()

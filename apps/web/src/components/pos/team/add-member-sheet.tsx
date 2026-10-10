@@ -136,8 +136,7 @@ export function AddMemberSheet({
         if (!next) setErrors({})
       }}
     >
-      {/* Full width on phones (a 3/4 panel squeezes the form); 448px from `sm` (the primitive). */}
-      <SheetContent className="gap-0 data-[side=right]:w-full" onCloseAutoFocus={onCloseAutoFocus}>
+      <SheetContent className="gap-0" onCloseAutoFocus={onCloseAutoFocus}>
         {/* POST: a submit that beats hydration must not put the password in the URL */}
         <form method="post" noValidate onSubmit={submit} className="flex min-h-0 flex-1 flex-col">
           <SheetHeader>

@@ -13,10 +13,6 @@ import { formatDate, formatDateTime } from '@/lib/format'
 import type { AdminMembership, AdminShop, AdminUser, AuditEvent } from '@/lib/mock-admin'
 import type { MockBooking } from '@/lib/mock-data'
 
-/** Outline button in the danger ink, for levers that restrict someone (the dialog confirms). */
-export const DANGER_OUTLINE =
-  'text-danger-ink hover:border-status-estimate-rejected-border hover:bg-danger-subtle hover:text-danger-ink'
-
 const ROW_LINK =
   'group flex items-center gap-3 px-(--card-spacing) py-3.5 transition-colors duration-150 outline-none hover:bg-brand-blue-subtle/40 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring focus-visible:outline-solid'
 

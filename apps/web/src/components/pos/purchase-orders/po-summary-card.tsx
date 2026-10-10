@@ -1,4 +1,5 @@
 import { PackageCheck, PackageOpen, Truck, type LucideIcon } from 'lucide-react'
+import Link from 'next/link'
 import type { ReactNode } from 'react'
 
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
@@ -6,7 +7,7 @@ import { formatDateTime, formatPKR } from '@/lib/format'
 import type { MockPurchaseOrder } from '@/lib/mock-data'
 import { cn } from '@/lib/utils'
 
-import { contentsLabel, type PoStatus } from './po-model'
+import { contentsLabel, type PoJob, type PoStatus } from './po-model'
 
 type Tone = 'brand' | 'warning' | 'success'
 
@@ -65,16 +66,19 @@ function DetailRow({ label, children }: { label: string; children: ReactNode }) 
 
 /**
  * The PO's side card (spec 10 PP-05, DESIGN.md §6.5): where the order stands (or the next step),
- * supplier, order date, contents, the order total, and `action` — the "Receive into stock" button
- * for Parts staff while the order is open.
+ * supplier, order date, contents, the job it was raised for (D43) or a general restock, the order
+ * total, and `action` — the "Receive into stock" button for Parts staff while the order is open.
  */
 export function PoSummaryCard({
   po,
+  job,
   timeZone,
   canReceive,
   action,
 }: {
   po: MockPurchaseOrder
+  /** The job behind `po.bookingId` (`poJob`), when this shop has it. */
+  job: PoJob | undefined
   timeZone: string
   canReceive: boolean
   action?: ReactNode
@@ -108,6 +112,25 @@ export function PoSummaryCard({
             <time dateTime={po.created_at}>{formatDateTime(po.created_at, timeZone)}</time>
           </DetailRow>
           <DetailRow label="Items">{contentsLabel(po)}</DetailRow>
+          <DetailRow label="Ordered for">
+            {job ? (
+              <>
+                <Link
+                  href={job.href}
+                  className="rounded-sm font-mono font-semibold text-brand-blue-ink underline-offset-4 outline-none hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring focus-visible:outline-solid"
+                >
+                  {job.reference}
+                </Link>
+                <span className="block text-sm font-normal text-muted-foreground">
+                  {job.vehicle}
+                </span>
+              </>
+            ) : po.bookingId ? (
+              'Unknown job'
+            ) : (
+              'General restock'
+            )}
+          </DetailRow>
         </dl>
         <div className="flex items-baseline justify-between gap-4 rounded-xl bg-layer p-4">
           <span className="text-base font-semibold text-foreground">Order total</span>

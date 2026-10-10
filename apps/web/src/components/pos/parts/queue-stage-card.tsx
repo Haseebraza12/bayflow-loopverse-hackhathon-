@@ -5,7 +5,7 @@ import { StatusBadge } from '@/components/status-badge'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardAction, CardDescription, CardHeader } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
-import type { MockBooking } from '@/lib/mock-data'
+import type { MockBooking, MockPurchaseOrder } from '@/lib/mock-data'
 
 import {
   availabilityLabel,
@@ -55,14 +55,17 @@ export interface QueueStageCardProps {
   now: Date
   timeZone: string | undefined
   base: string
+  /** "On order": the purchase order a job waits on (`orderForJob`), named in its row. */
+  orderOf?: (bookingId: string) => Pick<MockPurchaseOrder, 'po_number' | 'status'> | undefined
 }
 
 /**
  * One stage of the parts queue (spec 10 PP-01): its jobs with the vehicle, technician, how many
- * parts stock covers and how long the job has waited. Each row opens the job (PP-02). Rows stack
- * in a narrow card and spread into columns in a wide one (container query).
+ * parts stock covers and how long the job has waited, and on order the purchase order it waits
+ * on. Each row opens the job (PP-02). Rows stack in a narrow card and spread into columns in a
+ * wide one (container query).
  */
-export function QueueStageCard({ stage, jobs, now, timeZone, base }: QueueStageCardProps) {
+export function QueueStageCard({ stage, jobs, now, timeZone, base, orderOf }: QueueStageCardProps) {
   const copy = STAGE_COPY[stage]
   const headingId = `stage-${stage.toLowerCase()}`
 
@@ -90,6 +93,7 @@ export function QueueStageCard({ stage, jobs, now, timeZone, base }: QueueStageC
           {jobs.map(({ booking, summary }) => {
             const waiting = waitingFor(booking.updatedAt, now)
             const since = shopDateTime(booking.updatedAt, timeZone)
+            const order = orderOf?.(booking.id)
             return (
               <li key={booking.id}>
                 <Link href={`${base}/parts/${encodeURIComponent(booking.id)}`} className={ROW_LINK}>
@@ -108,6 +112,19 @@ export function QueueStageCard({ stage, jobs, now, timeZone, base }: QueueStageC
                           ? `Technician ${booking.assignedTechnicianName}`
                           : 'No technician yet'}
                       </p>
+                      {order ? (
+                        <p className="truncate text-sm text-muted-foreground">
+                          On{' '}
+                          <span className="font-mono font-medium text-foreground">
+                            {order.po_number}
+                          </span>
+                          {order.status === 'RECEIVED'
+                            ? ' · delivered'
+                            : order.status === 'PARTIALLY_RECEIVED'
+                              ? ' · partly delivered'
+                              : null}
+                        </p>
+                      ) : null}
                     </div>
 
                     <div className="order-3 space-y-1.5 @2xl/stage:order-2">

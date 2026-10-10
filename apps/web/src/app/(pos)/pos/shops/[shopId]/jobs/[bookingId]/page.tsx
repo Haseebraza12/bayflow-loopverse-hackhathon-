@@ -17,7 +17,9 @@ import { useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import { toast } from 'sonner'
 
+import { DetailLayout } from '@/components/layout/detail-layout'
 import { PageHeader } from '@/components/layout/page-header'
+import { getSaRecord, type SaActivity } from '@/components/pos/sa-booking/sa-records'
 import {
   AddLineForm,
   EstimateLines,
@@ -28,10 +30,13 @@ import { JobActivity } from '@/components/pos/technician/job-activity'
 import {
   attributeSelector,
   countLabel,
+  currentReturn,
   estimateNote,
   estimateTotals,
+  isOwnJob,
   isQcReturned,
   nextStep,
+  ownTechnicianMember,
   parseQcIssue,
   slotSentence,
   technicianAction,
@@ -45,6 +50,7 @@ import {
   JobActionBar,
   PlateTag,
   ReadOnlyBanner,
+  ReturnedNotice,
   ToneTile,
 } from '@/components/pos/technician/job-ui'
 import { StatusBadge } from '@/components/status-badge'
@@ -75,6 +81,7 @@ import {
   getBookingById,
   getCurrentUser,
   getShopById,
+  getTeamMembers,
   saveBooking,
   type MockBooking,
   type MockEstimateItem,
@@ -102,8 +109,10 @@ const KILOMETRES = new Intl.NumberFormat('en-PK')
 
 /**
  * T-02 Job detail (spec 10): the vehicle and the customer's concern, the next step, inspection
- * notes, the estimate editor (part and labour lines) and the QC issue sent back. Tablet-first:
- * one column with the action pinned to the bottom until `xl`, then a sticky side column.
+ * notes, the estimate editor (part and labour lines), the QC issue or the declined estimate sent
+ * back. Tablet-first: `DetailLayout` keeps one column (next step first) until the page is wide
+ * enough for its side column, and the action stays pinned to the bottom until `xl`. A technician
+ * opens only their own jobs (D21).
  */
 export default function TechnicianJobDetailPage() {
   const params = useParams()
@@ -112,11 +121,10 @@ export default function TechnicianJobDetailPage() {
 
   const ready = useMockStoreReady()
   const stored = useMockStore(() => getBookingById(bookingId))
-  // D20: another shop's booking reads as not found, never as someone else's job.
-  const booking =
-    stored && (stored.shopId === shopId || stored.shopSlug === shopId) ? stored : undefined
   const user = useMockStore(getCurrentUser)
   const shop = useMockStore(() => getShopById(shopId))
+  const team = useMockStore(() => getTeamMembers(shopId))
+  const saRecord = useMockStore(() => getSaRecord(bookingId))
 
   const base = `/pos/shops/${encodeURIComponent(shopId)}`
 
@@ -126,6 +134,14 @@ export default function TechnicianJobDetailPage() {
 
   // D16: the Owner's view of a technician's job is read-only (lib/pos-access).
   const readOnly = sectionAccess(user.role, 'jobs') === 'read'
+  // D20: another shop's booking reads as not found, never as someone else's job. D21: so does
+  // another technician's job, for a technician (the Owner's view reads every technician's).
+  const booking =
+    stored &&
+    (stored.shopId === shopId || stored.shopSlug === shopId) &&
+    (readOnly || isOwnJob(stored, ownTechnicianMember(team, user.email)))
+      ? stored
+      : undefined
 
   if (!booking) {
     return (
@@ -159,6 +175,7 @@ export default function TechnicianJobDetailPage() {
       base={base}
       readOnly={readOnly}
       showTechnician={readOnly || booking.assignedTechnicianName !== user.name}
+      returned={currentReturn(booking.status, saRecord.activity)}
       timeZone={shop?.timezone ?? DEFAULT_SHOP_TZ}
     />
   )
@@ -169,12 +186,15 @@ function JobDetail({
   base,
   readOnly,
   showTechnician,
+  returned,
   timeZone,
 }: {
   booking: MockBooking
   base: string
   readOnly: boolean
   showTechnician: boolean
+  /** The service advisor's return of the estimate (T11) that put the job back in inspection. */
+  returned: SaActivity | undefined
   timeZone: string
 }) {
   const [notes, setNotes] = useState(booking.inspectionNotes || '')
@@ -398,209 +418,212 @@ function JobDetail({
         </Alert>
       ) : null}
 
-      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_22.5rem] xl:gap-8">
-        <aside
-          aria-label="Job status"
-          className="min-w-0 space-y-6 xl:sticky xl:top-24 xl:col-start-2 xl:row-start-1"
-        >
-          <Card>
-            <CardHeader>
-              <div className="flex items-start gap-3">
-                <ToneTile icon={step.icon} tone={step.tone} />
-                <div className="min-w-0 space-y-0.5">
-                  <p className={cn('text-sm font-semibold', EYEBROW_INK[step.tone])}>
-                    {stepEyebrow}
-                  </p>
-                  <h2 ref={nextStepRef} tabIndex={-1} className={cn(CARD_TITLE, 'outline-none')}>
-                    {step.title}
-                  </h2>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="gap-4">
-              <p className="text-sm text-muted-foreground">{step.body}</p>
-              {editing ? (
-                <div className="flex items-baseline justify-between gap-4 rounded-xl bg-layer px-4 py-3 text-sm">
-                  <span className="text-muted-foreground">
-                    Estimate · {countLabel(lines.length, 'line', 'lines')}
-                  </span>
-                  <span className="text-base font-bold text-foreground tabular-nums">
-                    {formatPKR(totals.total)}
-                  </span>
-                </div>
-              ) : null}
-              {primary ? <div className="hidden xl:grid">{primary}</div> : null}
-              {!primary && !readOnly ? (
-                <Button asChild variant="outline" size="lg">
-                  <Link href={jobsHref}>
-                    <ArrowLeft aria-hidden="true" data-icon="inline-start" />
-                    Back to my jobs
-                  </Link>
-                </Button>
-              ) : null}
-            </CardContent>
-          </Card>
+      {returned ? (
+        <ReturnedNotice
+          returned={returned}
+          to={readOnly ? (booking.assignedTechnicianName ?? 'the technician') : 'you'}
+          timeZone={timeZone}
+        />
+      ) : null}
 
-          {booking.qcNotes && !qcReturned ? (
+      <DetailLayout
+        aside={
+          <>
             <Card>
               <CardHeader>
-                <h2 className={CARD_TITLE}>Quality check</h2>
-                <CardAction>
-                  {booking.qcPassed ? (
-                    <Badge variant="success">Passed</Badge>
-                  ) : (
-                    <Badge variant="destructive">Sent back</Badge>
-                  )}
-                </CardAction>
+                <div className="flex items-start gap-3">
+                  <ToneTile icon={step.icon} tone={step.tone} />
+                  <div className="min-w-0 space-y-0.5">
+                    <p className={cn('text-sm font-semibold', EYEBROW_INK[step.tone])}>
+                      {stepEyebrow}
+                    </p>
+                    <h2 ref={nextStepRef} tabIndex={-1} className={cn(CARD_TITLE, 'outline-none')}>
+                      {step.title}
+                    </h2>
+                  </div>
+                </div>
               </CardHeader>
-              <CardContent>
-                {booking.qcPassed || !qcIssue ? (
-                  <p className="text-sm text-foreground">{booking.qcNotes}</p>
-                ) : (
-                  <>
-                    <p className="text-sm font-medium text-foreground">{qcIssue.title}</p>
-                    {qcIssue.detail ? (
-                      <p className="text-sm text-muted-foreground">{qcIssue.detail}</p>
-                    ) : null}
-                    <p className="text-sm text-helper">From the last QC round.</p>
-                  </>
-                )}
+              <CardContent className="gap-4">
+                <p className="text-sm text-muted-foreground">{step.body}</p>
+                {editing ? (
+                  <div className="flex items-baseline justify-between gap-4 rounded-xl bg-layer px-4 py-3 text-sm">
+                    <span className="text-muted-foreground">
+                      Estimate · {countLabel(lines.length, 'line', 'lines')}
+                    </span>
+                    <span className="text-base font-bold text-foreground tabular-nums">
+                      {formatPKR(totals.total)}
+                    </span>
+                  </div>
+                ) : null}
+                {/* Beside the content from `xl`; below it, in the pinned bar (`JobActionBar`). */}
+                {primary ? <div className="hidden xl:grid">{primary}</div> : null}
+                {!primary && !readOnly ? (
+                  <Button asChild variant="outline" size="lg">
+                    <Link href={jobsHref}>
+                      <ArrowLeft aria-hidden="true" data-icon="inline-start" />
+                      Back to my jobs
+                    </Link>
+                  </Button>
+                ) : null}
               </CardContent>
             </Card>
-          ) : null}
-        </aside>
 
-        <div className="min-w-0 space-y-6 xl:col-start-1 xl:row-start-1">
-          <Card>
-            <CardHeader>
-              <h2 className={CARD_TITLE}>Customer concern</h2>
-            </CardHeader>
-            <CardContent className="gap-5">
-              {booking.customerNotes ? (
-                <figure className="space-y-2">
-                  <blockquote className="rounded-xl bg-layer px-4 py-3 text-base leading-relaxed whitespace-pre-line text-foreground">
-                    &ldquo;{booking.customerNotes}&rdquo;
-                  </blockquote>
-                  <figcaption className="text-sm text-muted-foreground">
-                    {booking.customerName}, when booking
-                  </figcaption>
-                </figure>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  {booking.customerName} didn’t describe a problem when booking.
-                </p>
-              )}
-              <div className="space-y-2.5">
-                <h3 className="text-sm leading-5 font-semibold text-foreground">Work requested</h3>
-                <ul className="space-y-2">
-                  {booking.services.map((service, index) => (
-                    <li
-                      key={`${index}-${service}`}
-                      className="flex items-start gap-2.5 text-base text-foreground"
-                    >
-                      <Wrench className="mt-1 size-4 shrink-0 text-helper" aria-hidden="true" />
-                      {service}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <h2 id="inspection-notes-title" className={CARD_TITLE}>
-                Inspection notes
-              </h2>
-              <CardDescription id="inspection-notes-description">
-                {editing
-                  ? 'What you found: fault codes, measurements, leaks. The service advisor reads them with the estimate, and they appear on the customer’s report.'
-                  : 'What the technician found during the inspection.'}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {editing ? (
-                <>
-                  <Textarea
-                    id="inspection-notes"
-                    value={notes}
-                    onChange={(event) => setNotes(event.target.value)}
-                    aria-labelledby="inspection-notes-title"
-                    aria-describedby="inspection-notes-description inspection-notes-hint"
-                    placeholder="For example: front pads at 2 mm, rotor lightly grooved, oil 0.5 L low"
-                    className="min-h-32"
-                  />
-                  <p id="inspection-notes-hint" className="text-sm text-helper">
-                    Saved with the estimate when you submit it.
-                  </p>
-                </>
-              ) : savedNotes ? (
-                <p className="rounded-xl bg-layer px-4 py-3 text-base leading-relaxed whitespace-pre-line text-foreground">
-                  {booking.inspectionNotes}
-                </p>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  {status === 'ASSIGNED' && !readOnly
-                    ? 'Start the inspection to write your notes.'
-                    : 'No inspection notes yet.'}
-                </p>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card className="@container gap-0 py-0">
-            <CardHeader
-              className={cn(
-                'pt-(--card-spacing)',
-                lines.length > 0 || editing ? 'border-b' : 'pb-(--card-spacing)',
-              )}
-            >
-              <h2 ref={estimateTitleRef} tabIndex={-1} className={cn(CARD_TITLE, 'outline-none')}>
-                Estimate
-              </h2>
-              <CardDescription>{estimateNote(booking, lines.length, readOnly)}</CardDescription>
-              {lines.length > 0 ? (
-                <CardAction>
-                  <Badge variant="secondary" className="tabular-nums">
-                    {countLabel(lines.length, 'line', 'lines')}
-                  </Badge>
-                </CardAction>
-              ) : null}
-            </CardHeader>
-            {lines.length > 0 ? (
-              <>
-                <EstimateLines
-                  items={lines}
-                  onRemove={editing ? handleDeleteLineItem : undefined}
-                />
-                <div className="border-t border-border-faint px-5 py-5 sm:px-6">
-                  <EstimateTotalsWell totals={totals} />
-                </div>
-              </>
-            ) : editing ? (
-              <p className="px-5 py-6 text-sm text-muted-foreground sm:px-6">
-                No lines yet. Add the first part or labour line below.
+            {booking.qcNotes && !qcReturned ? (
+              <Card>
+                <CardHeader>
+                  <h2 className={CARD_TITLE}>Quality check</h2>
+                  <CardAction>
+                    {booking.qcPassed ? (
+                      <Badge variant="success">Passed</Badge>
+                    ) : (
+                      <Badge variant="destructive">Sent back</Badge>
+                    )}
+                  </CardAction>
+                </CardHeader>
+                <CardContent>
+                  {booking.qcPassed || !qcIssue ? (
+                    <p className="text-sm text-foreground">{booking.qcNotes}</p>
+                  ) : (
+                    <>
+                      <p className="text-sm font-medium text-foreground">{qcIssue.title}</p>
+                      {qcIssue.detail ? (
+                        <p className="text-sm text-muted-foreground">{qcIssue.detail}</p>
+                      ) : null}
+                      <p className="text-sm text-helper">From the last QC round.</p>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            ) : null}
+          </>
+        }
+      >
+        <Card>
+          <CardHeader>
+            <h2 className={CARD_TITLE}>Customer concern</h2>
+          </CardHeader>
+          <CardContent className="gap-5">
+            {booking.customerNotes ? (
+              <figure className="space-y-2">
+                <blockquote className="rounded-xl bg-layer px-4 py-3 text-base leading-relaxed whitespace-pre-line text-foreground">
+                  &ldquo;{booking.customerNotes}&rdquo;
+                </blockquote>
+                <figcaption className="text-sm text-muted-foreground">
+                  {booking.customerName}, when booking
+                </figcaption>
+              </figure>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                {booking.customerName} didn’t describe a problem when booking.
               </p>
-            ) : null}
-            {editing ? (
-              <AddLineForm
-                onAdd={handleAddLineItem}
-                descriptionRef={descriptionRef}
-                notice={
-                  emptyError && items.length === 0 ? (
-                    <Alert variant="destructive">
-                      <CircleAlert aria-hidden="true" />
-                      <AlertTitle>Add at least one part or labour line first.</AlertTitle>
-                    </Alert>
-                  ) : null
-                }
-              />
-            ) : null}
-          </Card>
+            )}
+            <div className="space-y-2.5">
+              <h3 className="text-sm leading-5 font-semibold text-foreground">Work requested</h3>
+              <ul className="space-y-2">
+                {booking.services.map((service, index) => (
+                  <li
+                    key={`${index}-${service}`}
+                    className="flex items-start gap-2.5 text-base text-foreground"
+                  >
+                    <Wrench className="mt-1 size-4 shrink-0 text-helper" aria-hidden="true" />
+                    {service}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </CardContent>
+        </Card>
 
-          <JobActivity booking={booking} timeZone={timeZone} />
-        </div>
-      </div>
+        <Card>
+          <CardHeader>
+            <h2 id="inspection-notes-title" className={CARD_TITLE}>
+              Inspection notes
+            </h2>
+            <CardDescription id="inspection-notes-description">
+              {editing
+                ? 'What you found: fault codes, measurements, leaks. The service advisor reads them with the estimate, and they appear on the customer’s report.'
+                : 'What the technician found during the inspection.'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {editing ? (
+              <>
+                <Textarea
+                  id="inspection-notes"
+                  value={notes}
+                  onChange={(event) => setNotes(event.target.value)}
+                  aria-labelledby="inspection-notes-title"
+                  aria-describedby="inspection-notes-description inspection-notes-hint"
+                  placeholder="For example: front pads at 2 mm, rotor lightly grooved, oil 0.5 L low"
+                  className="min-h-32"
+                />
+                <p id="inspection-notes-hint" className="text-sm text-helper">
+                  Saved with the estimate when you submit it.
+                </p>
+              </>
+            ) : savedNotes ? (
+              <p className="rounded-xl bg-layer px-4 py-3 text-base leading-relaxed whitespace-pre-line text-foreground">
+                {booking.inspectionNotes}
+              </p>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                {status === 'ASSIGNED' && !readOnly
+                  ? 'Start the inspection to write your notes.'
+                  : 'No inspection notes yet.'}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="@container gap-0 py-0">
+          <CardHeader
+            className={cn(
+              'pt-(--card-spacing)',
+              lines.length > 0 || editing ? 'border-b' : 'pb-(--card-spacing)',
+            )}
+          >
+            <h2 ref={estimateTitleRef} tabIndex={-1} className={cn(CARD_TITLE, 'outline-none')}>
+              Estimate
+            </h2>
+            <CardDescription>{estimateNote(booking, lines.length, readOnly)}</CardDescription>
+            {lines.length > 0 ? (
+              <CardAction>
+                <Badge variant="secondary" className="tabular-nums">
+                  {countLabel(lines.length, 'line', 'lines')}
+                </Badge>
+              </CardAction>
+            ) : null}
+          </CardHeader>
+          {lines.length > 0 ? (
+            <>
+              <EstimateLines items={lines} onRemove={editing ? handleDeleteLineItem : undefined} />
+              <div className="border-t border-border-faint px-5 py-5 sm:px-6">
+                <EstimateTotalsWell totals={totals} />
+              </div>
+            </>
+          ) : editing ? (
+            <p className="px-5 py-6 text-sm text-muted-foreground sm:px-6">
+              No lines yet. Add the first part or labour line below.
+            </p>
+          ) : null}
+          {editing ? (
+            <AddLineForm
+              onAdd={handleAddLineItem}
+              descriptionRef={descriptionRef}
+              notice={
+                emptyError && items.length === 0 ? (
+                  <Alert variant="destructive">
+                    <CircleAlert aria-hidden="true" />
+                    <AlertTitle>Add at least one part or labour line first.</AlertTitle>
+                  </Alert>
+                ) : null
+              }
+            />
+          ) : null}
+        </Card>
+
+        <JobActivity booking={booking} timeZone={timeZone} />
+      </DetailLayout>
 
       <p className="sr-only" role="status" aria-live="polite">
         {announcement}

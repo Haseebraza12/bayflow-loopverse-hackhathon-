@@ -6,7 +6,6 @@ import {
   compareActive,
   comparePast,
   customerActionOf,
-  estimateDecisionOf,
   joinNames,
   shopNowKey,
   suspendedShopNames,
@@ -42,27 +41,6 @@ describe('customerActionOf', () => {
   it('asks for nothing while the shop is suspended (D96)', () => {
     expect(customerActionOf('AWAITING_CUSTOMER', true)).toBeNull()
     expect(customerActionOf('READY_FOR_PICKUP', true)).toBeNull()
-  })
-})
-
-describe('estimateDecisionOf', () => {
-  it('shows only an estimate the shop has sent (D39)', () => {
-    // The seeded confirmed booking carries a services total but no estimate lines.
-    expect(estimateDecisionOf(booking('bk-004'))).toBeNull()
-    expect(estimateDecisionOf(booking('bk-001', { status: 'ESTIMATE_REVIEW' }))).toBeNull()
-  })
-
-  it('tells pending, declined and approved apart', () => {
-    expect(estimateDecisionOf(booking('bk-002'))).toBe('pending')
-    expect(estimateDecisionOf(booking('bk-002', { status: 'ESTIMATE_REJECTED' }))).toBe('declined')
-    expect(estimateDecisionOf(booking('bk-001'))).toBe('approved')
-    expect(estimateDecisionOf(booking('bk-006'))).toBe('approved')
-  })
-
-  it('keeps an approved estimate on a cancelled booking, and only that', () => {
-    const cancelled = booking('bk-001', { status: 'CANCELLED' })
-    expect(estimateDecisionOf({ ...cancelled, estimateApproved: true })).toBe('approved')
-    expect(estimateDecisionOf({ ...cancelled, estimateApproved: false })).toBeNull()
   })
 })
 

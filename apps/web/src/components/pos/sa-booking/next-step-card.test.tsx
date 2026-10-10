@@ -33,10 +33,11 @@ describe('NextStepCard', () => {
       'Return to technician',
       'Cancel booking',
     ])
+    // The destructive action is the outline pill in the danger ink (DESIGN.md §6.15).
     expect(buttons.map((button) => button.getAttribute('data-variant'))).toEqual([
       'default',
       'outline',
-      'outline',
+      'destructive-outline',
     ])
     expect(screen.getByRole('heading', { level: 2, name: 'Confirm the booking' })).toBeVisible()
     expect(screen.getByText('Fri, 9 Oct 2026 · 11:00 am')).toBeInTheDocument()

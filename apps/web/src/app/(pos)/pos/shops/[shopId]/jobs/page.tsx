@@ -13,7 +13,9 @@ import {
   ACTION_GROUPS,
   countLabel,
   groupJobs,
+  isOwnJob,
   JOB_GROUP_META,
+  ownTechnicianMember,
   vehicleLabel,
   type JobGroup,
 } from '@/components/pos/technician/job-model'
@@ -61,10 +63,15 @@ export default function TechnicianJobsPage() {
   const readOnly = sectionAccess(user.role, 'jobs') === 'read'
   const technicians = team.filter((member) => member.role === 'TECHNICIAN')
   const filtering = readOnly && technicianFilter !== 'all'
+  // D21: a technician sees only the jobs assigned to them; the Owner's role view (D16) sees every
+  // technician's, optionally narrowed to one.
+  const self = readOnly ? undefined : ownTechnicianMember(team, user.email)
   const groups = groupJobs(
-    filtering
-      ? allBookings.filter((b) => b.assignedTechnicianId === technicianFilter)
-      : allBookings,
+    readOnly
+      ? filtering
+        ? allBookings.filter((b) => b.assignedTechnicianId === technicianFilter)
+        : allBookings
+      : allBookings.filter((b) => isOwnJob(b, self)),
   )
   const needsYou = ACTION_GROUPS.reduce((count, group) => count + groups[group].length, 0)
   const total = needsYou + groups.waiting.length + groups.done.length

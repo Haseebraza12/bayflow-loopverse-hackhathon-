@@ -81,7 +81,6 @@ export function ServiceSheet({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
-        className="data-[side=right]:w-[calc(100%-1rem)]"
         onOpenAutoFocus={(event) => {
           // Start on the name, not on the first suggestion chip.
           event.preventDefault()

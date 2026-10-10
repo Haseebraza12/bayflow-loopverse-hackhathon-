@@ -130,7 +130,8 @@ export function NotificationBell({ className }: NotificationBellProps) {
     return (
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger asChild>{trigger}</SheetTrigger>
-        <SheetContent side="right" className="w-full gap-0 p-0 sm:max-w-sm">
+        {/* Full width on phones, 448px from `sm` (the primitive's own widths). */}
+        <SheetContent side="right" className="gap-0 p-0">
           <SheetHeader className="sr-only">
             <SheetTitle>Notifications</SheetTitle>
             <SheetDescription>Your latest booking updates</SheetDescription>
@@ -177,14 +178,25 @@ function NotificationPanel({
 
   return (
     <div className={cn('flex min-h-0 flex-col', fill && 'h-full')}>
-      <div className="flex items-center justify-between gap-3 border-b border-border-faint px-4 py-3">
+      <div
+        className={cn(
+          'flex items-center justify-between gap-3 border-b border-border-faint px-4 py-3',
+          // In the sheet, the sheet's own ✕ sits in the top-right corner (top-4 right-4, 32px):
+          // keep "Mark all as read" clear of it.
+          fill && 'min-h-16 pr-14',
+        )}
+      >
         <h2 className="text-base font-semibold text-foreground">Notifications</h2>
         <Button
           variant="ghost"
           size="sm"
           disabled={unreadIds.length === 0}
           onClick={() => markNotificationsRead(unreadIds)}
-          className="-mr-2 text-brand-blue-ink hover:text-brand-blue-ink"
+          className={cn(
+            'text-brand-blue-ink hover:text-brand-blue-ink',
+            // A finger taps it in the sheet: a 44px hit area around the 36px pill (DESIGN.md §2.6).
+            fill ? 'relative after:absolute after:-inset-1' : '-mr-2',
+          )}
         >
           <CheckCheck aria-hidden="true" />
           Mark all as read

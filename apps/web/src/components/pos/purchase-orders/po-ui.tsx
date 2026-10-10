@@ -1,6 +1,7 @@
 import { Eye } from 'lucide-react'
 import Link from 'next/link'
 
+import { DetailLayout } from '@/components/layout/detail-layout'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Skeleton } from '@/components/ui/skeleton'
 
@@ -27,8 +28,9 @@ export function PoReadOnlyNotice({ inventoryHref }: { inventoryHref: string }) {
 export function PurchaseOrdersSkeleton() {
   return (
     <div className="space-y-6" aria-busy="true">
-      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div className="space-y-3">
+      {/* PageHeader's own wrap: the button beside the title only while both fit. */}
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0 flex-[1_1_24rem] space-y-3">
           <Skeleton className="h-4 w-14 rounded-full" />
           <Skeleton className="h-10 w-64 max-w-full" />
           <Skeleton className="h-5 w-96 max-w-full" />
@@ -36,9 +38,10 @@ export function PurchaseOrdersSkeleton() {
         <Skeleton className="h-10.5 w-52 rounded-full" />
       </div>
       <div className="overflow-clip rounded-2xl border border-border bg-card shadow-xs">
+        {/* The toolbar: 40px controls (DESIGN.md §5 `DataTableCard`). */}
         <div className="flex flex-col gap-3 border-b border-border-faint px-5 py-3 sm:flex-row sm:items-center">
-          <Skeleton className="h-10.5 w-full rounded-full sm:w-72" />
-          <Skeleton className="h-10.5 w-72 max-w-full rounded-full" />
+          <Skeleton className="h-10 w-full rounded-full sm:w-72" />
+          <Skeleton className="h-10 w-72 max-w-full rounded-full" />
         </div>
         <div className="divide-y divide-border-faint">
           {[0, 1, 2].map((row) => (
@@ -57,7 +60,10 @@ export function PurchaseOrdersSkeleton() {
   )
 }
 
-/** PP-05 while the order loads: header, then the summary card beside the items card. */
+/**
+ * PP-05 while the order loads: header, then the page's `DetailLayout` — the summary card first,
+ * beside the items card in two columns.
+ */
 export function PurchaseOrderSkeleton() {
   return (
     <div className="space-y-6" aria-busy="true">
@@ -70,10 +76,9 @@ export function PurchaseOrderSkeleton() {
         </div>
         <Skeleton className="h-5 w-80 max-w-full" />
       </div>
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22.5rem] xl:gap-8">
-        <Skeleton className="order-2 h-96 rounded-2xl lg:order-1" />
-        <Skeleton className="order-1 h-80 rounded-2xl lg:order-2" />
-      </div>
+      <DetailLayout aside={<Skeleton className="h-80 rounded-2xl" />}>
+        <Skeleton className="h-96 rounded-2xl" />
+      </DetailLayout>
       <span className="sr-only">Loading the purchase order…</span>
     </div>
   )

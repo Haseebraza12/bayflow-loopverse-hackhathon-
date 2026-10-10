@@ -121,7 +121,7 @@ export function BookingsDirectory() {
               </NativeSelect>
             </div>
             <div className="grid gap-3 sm:flex sm:items-center">
-              <InputGroup className="h-9 rounded-md sm:w-46">
+              <InputGroup className="rounded-md sm:w-46">
                 <InputGroupAddon>
                   <label htmlFor={`${id}-from`} className="cursor-default">
                     <span className="sr-only">Slot date </span>From
@@ -140,7 +140,7 @@ export function BookingsDirectory() {
                   }}
                 />
               </InputGroup>
-              <InputGroup className="h-9 rounded-md sm:w-44">
+              <InputGroup className="rounded-md sm:w-44">
                 <InputGroupAddon>
                   <label htmlFor={`${id}-to`} className="cursor-default">
                     <span className="sr-only">Slot date </span>To

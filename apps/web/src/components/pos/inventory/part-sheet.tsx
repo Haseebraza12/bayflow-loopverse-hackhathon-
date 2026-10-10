@@ -85,7 +85,7 @@ export function PartSheet({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
-        className="gap-0 data-[side=right]:w-full"
+        className="gap-0"
         onOpenAutoFocus={(event) => {
           // Radix would also select the field's text; an edit must not invite overwriting the SKU.
           event.preventDefault()

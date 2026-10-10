@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import {
+  INITIAL_BOOKINGS,
   INITIAL_PURCHASE_ORDERS,
   adjustPartStock,
   getInventory,
@@ -12,10 +13,13 @@ import {
   contentsLabel,
   filterCounts,
   isOpen,
+  jobHref,
   lineTotal,
   matchesFilter,
   matchesQuery,
   newPurchaseOrderIdentity,
+  orderForJob,
+  poJob,
   receiptPreview,
   sortForList,
   stockState,
@@ -180,5 +184,42 @@ describe('new order form rules', () => {
     for (const unitCost of ['', '-1', '99.5', '10000000000']) {
       expect(validateNewPo({ ...valid, unitCost }).unitCost).toBeDefined()
     }
+  })
+})
+
+describe('the job an order was raised for (D43)', () => {
+  const base = '/pos/shops/shop-lahore-auto-care'
+  const lahore = INITIAL_BOOKINGS.filter((b) => b.shopId === 'shop-lahore-auto-care')
+
+  it('opens the parts job for Parts staff and the booking for the Owner (D16)', () => {
+    expect(jobHref(base, 'bk-001', 'PARTS_PERSON')).toBe(`${base}/parts/bk-001`)
+    expect(jobHref(base, 'bk-001', 'OWNER')).toBe(`${base}/bookings/bk-001`)
+  })
+
+  it('names the job by reference and vehicle, from this shop only (D20)', () => {
+    expect(poJob(po({ bookingId: 'bk-001' }), lahore, base, 'PARTS_PERSON')).toEqual({
+      bookingId: 'bk-001',
+      reference: 'BF-2026-001',
+      vehicle: '2022 Honda Civic Oriel',
+      href: `${base}/parts/bk-001`,
+    })
+    // A general restock has no job, and another shop's booking is never named.
+    expect(poJob(po({ bookingId: undefined }), lahore, base, 'PARTS_PERSON')).toBeUndefined()
+    expect(poJob(po({ bookingId: 'bk-009' }), lahore, base, 'PARTS_PERSON')).toBeUndefined()
+  })
+
+  it('finds the order a job waits on: its newest open one, else its newest received one', () => {
+    const older = po({ id: 'a', bookingId: 'bk-001', created_at: '2026-10-01T09:00:00.000Z' })
+    const newer = po({ id: 'b', bookingId: 'bk-001', created_at: '2026-10-05T09:00:00.000Z' })
+    const received = po({
+      id: 'c',
+      bookingId: 'bk-001',
+      status: 'RECEIVED',
+      created_at: '2026-10-08T09:00:00.000Z',
+    })
+    const other = po({ id: 'd', bookingId: 'bk-003', created_at: '2026-10-09T09:00:00.000Z' })
+    expect(orderForJob('bk-001', [older, received, newer, other])?.id).toBe('b')
+    expect(orderForJob('bk-001', [received, other])?.id).toBe('c')
+    expect(orderForJob('bk-001', INITIAL_PURCHASE_ORDERS)).toBeUndefined()
   })
 })

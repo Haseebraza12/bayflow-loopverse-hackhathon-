@@ -189,6 +189,72 @@ describe('T-02 job detail', () => {
       screen.getByRole('heading', { level: 1, name: 'We couldn’t find this job' }),
     ).toBeInTheDocument()
   })
+
+  it('shows the service advisor’s note when a declined estimate comes back (T11)', () => {
+    stage('bk-001', { status: 'INSPECTING' })
+    setStoredData('sa_booking_records', {
+      'bk-001': {
+        estimateVersion: 3,
+        saDraftOpen: false,
+        activity: [
+          {
+            id: 'returned-1',
+            kind: 'returned-to-technician',
+            at: '2026-10-09T09:30:00.000Z',
+            by: 'Bilal',
+            role: 'SERVICE_ADVISOR',
+            version: 3,
+            note: 'Customer wants the pads only, not the rotor.',
+          },
+        ],
+      },
+    })
+    render(<JobDetailPage />)
+    const notice = screen.getByText('Estimate sent back to you').closest('[data-slot="alert"]')
+    expect(notice).toHaveTextContent('The customer declined the estimate. Bilal sent it back on')
+    expect(notice).toHaveTextContent('Customer wants the pads only, not the rotor.')
+  })
+
+  it('keeps the return note out of the way once the job has moved on', () => {
+    setStoredData('sa_booking_records', {
+      'bk-001': {
+        estimateVersion: 3,
+        saDraftOpen: false,
+        activity: [
+          {
+            id: 'returned-1',
+            kind: 'returned-to-technician',
+            at: '2026-10-09T09:30:00.000Z',
+            by: 'Bilal',
+            role: 'SERVICE_ADVISOR',
+            version: 3,
+          },
+        ],
+      },
+    })
+    render(<JobDetailPage />)
+    expect(screen.queryByText('Estimate sent back to you')).toBeNull()
+  })
+})
+
+describe('T-02 assignee visibility (D21)', () => {
+  it("does not open another technician's job, even by its id", () => {
+    // BF-2026-002 is Hamza's job; Imran works in the same shop.
+    nav.params = { shopId: SHOP, bookingId: 'bk-002' }
+    const { container } = render(<JobDetailPage />)
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'We couldn’t find this job' }),
+    ).toBeInTheDocument()
+    expect(container).not.toHaveTextContent('BF-2026-002')
+  })
+
+  it("opens any technician's job for the Owner's read-only view (D16)", () => {
+    setCurrentUser(DEFAULT_USER)
+    nav.params = { shopId: SHOP, bookingId: 'bk-002' }
+    render(<JobDetailPage />)
+    expect(screen.getByText('Read-only view')).toBeInTheDocument()
+    expect(screen.getAllByText('BF-2026-002').length).toBeGreaterThan(0)
+  })
 })
 
 describe('T-01 my jobs', () => {
@@ -234,6 +300,33 @@ describe('T-01 my jobs', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Technician jobs' })).toBeInTheDocument()
     expect(screen.getByText('Read-only view')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /start inspection/i })).toBeNull()
+  })
+
+  it('lists only the jobs assigned to the signed-in technician (D21)', () => {
+    // Imran has BF-2026-001, -003 and -006; Hamza has BF-2026-002 and -005.
+    const { container, unmount } = render(<JobsPage />)
+    expect(container).toHaveTextContent('BF-2026-001')
+    expect(container).toHaveTextContent('BF-2026-003')
+    expect(container).not.toHaveTextContent('BF-2026-002')
+    expect(container).not.toHaveTextContent('BF-2026-005')
+    unmount()
+
+    setCurrentUser({ ...TECHNICIAN, name: 'Hamza', email: 'hamza.tech@bayflow.test' })
+    const hamza = render(<JobsPage />)
+    expect(hamza.container).toHaveTextContent('BF-2026-002')
+    expect(hamza.container).not.toHaveTextContent('BF-2026-001')
+    expect(hamza.container).not.toHaveTextContent('BF-2026-003')
+  })
+
+  it('shows the Owner every technician’s jobs, and one technician’s on request', () => {
+    setCurrentUser(DEFAULT_USER)
+    const { container } = render(<JobsPage />)
+    expect(container).toHaveTextContent('BF-2026-001')
+    expect(container).toHaveTextContent('BF-2026-002')
+
+    fireEvent.click(screen.getByRole('radio', { name: 'Hamza' }))
+    expect(container).toHaveTextContent('BF-2026-002')
+    expect(container).not.toHaveTextContent('BF-2026-001')
   })
 })
 

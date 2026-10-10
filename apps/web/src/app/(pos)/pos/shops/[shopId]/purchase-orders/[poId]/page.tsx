@@ -13,8 +13,10 @@ import {
   formatCount,
   isOpen,
   plural,
+  poJob,
   receiptPreview,
   unitsAdded,
+  type PoJob,
   type ReceiptLine,
 } from '@/components/pos/purchase-orders/po-model'
 import { PoStatusBadge } from '@/components/pos/purchase-orders/po-status-badge'
@@ -34,6 +36,7 @@ import { useMockStore, useMockStoreReady } from '@/hooks/use-mock-store'
 import { DEFAULT_SHOP_TZ, formatDate } from '@/lib/format'
 import {
   adjustPartStock,
+  getBookings,
   getCurrentUser,
   getInventory,
   getPurchaseOrders,
@@ -59,6 +62,8 @@ export default function PurchaseOrderDetailPage() {
   const pos = useMockStore(() => getPurchaseOrders(shopId))
   // This shop's inventory: receiving adds each line to the shop's own part with that SKU (D20).
   const parts = useMockStore(() => getInventory(shopId))
+  // The job the order was raised for (D43), from this shop's bookings only (D20).
+  const bookings = useMockStore(() => getBookings(shopId))
   const user = useMockStore(getCurrentUser)
   const shop = useMockStore(() => getShopById(shopId))
   const base = `/pos/shops/${encodeURIComponent(shopId)}`
@@ -96,6 +101,7 @@ export default function PurchaseOrderDetailPage() {
     <PurchaseOrderDetail
       key={po.id}
       po={po}
+      job={poJob(po, bookings, base, user.role)}
       parts={parts}
       base={base}
       // D16: Parts staff receive deliveries; the Owner follows them (lib/pos-access).
@@ -109,12 +115,14 @@ type ReceivedLine = Pick<ReceiptLine, 'line' | 'part'>
 
 function PurchaseOrderDetail({
   po,
+  job,
   parts,
   base,
   canReceive,
   timeZone,
 }: {
   po: MockPurchaseOrder
+  job: PoJob | undefined
   parts: ReadonlyArray<MockPart>
   base: string
   canReceive: boolean
@@ -215,6 +223,7 @@ function PurchaseOrderDetail({
         aside={
           <PoSummaryCard
             po={po}
+            job={job}
             timeZone={timeZone}
             canReceive={canReceive}
             action={

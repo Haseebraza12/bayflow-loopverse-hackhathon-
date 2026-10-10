@@ -116,6 +116,23 @@ describe('PP-04 purchase orders', () => {
     expect(screen.queryByRole('link', { name: /^receive/i })).toBeNull()
     expect(screen.getByRole('link', { name: 'View PO-2026-002' })).toBeInTheDocument()
   })
+
+  it('names the job an order was raised for, and opens it where the role acts (D43)', () => {
+    savePurchaseOrder({ ...INITIAL_PURCHASE_ORDERS[1]!, bookingId: 'bk-001' })
+    const { unmount } = render(<PurchaseOrdersPage />)
+    expect(screen.getByRole('link', { name: 'BF-2026-001' })).toHaveAttribute(
+      'href',
+      `/pos/shops/${SHOP}/parts/bk-001`,
+    )
+    unmount()
+
+    setCurrentUser(DEFAULT_USER)
+    render(<PurchaseOrdersPage />)
+    expect(screen.getByRole('link', { name: 'BF-2026-001' })).toHaveAttribute(
+      'href',
+      `/pos/shops/${SHOP}/bookings/bk-001`,
+    )
+  })
 })
 
 describe('PP-05 purchase order detail', () => {
@@ -162,6 +179,21 @@ describe('PP-05 purchase order detail', () => {
     expect(screen.getByText('Read-only view')).toBeInTheDocument()
     expect(screen.getByText('Awaiting delivery')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Receive into stock' })).toBeNull()
+  })
+
+  it('links the job the order was raised for, or says it is a general restock', () => {
+    savePurchaseOrder({ ...INITIAL_PURCHASE_ORDERS[1]!, bookingId: 'bk-001' })
+    const { unmount } = render(<PurchaseOrderDetailPage />)
+    expect(screen.getByRole('link', { name: 'BF-2026-001' })).toHaveAttribute(
+      'href',
+      `/pos/shops/${SHOP}/parts/bk-001`,
+    )
+    expect(screen.getByText('2022 Honda Civic Oriel')).toBeInTheDocument()
+    unmount()
+
+    nav.params = { shopId: SHOP, poId: 'po-1001' }
+    render(<PurchaseOrderDetailPage />)
+    expect(screen.getByText('General restock')).toBeInTheDocument()
   })
 
   it('says when the order does not exist', () => {

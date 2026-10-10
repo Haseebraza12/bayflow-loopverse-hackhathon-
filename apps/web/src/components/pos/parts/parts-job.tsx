@@ -4,7 +4,7 @@ import { CircleCheck, PackageCheck, PackageOpen, ShoppingCart, Truck } from 'luc
 import Link from 'next/link'
 import { useRef, useState, type ComponentProps, type ReactNode } from 'react'
 
-import { DetailLayout, StickyActionBar } from '@/components/layout/detail-layout'
+import { DetailLayout, StickyActionBar, detailLayoutOnly } from '@/components/layout/detail-layout'
 import { PageHeader } from '@/components/layout/page-header'
 import { newPurchaseOrderIdentity } from '@/components/pos/purchase-orders/po-model'
 import { StatusBadge } from '@/components/status-badge'
@@ -285,14 +285,15 @@ export function PartsJob({ shopId, bookingId }: PartsJobProps) {
         </ReadOnlyNotice>
       ) : null}
 
-      {/* The job card sits in the aside from `lg`; below it, after the parts (the reason for
-          this page), so phones read: next step, parts, then the job. */}
+      {/* The job card sits in the aside while the layout has two columns; in one column it comes
+          after the parts (the reason for this page), so a phone or tablet reads: next step,
+          parts, then the job. */}
       <DetailLayout
         aside={
           // A flex gap, not `space-y`: the hidden job card must not leave a margin behind.
           <div className="flex flex-col gap-6">
             <NextStepCard step={step} primary={primary} secondary={secondary} />
-            <JobCard booking={booking} className="max-lg:hidden" />
+            <JobCard booking={booking} className={detailLayoutOnly.twoColumns} />
           </div>
         }
       >
@@ -303,7 +304,7 @@ export function PartsJob({ shopId, bookingId }: PartsJobProps) {
           stage={stage}
           technician={technician}
         />
-        <JobCard booking={booking} className="lg:hidden" />
+        <JobCard booking={booking} className={detailLayoutOnly.oneColumn} />
       </DetailLayout>
 
       {/* Phones: the main decision stays at the bottom of the screen (DESIGN.md §6.11); an

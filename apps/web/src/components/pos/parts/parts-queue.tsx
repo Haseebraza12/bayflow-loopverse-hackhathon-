@@ -5,10 +5,17 @@ import Link from 'next/link'
 
 import { EmptyState } from '@/components/layout/empty-state'
 import { PageHeader } from '@/components/layout/page-header'
+import { orderForJob } from '@/components/pos/purchase-orders/po-model'
 import { Button } from '@/components/ui/button'
 import { useMockStore, useMockStoreReady } from '@/hooks/use-mock-store'
 import { useNowMinute } from '@/hooks/use-now'
-import { getBookings, getCurrentUser, getInventory, getShopById } from '@/lib/mock-data'
+import {
+  getBookings,
+  getCurrentUser,
+  getInventory,
+  getPurchaseOrders,
+  getShopById,
+} from '@/lib/mock-data'
 import { sectionAccess } from '@/lib/pos-access'
 
 import {
@@ -35,6 +42,7 @@ export function PartsQueue({ shopId }: { shopId: string }) {
   const shop = useMockStore(() => getShopById(shopId))
   const bookings = useMockStore(() => getBookings(shopId))
   const inventory = useMockStore(() => getInventory(shopId))
+  const purchaseOrders = useMockStore(() => getPurchaseOrders(shopId))
 
   if (!storeReady || nowIso === null) return <PartsQueueSkeleton />
 
@@ -49,30 +57,27 @@ export function PartsQueue({ shopId }: { shopId: string }) {
 
   return (
     <div className="@container/queue space-y-6">
-      {/* The links go beside the title only when the content area is wide enough (a container
-          query): with the sidebar open, a tablet leaves no room for both. */}
-      <div className="flex flex-col gap-4 pb-2 @4xl/queue:flex-row @4xl/queue:items-end @4xl/queue:justify-between">
-        <PageHeader
-          eyebrow="Parts"
-          title="Parts queue"
-          description={queueSummary(counts)}
-          className="min-w-0 pb-0"
-        />
-        <div className="flex flex-wrap items-center gap-2 @4xl/queue:shrink-0">
-          <Button asChild variant="outline">
-            <Link href={`${base}/purchase-orders`}>
-              <Truck aria-hidden="true" />
-              Purchase orders
-            </Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link href={`${base}/inventory`}>
-              <Boxes aria-hidden="true" />
-              Inventory
-            </Link>
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Parts"
+        title="Parts queue"
+        description={queueSummary(counts)}
+        actions={
+          <>
+            <Button asChild variant="outline">
+              <Link href={`${base}/purchase-orders`}>
+                <Truck aria-hidden="true" />
+                Purchase orders
+              </Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href={`${base}/inventory`}>
+                <Boxes aria-hidden="true" />
+                Inventory
+              </Link>
+            </Button>
+          </>
+        }
+      />
 
       {readOnly ? (
         <ReadOnlyNotice>
@@ -101,6 +106,12 @@ export function PartsQueue({ shopId }: { shopId: string }) {
               now={now}
               timeZone={shop?.timezone}
               base={base}
+              // On order: the purchase order each job waits on (D43), when one names it.
+              orderOf={
+                stage === 'PARTS_ORDERED'
+                  ? (bookingId) => orderForJob(bookingId, purchaseOrders)
+                  : undefined
+              }
             />
           ))}
         </div>

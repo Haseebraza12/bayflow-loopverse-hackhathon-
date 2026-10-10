@@ -25,14 +25,13 @@ import {
 import { ShopCard, VehicleCard } from '@/components/customer/booking-detail/booking-info-cards'
 import { BookingProgress } from '@/components/customer/booking-detail/booking-progress'
 import { CopyReferenceButton } from '@/components/customer/booking-detail/copy-reference-button'
-import {
-  EstimateCard,
-  type EstimateDecision,
-} from '@/components/customer/booking-detail/estimate-card'
+import { EstimateCard } from '@/components/customer/booking-detail/estimate-card'
 import { bookingSlot, telHref, todaysHours } from '@/components/customer/booking-detail/format'
+import { estimateDecisionOf } from '@/components/customer/estimate-decision'
 import { DetailLayout, StickyActionBar } from '@/components/layout/detail-layout'
 import { EmptyState } from '@/components/layout/empty-state'
 import { PageHeader } from '@/components/layout/page-header'
+import { getSaRecord } from '@/components/pos/sa-booking/sa-records'
 import { StatusBadge } from '@/components/status-badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -61,32 +60,6 @@ import {
   type MockBooking,
 } from '@/lib/mock-data'
 import { CANCELLABLE_STATUSES, type BookingStatus } from '@/lib/status'
-
-/** Statuses in which the customer has seen the estimate and it was not declined. */
-const ESTIMATE_APPROVED_OR_LATER: ReadonlySet<BookingStatus> = new Set([
-  'ESTIMATE_APPROVED',
-  'PARTS_PENDING',
-  'PARTS_ORDERED',
-  'PARTS_READY',
-  'IN_REPAIR',
-  'QC_PENDING',
-  'QC_IN_PROGRESS',
-  'READY_FOR_PICKUP',
-  'COMPLETED',
-])
-
-/**
- * The estimate the customer may see (D39: only a version the shop has sent): awaiting their
- * decision, declined, or approved. Null before the shop sends one.
- */
-function estimateDecisionOf(booking: MockBooking): EstimateDecision | null {
-  if (booking.status === 'AWAITING_CUSTOMER') return 'pending'
-  if (booking.status === 'ESTIMATE_REJECTED') return 'declined'
-  if (booking.estimateItems.length === 0) return null
-  if (ESTIMATE_APPROVED_OR_LATER.has(booking.status)) return 'approved'
-  if (booking.status === 'CANCELLED' && booking.estimateApproved) return 'approved'
-  return null
-}
 
 /** What the estimate section says before there is an estimate to show. */
 function estimatePlaceholder(status: BookingStatus): { title: string; description: string } {
@@ -127,6 +100,8 @@ export default function CustomerBookingDetailPage() {
   const booking = useMockStore(() => getCustomerBooking(bookingId, user.email))
   const shops = useMockStore(getShops)
   const suspensions = useMockStore(getShopSuspensions)
+  // Who declined or cancelled the booking and why, when the shop did (T03, T22): kept by SA-02.
+  const saRecord = useMockStore(() => getSaRecord(bookingId))
   const now = useNowMinute()
 
   const [declineDialogOpen, setDeclineDialogOpen] = useState(false)
@@ -218,6 +193,9 @@ export default function CustomerBookingDetailPage() {
         : undefined
   const completedAt = status === 'COMPLETED' ? reachedAt('COMPLETED') : undefined
   const cancelledAt = status === 'CANCELLED' ? reachedAt('CANCELLED') : undefined
+  // The shop's decline or cancellation, with its reason (spec 10 C-02 "CANCELLED"). Never the
+  // advisor's name: the customer's view names the shop only (E-13).
+  const shopCancellation = status === 'CANCELLED' ? saRecord.cancellation : undefined
   const slot = bookingSlot(booking.scheduledDate, booking.scheduledTime)
   const vehicle = `${booking.vehicleYear} ${booking.vehicleMake} ${booking.vehicleModel}`
   const hoursToday = shop && now ? todaysHours(shop, now) : null
@@ -362,9 +340,24 @@ export default function CustomerBookingDetailPage() {
       {status === 'CANCELLED' ? (
         <StateBanner icon={Ban} title="This booking was cancelled" action={bookAgain}>
           <p>
-            {cancelledAt ? `Cancelled on ${formatDateTime(cancelledAt, timeZone)}. ` : null}
+            {shopCancellation
+              ? // The same time as the progress timeline's "Booking cancelled" step.
+                `${shopName} ${shopCancellation.kind === 'decline' ? 'declined' : 'cancelled'} it on ${formatDateTime(cancelledAt ?? shopCancellation.at, timeZone)}. `
+              : cancelledAt
+                ? `Cancelled on ${formatDateTime(cancelledAt, timeZone)}. `
+                : null}
             The slot was released.
           </p>
+          {shopCancellation?.reason.trim() ? (
+            <figure className="space-y-1.5 pt-2">
+              <figcaption className="text-sm font-medium text-foreground">
+                The shop’s reason
+              </figcaption>
+              <blockquote className="rounded-xl bg-layer px-4 py-3 text-base whitespace-pre-line text-foreground">
+                &ldquo;{shopCancellation.reason.trim()}&rdquo;
+              </blockquote>
+            </figure>
+          ) : null}
         </StateBanner>
       ) : null}
 
@@ -373,8 +366,9 @@ export default function CustomerBookingDetailPage() {
         aside={
           <>
             <BookingProgress booking={booking} timeZone={timeZone} />
-            {/* Side by side on tablets, where the aside spans the page; stacked from lg. */}
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-1">
+            {/* Side by side while the aside spans a wide one-column layout (a tablet); stacked
+                on a phone and in the side column (DetailLayout's own width, not the screen's). */}
+            <div className="grid gap-6 @min-[36rem]/detail:grid-cols-2 @min-[58rem]/detail:grid-cols-1">
               <VehicleCard booking={booking} />
               <ShopCard shop={shop} shopName={shopName} />
             </div>
@@ -447,9 +441,9 @@ export default function CustomerBookingDetailPage() {
               </p>
             </div>
             <Button
-              variant="outline"
+              variant="destructive-outline"
               onClick={() => setCancelDialogOpen(true)}
-              className="text-danger-ink hover:border-status-estimate-rejected-border hover:bg-danger-subtle hover:text-danger-ink max-sm:w-full"
+              className="max-sm:w-full"
             >
               <Ban aria-hidden="true" />
               Cancel booking

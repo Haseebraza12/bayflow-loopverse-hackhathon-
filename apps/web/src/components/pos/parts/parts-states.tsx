@@ -2,6 +2,7 @@ import { Eye, SearchX } from 'lucide-react'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 
+import { DetailLayout, detailLayoutOnly } from '@/components/layout/detail-layout'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { CardTitle } from '@/components/ui/card'
@@ -13,6 +14,7 @@ import {
   EmptyMedia,
 } from '@/components/ui/empty'
 import { Skeleton } from '@/components/ui/skeleton'
+import { cn } from '@/lib/utils'
 
 /** A card title that is an `<h2>` in the page outline (the page header holds the `<h1>`). */
 export function CardHeading({ id, children }: { id?: string; children: ReactNode }) {
@@ -58,7 +60,10 @@ export function PartsQueueSkeleton() {
   )
 }
 
-/** Loading (DESIGN.md §6.9): shaped like a parts job — header, the parts table, the aside. */
+/**
+ * Loading (DESIGN.md §6.9): shaped like a parts job — header, then the page's `DetailLayout`: the
+ * next step, the parts table, and the job card (beside the table in two columns, after it in one).
+ */
 export function PartsJobSkeleton() {
   return (
     <div className="space-y-6" aria-busy="true">
@@ -67,13 +72,17 @@ export function PartsJobSkeleton() {
         <Skeleton className="h-10 w-64 max-w-full" />
         <Skeleton className="h-5 w-96 max-w-full" />
       </div>
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22.5rem] xl:gap-8">
-        <Skeleton className="order-2 h-[28rem] rounded-2xl lg:order-1" />
-        <div className="order-1 space-y-6 lg:order-2">
-          <Skeleton className="h-56 rounded-2xl" />
-          <Skeleton className="h-64 rounded-2xl" />
-        </div>
-      </div>
+      <DetailLayout
+        aside={
+          <>
+            <Skeleton className="h-56 rounded-2xl" />
+            <Skeleton className={cn('h-64 rounded-2xl', detailLayoutOnly.twoColumns)} />
+          </>
+        }
+      >
+        <Skeleton className="h-[28rem] rounded-2xl" />
+        <Skeleton className={cn('h-64 rounded-2xl', detailLayoutOnly.oneColumn)} />
+      </DetailLayout>
       <span className="sr-only">Loading the parts job…</span>
     </div>
   )

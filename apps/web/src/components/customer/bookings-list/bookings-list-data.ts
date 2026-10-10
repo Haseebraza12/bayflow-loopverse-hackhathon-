@@ -1,4 +1,4 @@
-import type { EstimateDecision } from '@/components/customer/booking-detail/estimate-card'
+import { estimateDecisionOf, type EstimateDecision } from '@/components/customer/estimate-decision'
 import { minutesInZone } from '@/lib/booking-slots'
 import { DEFAULT_SHOP_TZ, shopDateKey } from '@/lib/format'
 import type { MockBooking, MockShop } from '@/lib/mock-data'
@@ -26,35 +26,6 @@ export function customerActionOf(
   if (shopSuspended) return null
   if (status === 'AWAITING_CUSTOMER') return 'approve-estimate'
   if (status === 'READY_FOR_PICKUP') return 'complete'
-  return null
-}
-
-/** Statuses in which the customer has seen the estimate and it was not declined. */
-const ESTIMATE_APPROVED_OR_LATER: ReadonlySet<BookingStatus> = new Set<BookingStatus>([
-  'ESTIMATE_APPROVED',
-  'PARTS_PENDING',
-  'PARTS_ORDERED',
-  'PARTS_READY',
-  'IN_REPAIR',
-  'QC_PENDING',
-  'QC_IN_PROGRESS',
-  'READY_FOR_PICKUP',
-  'COMPLETED',
-])
-
-/**
- * The estimate the customer may see (D39: only a version the shop has sent) and where their
- * decision stands, exactly as C-02 works it out; null before the shop sends one (E-11
- * `estimate_summary: null`), so the list never shows a price the shop hasn't quoted.
- */
-export function estimateDecisionOf(
-  booking: Pick<MockBooking, 'status' | 'estimateItems' | 'estimateApproved'>,
-): EstimateDecision | null {
-  if (booking.status === 'AWAITING_CUSTOMER') return 'pending'
-  if (booking.status === 'ESTIMATE_REJECTED') return 'declined'
-  if (booking.estimateItems.length === 0) return null
-  if (ESTIMATE_APPROVED_OR_LATER.has(booking.status)) return 'approved'
-  if (booking.status === 'CANCELLED' && booking.estimateApproved) return 'approved'
   return null
 }
 

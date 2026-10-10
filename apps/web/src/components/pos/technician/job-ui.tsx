@@ -1,9 +1,12 @@
-import { Eye, type LucideIcon } from 'lucide-react'
+import { Eye, Undo2, type LucideIcon } from 'lucide-react'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 
+import { StickyActionBar } from '@/components/layout/detail-layout'
+import type { SaActivity } from '@/components/pos/sa-booking/sa-records'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
+import { formatDateTime } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
 import type { JobTone } from './job-model'
@@ -125,16 +128,54 @@ export function ReadOnlyBanner({ href, scope }: { href: string; scope: 'list' | 
 }
 
 /**
+ * T11 on T-02: the customer declined the estimate and the service advisor sent it back for
+ * another inspection, with their note when they wrote one. Read-only, from the advisor's record
+ * of the return (`currentReturn`); `to` is "you" for the technician, their name for the Owner.
+ */
+export function ReturnedNotice({
+  returned,
+  to,
+  timeZone,
+}: {
+  returned: SaActivity
+  to: string
+  timeZone: string
+}) {
+  const note = returned.note?.trim()
+  return (
+    <Alert variant="warning">
+      <Undo2 aria-hidden="true" />
+      <AlertTitle>Estimate sent back to {to}</AlertTitle>
+      <AlertDescription>
+        <p>
+          The customer declined the estimate. {returned.by} sent it back on{' '}
+          <time dateTime={returned.at}>{formatDateTime(returned.at, timeZone)}</time>.
+        </p>
+        {note ? (
+          <p className="whitespace-pre-line">
+            <span className="font-semibold text-foreground">{returned.by}’s note:</span> “{note}”
+          </p>
+        ) : (
+          <p>No note was added.</p>
+        )}
+      </AlertDescription>
+    </Alert>
+  )
+}
+
+/**
  * The job's main action pinned to the bottom of the screen on phones and tablets (DESIGN.md
- * §6.11): the `StickyActionBar` recipe, kept up to `xl` because the job page stays one column
- * until then. From `xl` the action sits in the sticky "Next step" card instead.
+ * §6.11): a `StickyActionBar` pinned until `xl`, since a tablet (and a laptop with the sidebar
+ * open) shows the job in one column, the action far from the content. From `xl` the action sits
+ * in the "Next step" card beside the content instead, so the bar is hidden there.
  */
 export function JobActionBar({ summary, children }: { summary?: ReactNode; children: ReactNode }) {
   return (
-    <div
+    <StickyActionBar
       role="region"
       aria-label="Job actions"
-      className="sticky bottom-0 z-20 -mx-4 flex items-center gap-4 border-t border-border-faint bg-card/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-md sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 xl:hidden"
+      pinnedUntil="xl"
+      className="gap-4 xl:hidden"
     >
       {summary ? (
         <div className="hidden min-w-0 flex-1 text-sm text-muted-foreground sm:block">
@@ -144,6 +185,6 @@ export function JobActionBar({ summary, children }: { summary?: ReactNode; child
       <div className="flex flex-1 justify-end gap-2 *:flex-1 sm:flex-none sm:*:flex-none">
         {children}
       </div>
-    </div>
+    </StickyActionBar>
   )
 }

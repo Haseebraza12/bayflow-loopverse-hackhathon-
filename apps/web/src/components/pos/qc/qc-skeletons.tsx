@@ -1,4 +1,6 @@
+import { DetailLayout, detailLayoutOnly } from '@/components/layout/detail-layout'
 import { Skeleton } from '@/components/ui/skeleton'
+import { cn } from '@/lib/utils'
 
 function HeaderSkeleton({ back = false }: { back?: boolean }) {
   return (
@@ -26,21 +28,26 @@ export function QcQueueSkeleton() {
   )
 }
 
-/** Loading state shaped like an inspection: header, the checklist beside the decision and job. */
+/**
+ * Loading state shaped like an inspection: header, then the page's `DetailLayout` — the checklist
+ * first, the decision card beside it only in two columns, then the job.
+ */
 export function QcInspectionSkeleton() {
   return (
     <div className="space-y-6" aria-busy="true">
       <HeaderSkeleton back />
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22.5rem] xl:gap-8">
-        <div className="space-y-6">
-          <Skeleton className="h-[34rem] rounded-2xl" />
-          <Skeleton className="h-56 rounded-2xl" />
-        </div>
-        <div className="space-y-6">
-          <Skeleton className="hidden h-72 rounded-2xl lg:block" />
-          <Skeleton className="h-80 rounded-2xl" />
-        </div>
-      </div>
+      <DetailLayout
+        asideFirstOnMobile={false}
+        aside={
+          <>
+            <Skeleton className={cn('h-72 rounded-2xl', detailLayoutOnly.twoColumns)} />
+            <Skeleton className="h-80 rounded-2xl" />
+          </>
+        }
+      >
+        <Skeleton className="h-[34rem] rounded-2xl" />
+        <Skeleton className="h-56 rounded-2xl" />
+      </DetailLayout>
       <span className="sr-only">Loading the inspection…</span>
     </div>
   )

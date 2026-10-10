@@ -331,7 +331,7 @@ function EventSheet({
     <Sheet open={open && event !== null} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
-        className="w-full gap-0 overflow-y-auto sm:max-w-md"
+        className="gap-0"
         onOpenAutoFocus={(focusEvent) => {
           focusEvent.preventDefault()
           title.current?.focus()

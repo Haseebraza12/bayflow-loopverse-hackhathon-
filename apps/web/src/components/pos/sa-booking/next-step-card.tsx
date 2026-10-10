@@ -21,10 +21,6 @@ import { StatusTile } from './detail-bits'
 import type { NextStep } from './next-step'
 import { SA_ACTIONS, type ActionBarPlan, type SaActionSlug } from './sa-actions'
 
-/** Spec 09 §4.6 rule 3 "destructive outline": the outline pill in the danger ink. */
-const DESTRUCTIVE_OUTLINE =
-  'text-danger-ink hover:border-status-estimate-rejected-border hover:bg-danger-subtle hover:text-danger-ink'
-
 export interface Fact {
   label: string
   value: ReactNode
@@ -38,18 +34,14 @@ function ActionButton({
 }: {
   slug: SaActionSlug
   onAction: (slug: SaActionSlug) => void
-  variant: 'default' | 'outline'
+  /** `destructive-outline` for decline and cancel (spec 09 §4.6 rule 3, DESIGN.md §6.15). */
+  variant: 'default' | 'outline' | 'destructive-outline'
   className?: string
 }) {
   const action = SA_ACTIONS[slug]
   const Icon = action.icon
   return (
-    <Button
-      type="button"
-      variant={variant}
-      className={cn(action.destructive && DESTRUCTIVE_OUTLINE, className)}
-      onClick={() => onAction(slug)}
-    >
+    <Button type="button" variant={variant} className={className} onClick={() => onAction(slug)}>
       <Icon data-icon="inline-start" aria-hidden="true" />
       {action.label}
     </Button>
@@ -131,7 +123,7 @@ export function NextStepCard({
               key={slug}
               slug={slug}
               onAction={onAction}
-              variant="outline"
+              variant="destructive-outline"
               className="w-full"
             />
           ))}

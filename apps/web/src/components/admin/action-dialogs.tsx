@@ -114,9 +114,9 @@ export function ReasonDialog({
       }}
     >
       <AlertDialogTrigger asChild>{trigger}</AlertDialogTrigger>
-      {/* Tall on small phones (consequences, warning, field): it scrolls instead of overflowing. */}
-      <AlertDialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-lg">
-        <AlertDialogHeader className="sm:grid-cols-[auto_minmax(0,1fr)]">
+      {/* Tall on small phones (consequences, warning, field): the primitive scrolls inside. */}
+      <AlertDialogContent>
+        <AlertDialogHeader>
           <AlertDialogMedia className="bg-danger-subtle text-danger-ink">
             <Icon aria-hidden="true" />
           </AlertDialogMedia>
@@ -225,7 +225,7 @@ export function ConfirmDialog({
     >
       <AlertDialogTrigger asChild>{trigger}</AlertDialogTrigger>
       <AlertDialogContent>
-        <AlertDialogHeader className="sm:grid-cols-[auto_minmax(0,1fr)]">
+        <AlertDialogHeader>
           <AlertDialogMedia
             className={cn(
               destructive

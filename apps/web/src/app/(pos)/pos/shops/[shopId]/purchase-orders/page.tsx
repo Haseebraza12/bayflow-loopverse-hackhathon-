@@ -16,6 +16,7 @@ import {
   formatCount,
   matchesFilter,
   matchesQuery,
+  poJob,
   sortForList,
   type PoFilter,
 } from '@/components/pos/purchase-orders/po-model'
@@ -26,6 +27,7 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { useMockStore, useMockStoreReady } from '@/hooks/use-mock-store'
 import { DEFAULT_SHOP_TZ, formatPKR } from '@/lib/format'
 import {
+  getBookings,
   getCurrentUser,
   getInventory,
   getPurchaseOrders,
@@ -51,6 +53,8 @@ export default function PurchaseOrdersPage() {
   const ready = useMockStoreReady()
   const pos = useMockStore(() => getPurchaseOrders(shopId))
   const inventory = useMockStore(() => getInventory(shopId))
+  // The jobs orders were raised for (D43), from this shop's bookings only (D20).
+  const bookings = useMockStore(() => getBookings(shopId))
   const user = useMockStore(getCurrentUser)
   const shop = useMockStore(() => getShopById(shopId))
   const base = `/pos/shops/${encodeURIComponent(shopId)}`
@@ -130,13 +134,11 @@ export default function PurchaseOrdersPage() {
                 onValueChange={setQuery}
                 label="Search purchase orders"
                 placeholder="PO number, supplier or part"
-                // 42px like the filter pills; hide Chrome's own clear button (TableSearch has one).
-                className="h-10.5 [&_input::-webkit-search-cancel-button]:appearance-none"
               />
               <ToggleGroup
                 type="single"
                 variant="outline"
-                size="lg"
+                size="sm"
                 value={filter}
                 onValueChange={(value) => {
                   if (isPoFilter(value)) setFilter(value)
@@ -171,6 +173,7 @@ export default function PurchaseOrdersPage() {
               base={base}
               canReceive={canManage}
               timeZone={timeZone}
+              jobOf={(po) => poJob(po, bookings, base, user.role)}
             />
           ) : searching ? (
             <EmptyState
