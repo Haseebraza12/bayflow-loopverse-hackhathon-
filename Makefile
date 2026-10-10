@@ -4,7 +4,7 @@ SHELL := /bin/bash
 .DEFAULT_GOAL := help
 LOAD_ENV := set -a; [ -f .env ] && . ./.env; set +a;
 
-.PHONY: help setup up down db-up migrate seed db-reset api web dev test lint fmt gen-api smoke
+.PHONY: help setup up down db-up migrate seed db-reset api web agent dev test lint fmt gen-api smoke
 
 help: ## List all targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "} {printf "  %-9s %s\n", $$1, $$2}'
@@ -52,6 +52,9 @@ api: ## API with auto-reload on http://localhost:4000 (Swagger at /docs)
 
 web: ## Web with hot reload on http://localhost:3000 (reads the root .env)
 	$(LOAD_ENV) cd apps/web && PORT=3000 pnpm dev
+
+agent: ## AI Front Desk worker (needs CALL_PROVIDER_*, LLM_API_KEY, AGENT_SERVICE_TOKEN in .env)
+	cd apps/agent && PYTHONPATH=src uv run python -m bayflow_agent dev
 
 dev: db-up migrate seed ## PostgreSQL in Docker + API and web locally (Ctrl+C stops both)
 	$(MAKE) -j2 api web

@@ -7,7 +7,6 @@ import {
   CircleCheck,
   CircleCheckBig,
   ClipboardList,
-  Phone,
   ShieldCheck,
 } from 'lucide-react'
 import Link from 'next/link'
@@ -31,6 +30,8 @@ import { estimateDecisionOf } from '@/components/customer/estimate-decision'
 import { DetailLayout, StickyActionBar } from '@/components/layout/detail-layout'
 import { EmptyState } from '@/components/layout/empty-state'
 import { PageHeader } from '@/components/layout/page-header'
+import { BookingCallsCard } from '@/features/calls/booking-calls-card'
+import { CallButton } from '@/features/calls/call-button'
 import { getSaRecord } from '@/components/pos/sa-booking/sa-records'
 import { StatusBadge } from '@/components/status-badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -240,14 +241,13 @@ export default function CustomerBookingDetailPage() {
           </>
         }
         actions={
-          shop?.phone ? (
-            <Button asChild variant="outline">
-              <a href={telHref(shop.phone)}>
-                <Phone aria-hidden="true" />
-                Call shop
-              </a>
-            </Button>
-          ) : null
+          // In-app call to the shop's advisors (spec 05 §9.2); the shop's phone when calling is off.
+          <CallButton
+            target={{ audience: 'customer', reference: booking.reference }}
+            counterpart={shopName}
+            label="Call the shop"
+            fallbackHref={shop?.phone ? telHref(shop.phone) : undefined}
+          />
         }
       />
 
@@ -429,6 +429,7 @@ export default function CustomerBookingDetailPage() {
             </CardContent>
           </Card>
         )}
+        <BookingCallsCard target={{ audience: 'customer', reference: booking.reference }} />
       </DetailLayout>
 
       {isCancellable ? (

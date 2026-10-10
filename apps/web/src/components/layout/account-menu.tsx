@@ -18,6 +18,7 @@ import { useMockStore } from '@/hooks/use-mock-store'
 import { getAdminUsers } from '@/lib/mock-admin'
 import { homePathFor } from '@/lib/mock-auth'
 import { getCurrentUser } from '@/lib/mock-data'
+import { signOutOfApi } from '@/features/calls/session'
 
 export const ROLE_NAME = {
   OWNER: 'Owner',
@@ -53,6 +54,7 @@ export function AccountMenu({ context = 'public' }: { context?: 'public' | 'pos'
   const roleName = context === 'admin' ? ROLE_NAME.PLATFORM_ADMIN : ROLE_NAME[user.role]
 
   const signOut = () => {
+    void signOutOfApi()
     endMockSession()
     router.push('/login')
   }

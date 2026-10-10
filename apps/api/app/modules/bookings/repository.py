@@ -463,6 +463,31 @@ class BookingRepository(Repository):
         )
         return rows, int(total.scalar_one())
 
+    async def customer_at_shop(
+        self, *, shop_id: uuid.UUID, customer_user_id: uuid.UUID, limit: int
+    ) -> list[BookingRow]:
+        """P2 (spec 05 §5.3): the customer's bookings at one shop, newest slot first."""
+        changed = status_changed_at_column()
+        statement = (
+            select(Booking, changed)
+            .where(Booking.shop_id == shop_id, Booking.customer_user_id == customer_user_id)
+            .order_by(Booking.slot_start.desc(), Booking.id.desc())
+            .limit(limit)
+            .execution_options(populate_existing=True)
+        )
+        return [(row[0], row[1]) for row in await self.session.execute(statement)]
+
+    async def get_many_at_shop(
+        self, *, shop_id: uuid.UUID, booking_ids: Collection[uuid.UUID]
+    ) -> list[Booking]:
+        """P2: bookings of one shop by id, in one query (unknown ids are absent)."""
+        if not booking_ids:
+            return []
+        statement = select(Booking).where(
+            Booking.shop_id == shop_id, Booking.id.in_(set(booking_ids))
+        )
+        return list((await self.session.scalars(statement)).all())
+
     async def status_counts(self, *, condition: ColumnElement[bool]) -> dict[BookingStatus, int]:
         """`GROUP BY status` over the rows matching `condition` (absent statuses → absent)."""
         statement = select(Booking.status, func.count()).where(condition).group_by(Booking.status)

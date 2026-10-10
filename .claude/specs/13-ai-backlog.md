@@ -142,6 +142,8 @@ References: "brief §n" is a section of the hackathon brief; "glossary §n" is s
 
 ## 3. Top picks after the hackathon
 
+> **Foundation built (D103).** AI-41 (audit trail), AI-42 (draft → decision) and AI-43 (grounding guard + golden-set harness) are implemented once in `app.modules.ai` ([modules/ai.md](modules/ai.md)), with the provider port, masking, feature flags and per-shop caps. Each pick below is a thin slice that calls `run_feature`.
+
 Build the Foundations items (#41, #42, #43) alongside the first pick. #43 already exists in a small form for the AI Front Desk (spec 05 §14).
 
 | Rank | Feature | Effort / Value | Why |

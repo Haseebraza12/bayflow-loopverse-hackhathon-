@@ -7,7 +7,7 @@ glossary (and spec 17) first, then this file.
 
 from enum import IntEnum, StrEnum
 
-# --- Roles (glossary §2) -----------------------------------------------------
+# --- Roles (glossary §2) --------------------------------------------------------------------------
 
 
 class MembershipRole(StrEnum):
@@ -36,7 +36,7 @@ class ActorRole(StrEnum):
     SYSTEM = "SYSTEM"
 
 
-# --- Booking lifecycle (glossary §3, §4; spec 08) ------------------------------
+# --- Booking lifecycle (glossary §3, §4; spec 08) -------------------------------------------------
 
 
 class BookingStatus(StrEnum):
@@ -91,7 +91,7 @@ class BookingAction(StrEnum):
     REASSIGN_PARTS_PERSON = "REASSIGN_PARTS_PERSON"
 
 
-# --- Estimates, inventory, QC (glossary §5) ------------------------------------
+# --- Estimates, inventory, QC (glossary §5) -------------------------------------------------------
 
 
 class EstimateStatus(StrEnum):
@@ -162,7 +162,7 @@ class Weekday(IntEnum):
     SUNDAY = 6
 
 
-# --- Notifications (glossary §6) ------------------------------------------------
+# --- Notifications (glossary §6) ------------------------------------------------------------------
 
 
 class NotificationType(StrEnum):
@@ -290,3 +290,34 @@ class TaskKind(StrEnum):
 class TaskStatus(StrEnum):
     OPEN = "OPEN"
     DONE = "DONE"
+
+
+# --- Text AI (bonus, D103; modules/ai.md) ------------------------------------------------------
+
+
+class AiFeature(StrEnum):
+    ESTIMATE_EXPLAINER = "ESTIMATE_EXPLAINER"  # AI-05
+    ESTIMATE_CHECKER = "ESTIMATE_CHECKER"  # AI-14
+    VOICE_TO_ESTIMATE = "VOICE_TO_ESTIMATE"  # AI-18
+    SYMPTOM_TRIAGE = "SYMPTOM_TRIAGE"  # AI-01
+    ASK_YOUR_SHOP = "ASK_YOUR_SHOP"  # AI-33
+
+
+class AiCallStatus(StrEnum):
+    SUCCEEDED = "SUCCEEDED"
+    PROVIDER_ERROR = "PROVIDER_ERROR"
+    INVALID_OUTPUT = "INVALID_OUTPUT"
+    GUARD_BLOCKED = "GUARD_BLOCKED"
+
+
+class AiDraftStatus(StrEnum):
+    PENDING = "PENDING"
+    ACCEPTED = "ACCEPTED"
+    EDITED = "EDITED"
+    REJECTED = "REJECTED"
+
+
+class AiSubjectType(StrEnum):
+    BOOKING = "BOOKING"
+    ESTIMATE = "ESTIMATE"
+    SHOP = "SHOP"

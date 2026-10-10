@@ -152,8 +152,9 @@ async def test_users_default_to_not_platform_admin(db: Database) -> None:
 async def test_the_platform_admin_revision_round_trips(
     db: Database, alembic_cli: AlembicCli
 ) -> None:
-    assert FEATURE_REVISION in await alembic_cli("current")
-    downgraded = await alembic_cli("downgrade", "-1")
+    # By name, not "-1": later expand-only revisions (e.g. 90a856e17478, text AI) sit on top.
+    assert FEATURE_REVISION in await alembic_cli("history")
+    downgraded = await alembic_cli("downgrade", BASELINE_REVISION)
     assert f"Running downgrade {FEATURE_REVISION} -> {BASELINE_REVISION}" in downgraded
     async with db.engine.begin() as connection:
         gone = await connection.execute(
