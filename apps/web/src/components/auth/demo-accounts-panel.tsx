@@ -1,10 +1,12 @@
 'use client'
 
-import { Check, Copy, CornerDownLeft } from 'lucide-react'
+import { Check, Copy, Info, Lightbulb } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader } from '@/components/ui/card'
 import {
   DEMO_ACCOUNTS,
   DEMO_AHMED_NOTE,
@@ -24,6 +26,10 @@ const ROLE_TONE: Record<string, string> = {
   'Platform Admin': 'bg-foreground text-background',
 }
 
+/** D71: shared demo data drifts as testers replay the worked example. */
+const DEMO_DRIFT_TIP =
+  'Friday 10:00 full or parts used up by earlier testers? Pick another slot; Usman (Parts) can adjust stock.'
+
 function initials(name: string) {
   return name
     .split(/\s+/)
@@ -40,7 +46,11 @@ export interface DemoAccountsPanelProps {
   selectedEmail?: string
 }
 
-/** Demo credentials (spec 09 §4.12, D52): plain-text accounts; picking one only fills the form. */
+/**
+ * Demo credentials (spec 09 §4.12, D52): every account's name, role and e-mail in plain text, the
+ * shared password, and the judge notes. Picking an account only fills the form; the user still
+ * presses Log in.
+ */
 export function DemoAccountsPanel({ onPick, selectedEmail }: DemoAccountsPanelProps) {
   const [copied, setCopied] = useState(false)
 
@@ -56,84 +66,100 @@ export function DemoAccountsPanel({ onPick, selectedEmail }: DemoAccountsPanelPr
   }
 
   return (
-    <section aria-labelledby="demo-accounts-title" className="border border-border bg-card">
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border-faint p-4">
-        <div className="space-y-0.5">
-          <h2 id="demo-accounts-title" className="text-sm font-semibold text-foreground">
-            Demo accounts
-          </h2>
-          <p className="text-xs text-muted-foreground">
-            Pick an account to fill the form, then log in.
-          </p>
+    <Card aria-labelledby="demo-accounts-title" role="region" className="gap-0 py-0">
+      <CardHeader className="gap-1.5 border-b pt-(--card-spacing)">
+        <h2 id="demo-accounts-title" className="text-lg leading-7 font-semibold text-foreground">
+          Demo accounts
+        </h2>
+        <CardDescription className="text-pretty">
+          Pick an account to fill in the form, then press Log in.
+        </CardDescription>
+        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
+          <span className="text-sm text-muted-foreground">Password for every account</span>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={copyPassword}
+            aria-label={`Copy the demo password ${DEMO_PASSWORD}`}
+            className="font-mono"
+          >
+            {DEMO_PASSWORD}
+            {copied ? (
+              <Check data-icon="inline-end" className="text-success-ink" aria-hidden="true" />
+            ) : (
+              <Copy data-icon="inline-end" className="text-helper" aria-hidden="true" />
+            )}
+          </Button>
         </div>
-        <button
-          type="button"
-          onClick={copyPassword}
-          className="inline-flex items-center gap-2 rounded-full border border-border bg-muted px-3 py-1 font-mono text-xs text-foreground transition-colors duration-[70ms] ease-productive hover:bg-secondary focus-visible:outline-2 focus-visible:outline-ring"
-          aria-label={`Copy the demo password ${DEMO_PASSWORD}`}
-        >
-          {DEMO_PASSWORD}
-          {copied ? (
-            <Check className="size-3.5 text-success-ink" aria-hidden="true" />
-          ) : (
-            <Copy className="size-3.5 text-helper" aria-hidden="true" />
-          )}
-        </button>
-      </div>
+      </CardHeader>
 
-      <ul className="grid gap-1 p-2 sm:grid-cols-2">
-        {DEMO_ACCOUNTS.map((account) => {
-          const selected = account.email === selectedEmail
-          return (
-            <li key={account.email}>
-              <button
-                type="button"
-                onClick={() => onPick(account)}
-                aria-pressed={selected}
-                aria-label={`Use ${account.name}, ${account.role}`}
-                className={cn(
-                  'group flex w-full items-center gap-3 border p-2.5 text-left transition-colors duration-[70ms] ease-productive focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring',
-                  selected
-                    ? 'border-brand-blue bg-brand-blue-subtle'
-                    : 'border-transparent hover:bg-layer-hover',
-                )}
-              >
-                <Avatar className="size-9 after:hidden">
-                  <AvatarFallback
-                    className={cn('text-xs font-semibold', ROLE_TONE[account.role] ?? '')}
-                  >
-                    {initials(account.name)}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-medium text-foreground">
-                    {account.name}
-                  </span>
-                  <span className="block truncate text-xs text-muted-foreground">
-                    {account.role}
-                  </span>
-                  {account.note && (
-                    <span className="mt-0.5 block text-[11px] leading-snug text-helper">
-                      {account.note}
-                    </span>
-                  )}
-                </span>
-                <CornerDownLeft
-                  aria-hidden="true"
+      <CardContent className="px-2 py-2 sm:px-3 sm:py-3">
+        {/* One row per account: name and role, then the e-mail (beside them when there is room) */}
+        <ul className="@container grid gap-1">
+          {DEMO_ACCOUNTS.map((account) => {
+            const selected = account.email === selectedEmail
+            return (
+              <li key={account.email}>
+                <button
+                  type="button"
+                  onClick={() => onPick(account)}
+                  aria-pressed={selected}
                   className={cn(
-                    'size-4 shrink-0 text-brand-blue-ink transition-opacity duration-[70ms]',
-                    selected ? 'opacity-100' : 'opacity-0 group-hover:opacity-60',
+                    'flex min-h-12 w-full items-center gap-3 rounded-xl border px-3 py-2 text-left transition-colors duration-150 outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring focus-visible:outline-solid',
+                    selected
+                      ? 'border-brand-blue bg-brand-blue-subtle'
+                      : 'border-transparent hover:bg-brand-blue-subtle/40',
                   )}
-                />
-              </button>
-            </li>
-          )
-        })}
-      </ul>
+                >
+                  {/* The role's hue; a check once the account is in the form */}
+                  <Avatar aria-hidden="true" className="size-8 after:hidden">
+                    <AvatarFallback
+                      className={cn(
+                        'text-xs font-semibold',
+                        selected
+                          ? 'bg-brand-blue text-brand-blue-foreground'
+                          : (ROLE_TONE[account.role] ?? ''),
+                      )}
+                    >
+                      {selected ? (
+                        <Check className="size-4" strokeWidth={3} />
+                      ) : (
+                        initials(account.name)
+                      )}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="flex min-w-0 flex-1 flex-col @sm:grid @sm:grid-cols-[minmax(0,1fr)_auto] @sm:items-center @sm:gap-x-4">
+                    <span className="text-sm leading-5 font-semibold text-foreground">
+                      <span className="sr-only">Use </span>
+                      {account.name}
+                      <span className="font-normal text-muted-foreground"> · {account.role}</span>
+                    </span>
+                    <span className="text-xs leading-5 break-all text-muted-foreground @sm:col-start-2 @sm:row-start-1 @sm:text-right @sm:break-normal">
+                      {account.email}
+                    </span>
+                    {account.note && (
+                      <span className="text-xs leading-5 text-helper first-letter:uppercase @sm:col-span-2">
+                        {account.note}
+                      </span>
+                    )}
+                  </span>
+                </button>
+              </li>
+            )
+          })}
+        </ul>
+      </CardContent>
 
-      <p className="border-t border-border-faint px-4 py-3 text-xs leading-relaxed text-muted-foreground">
-        {DEMO_AHMED_NOTE}
-      </p>
-    </section>
+      <CardFooter className="flex-col items-stretch gap-2.5 border-t bg-muted py-4 text-sm text-muted-foreground">
+        <p className="flex gap-2.5">
+          <Info className="mt-0.5 size-4 shrink-0 text-info-ink" aria-hidden="true" />
+          <span>{DEMO_AHMED_NOTE}</span>
+        </p>
+        <p className="flex gap-2.5">
+          <Lightbulb className="mt-0.5 size-4 shrink-0 text-warning-ink" aria-hidden="true" />
+          <span>{DEMO_DRIFT_TIP}</span>
+        </p>
+      </CardFooter>
+    </Card>
   )
 }

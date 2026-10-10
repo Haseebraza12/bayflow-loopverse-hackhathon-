@@ -1,4 +1,4 @@
-import { Check, Circle } from 'lucide-react'
+import { Circle, CircleCheck } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 
@@ -21,20 +21,25 @@ export function passwordScore(password: string): PasswordScore {
 
 const LABEL = ['', 'Too short', 'Fair', 'Good', 'Strong'] as const
 const FILL = ['', 'bg-danger-ink', 'bg-warning-ink', 'bg-brand-blue', 'bg-success-ink'] as const
+const INK = ['', 'text-danger-ink', 'text-warning-ink', 'text-brand-blue-ink', 'text-success-ink']
 
-/** Strength meter plus the one hard rule (D10), announced politely as the user types. */
+/**
+ * Strength meter plus the one hard rule (D10). The rule is the field's helper text; the strength
+ * word is announced politely as it changes. Colour is never the only signal: the bar length and the
+ * word say the same thing.
+ */
 export function PasswordStrength({ password, id }: { password: string; id?: string }) {
   const score = passwordScore(password)
   const longEnough = password.length >= PASSWORD_MIN && password.length <= PASSWORD_MAX
 
   return (
-    <div id={id} className="space-y-2">
-      <div className="flex gap-1" aria-hidden="true">
+    <div id={id} className="space-y-2 pt-0.5">
+      <div className="flex gap-1.5" aria-hidden="true">
         {[1, 2, 3, 4].map((step) => (
           <span
             key={step}
             className={cn(
-              'h-1 flex-1 rounded-full transition-colors duration-[240ms] ease-productive',
+              'h-1.5 flex-1 rounded-full transition-colors duration-200 ease-out',
               score >= step ? FILL[score] : 'bg-layer-accent',
             )}
           />
@@ -48,13 +53,14 @@ export function PasswordStrength({ password, id }: { password: string; id?: stri
           )}
         >
           {longEnough ? (
-            <Check className="size-3.5" aria-hidden="true" />
+            <CircleCheck className="size-3.5" aria-hidden="true" />
           ) : (
-            <Circle className="size-3" aria-hidden="true" />
+            <Circle className="size-3.5" aria-hidden="true" />
           )}
           {PASSWORD_MIN} to {PASSWORD_MAX} characters
         </span>
-        <span aria-live="polite" className="text-muted-foreground">
+        <span aria-live="polite" className={cn('font-medium', INK[score])}>
+          {score > 0 && <span className="sr-only">Password strength: </span>}
           {LABEL[score]}
         </span>
       </div>
