@@ -1,489 +1,611 @@
 'use client'
 
-import {
-  ArrowLeft,
-  CheckCircle2,
-  Copy,
-  FileText,
-  Mail,
-  PackageSearch,
-  Phone,
-  Send,
-  User,
-  UserCheck,
-} from 'lucide-react'
-import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
+import { toast } from 'sonner'
 
-import { StatusBadge } from '@/components/status-badge'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { DetailLayout } from '@/components/layout/detail-layout'
+import { PageHeader } from '@/components/layout/page-header'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { useMockStore } from '@/hooks/use-mock-store'
-import { formatPKR } from '@/lib/format'
-import { getBookingById, getTeamMembers, saveBooking, type MockBooking } from '@/lib/mock-data'
+  AssignMemberDialog,
+  ConfirmActionDialog,
+  NoteDialog,
+  ReasonDialog,
+  MEMBER_NOT_ELIGIBLE,
+  type ActionError,
+  type MemberOption,
+} from '@/components/pos/sa-booking/action-dialogs'
+import {
+  buildActivity,
+  historySince,
+  lastEnteredAt,
+  statusSteps,
+} from '@/components/pos/sa-booking/activity'
+import {
+  ActivityCard,
+  QualityCheckCard,
+  RequestCard,
+} from '@/components/pos/sa-booking/booking-sections'
+import { CopyReferenceButton } from '@/components/pos/sa-booking/copy-reference-button'
+import { EDIT_ESTIMATE_BUTTON_ID, EstimateCard } from '@/components/pos/sa-booking/estimate-card'
+import { EstimateEditorSheet } from '@/components/pos/sa-booking/estimate-editor'
+import { estimateTotals, sameItems } from '@/components/pos/sa-booking/estimate-math'
+import { dateTimeText, describeNextStep, slotText } from '@/components/pos/sa-booking/next-step'
+import {
+  MobileActionBar,
+  NextStepCard,
+  type Fact,
+} from '@/components/pos/sa-booking/next-step-card'
+import { BookingDetailSkeleton, BookingNotFound } from '@/components/pos/sa-booking/page-states'
+import { BookingDetailsCard, type Assignee } from '@/components/pos/sa-booking/people-cards'
+import {
+  planActionBar,
+  saAllowedActions,
+  type SaActionSlug,
+} from '@/components/pos/sa-booking/sa-actions'
+import {
+  getSaRecord,
+  lastReadyNotice,
+  recordCancellation,
+  recordEstimateEdit,
+  recordEstimateRevised,
+  recordEstimateSent,
+  recordReadyNotice,
+  recordReturnedToTechnician,
+  type SaActor,
+} from '@/components/pos/sa-booking/sa-records'
+import { StatusBadge } from '@/components/status-badge'
+import { useMockStore, useMockStoreReady } from '@/hooks/use-mock-store'
+import { DEFAULT_SHOP_TZ, formatPKR } from '@/lib/format'
+import {
+  getBookingById,
+  getBookings,
+  getCurrentUser,
+  getInventory,
+  getServices,
+  getShopById,
+  getTeamMembers,
+  saveBooking,
+  type MockBooking,
+  type MockEstimateItem,
+  type MockTeamMember,
+} from '@/lib/mock-data'
+import { BOOKING_STATUS_META, statusPhase, type BookingStatus } from '@/lib/status'
 
+/** The actions that open a dialog; `confirm` and `notify-ready` run at once, edits open a sheet. */
+type DialogSlug = Exclude<SaActionSlug, 'confirm' | 'notify-ready' | 'edit-estimate'>
+
+const MOVED_ON = 'This booking has moved on — we’ve refreshed it.'
+const CONCURRENT_UPDATE: ActionError = {
+  code: 'CONCURRENT_UPDATE',
+  message:
+    'Someone else just updated this booking. We’ve loaded the latest version — please check and try again.',
+}
+
+/** The booking belongs to the shop in the URL (E-35 is shop-scoped: another shop's is a 404). */
+const inShop = (booking: MockBooking, shopId: string) =>
+  booking.shopId === shopId || booking.shopSlug === shopId
+
+/** SA-02 · Booking detail for the Service Advisor and the Owner (spec 10 SA-02, D16). */
 export default function ServiceAdvisorBookingDetailPage() {
   const params = useParams()
   const shopId = typeof params?.shopId === 'string' ? params.shopId : 'shop-lahore-auto-care'
   const bookingId = typeof params?.bookingId === 'string' ? params.bookingId : ''
 
-  const booking = useMockStore(() => getBookingById(bookingId))
+  const ready = useMockStoreReady()
+  const stored = useMockStore(() => getBookingById(bookingId))
+  const record = useMockStore(() => getSaRecord(getBookingById(bookingId)?.id ?? bookingId))
   const team = useMockStore(() => getTeamMembers(shopId))
+  const shopBookings = useMockStore(() => getBookings(shopId))
+  const services = useMockStore(() => getServices(shopId))
+  const inventory = useMockStore(() => getInventory(shopId))
+  const shop = useMockStore(() => getShopById(shopId))
+  const user = useMockStore(getCurrentUser)
 
-  const [copied, setCopied] = useState(false)
-  const [assignTechOpen, setAssignTechOpen] = useState(false)
-  const [assignPartsOpen, setAssignPartsOpen] = useState(false)
-  const [selectedTech, setSelectedTech] = useState('usr-imran')
-  const [selectedPartsPerson, setSelectedPartsPerson] = useState('usr-usman')
-  const [successToast, setSuccessToast] = useState<string | null>(null)
+  /** The open dialog and the booking's `updatedAt` when it opened (`expected_version`, D30). */
+  const [dialog, setDialog] = useState<{ slug: DialogSlug; version: string } | null>(null)
+  const [editor, setEditor] = useState<{ open: boolean; version: string }>({
+    open: false,
+    version: '',
+  })
+  const headingRef = useRef<HTMLHeadingElement>(null)
+  /** Where focus goes once a dialog has closed after an action (spec 09 §4.6 rule 4). */
+  const afterDialog = useRef<'step' | 'editor' | null>(null)
+  const editorBackToStep = useRef(false)
 
   const base = `/pos/shops/${encodeURIComponent(shopId)}`
+  const booking = stored && inShop(stored, shopId) ? stored : undefined
 
-  if (!booking) {
-    return (
-      <div className="space-y-4 py-16 text-center">
-        <h1 className="text-xl font-bold text-foreground">Booking not found</h1>
-        <Button asChild className="rounded-full bg-brand-blue text-xs text-white">
-          <Link href={`${base}/bookings`}>Back to Bookings Queue</Link>
-        </Button>
-      </div>
+  if (!ready) return <BookingDetailSkeleton />
+  if (!booking) return <BookingNotFound backHref={`${base}/bookings`} />
+
+  const timeZone = shop?.timezone ?? DEFAULT_SHOP_TZ
+  const actor: SaActor = {
+    name: user.name,
+    role: user.role === 'OWNER' ? 'OWNER' : 'SERVICE_ADVISOR',
+  }
+  const memberById = (id?: string): MockTeamMember | undefined =>
+    id ? team.find((member) => member.id === id) : undefined
+  const technicianMember = memberById(booking.assignedTechnicianId)
+  const partsMember = memberById(booking.assignedPartsPersonId)
+  const qcMember = memberById(booking.qcInspectorId)
+  const technician = booking.assignedTechnicianName ?? technicianMember?.name
+  const partsPerson =
+    partsMember?.name ?? (booking.assignedPartsPersonId ? 'Unknown member' : undefined)
+  const qcInspector = qcMember?.name ?? (booking.qcInspectorId ? 'Unknown member' : undefined)
+
+  const allowed = saAllowedActions(booking.status)
+  const readyNotice = lastReadyNotice(record)
+  const plan = planActionBar(allowed, { readyNotified: Boolean(readyNotice) })
+  const cancellation = booking.status === 'CANCELLED' ? record.cancellation : undefined
+  const step = describeNextStep(booking, {
+    technician,
+    partsPerson,
+    qcInspector,
+    estimateVersion: record.estimateVersion,
+    saDraftOpen: record.saDraftOpen,
+    readyNotified: Boolean(readyNotice),
+    cancellation,
+    timeZone,
+  })
+  const activity = buildActivity(booking, record, { technician, partsPerson })
+  const steps = statusSteps(booking, record)
+  const when = (status: BookingStatus) => {
+    const at = lastEnteredAt(steps, status)
+    return at ? dateTimeText(at, timeZone, ' at ') : undefined
+  }
+  const estimateTimes = {
+    submitted: when('ESTIMATE_REVIEW'),
+    sent: when('AWAITING_CUSTOMER'),
+    approved: when('ESTIMATE_APPROVED'),
+    declined: when('ESTIMATE_REJECTED'),
+  }
+
+  const facts: Fact[] = [{ label: 'Slot', value: slotText(booking) }]
+  if (booking.estimateItems.length > 0) {
+    facts.push({ label: 'Estimate', value: formatPKR(booking.estimateTotal) })
+  }
+  if (booking.paidAmount > 0) facts.push({ label: 'Paid', value: formatPKR(booking.paidAmount) })
+  if (readyNotice) {
+    facts.push({ label: 'Customer notified', value: dateTimeText(readyNotice.at, timeZone) })
+  }
+  if (booking.status === 'COMPLETED') {
+    facts.push({ label: 'Completed', value: dateTimeText(booking.updatedAt, timeZone) })
+  }
+
+  const assignees: Assignee[] = [
+    { role: 'Technician', name: technician, inactive: technicianMember?.is_active === false },
+    { role: 'Parts person', name: partsPerson, inactive: partsMember?.is_active === false },
+    { role: 'QC inspector', name: qcInspector, inactive: qcMember?.is_active === false },
+  ]
+
+  // Assign pickers: the shop's active members of the role, with their open jobs (E-25).
+  const technicians: MemberOption[] = team
+    .filter((member) => member.role === 'TECHNICIAN' && member.is_active)
+    .map((member) => ({
+      id: member.id,
+      name: member.name,
+      openJobs: shopBookings.filter(
+        (b) => b.assignedTechnicianId === member.id && !BOOKING_STATUS_META[b.status].terminal,
+      ).length,
+    }))
+  const partsPeople: MemberOption[] = team
+    .filter((member) => member.role === 'PARTS_PERSON' && member.is_active)
+    .map((member) => ({
+      id: member.id,
+      name: member.name,
+      openJobs: shopBookings.filter(
+        (b) => b.assignedPartsPersonId === member.id && statusPhase(b.status) === 'PARTS',
+      ).length,
+    }))
+
+  const reference = booking.reference
+  const customer = booking.customerName
+  const vehicle = `${booking.vehicleMake} ${booking.vehicleModel}`
+  const version = record.estimateVersion
+
+  /* -------------------------------------------------------------------- actions ---------- */
+
+  const focusNextStep = () => requestAnimationFrame(() => headingRef.current?.focus())
+
+  const onDialogCloseAutoFocus = (event: Event) => {
+    const next = afterDialog.current
+    afterDialog.current = null
+    if (!next) return
+    event.preventDefault()
+    if (next === 'editor') setEditor((current) => ({ ...current, open: true }))
+    else headingRef.current?.focus()
+  }
+
+  // Back to "Edit estimate" (Safari never focused it on click), or to the next step after a
+  // revision opened the editor.
+  const onEditorCloseAutoFocus = (event: Event) => {
+    event.preventDefault()
+    const editButton = editorBackToStep.current
+      ? null
+      : document.getElementById(EDIT_ESTIMATE_BUTTON_ID)
+    editorBackToStep.current = false
+    ;(editButton ?? headingRef.current)?.focus()
+  }
+
+  /**
+   * Runs `slug` on the latest stored booking, as the API would (spec 08): a booking that has moved
+   * on refreshes and closes the dialog (`INVALID_TRANSITION`); one changed since the dialog opened
+   * keeps the dialog and its input (`CONCURRENT_UPDATE`). `apply` returns the success toast.
+   */
+  const run = (
+    slug: SaActionSlug,
+    apply: (latest: MockBooking) => string,
+    expectedVersion?: string,
+  ): ActionError | null => {
+    const latest = getBookingById(booking.id)
+    if (!latest || !saAllowedActions(latest.status).includes(slug)) {
+      afterDialog.current = 'step'
+      setDialog(null)
+      setEditor((current) => ({ ...current, open: false }))
+      toast.error(MOVED_ON)
+      return null
+    }
+    if (expectedVersion !== undefined && latest.updatedAt !== expectedVersion) {
+      setDialog((current) => current && { ...current, version: latest.updatedAt })
+      return CONCURRENT_UPDATE
+    }
+    toast.success(apply(latest))
+    afterDialog.current = 'step'
+    setDialog(null)
+    return null
+  }
+
+  const onAction = (slug: SaActionSlug) => {
+    switch (slug) {
+      case 'confirm':
+        run('confirm', (latest) => {
+          saveBooking({ ...latest, status: 'CONFIRMED' })
+          return `${latest.reference} confirmed`
+        })
+        afterDialog.current = null
+        focusNextStep()
+        return
+      case 'notify-ready':
+        run('notify-ready', (latest) => {
+          recordReadyNotice(latest.id, actor)
+          return `Pick-up notice sent to ${latest.customerName}`
+        })
+        afterDialog.current = null
+        focusNextStep()
+        return
+      case 'edit-estimate':
+        setEditor({ open: true, version: booking.updatedAt })
+        return
+      default:
+        setDialog({ slug, version: booking.updatedAt })
+    }
+  }
+
+  const expected = dialog?.version
+
+  const assign = (role: 'TECHNICIAN' | 'PARTS_PERSON', memberId: string): ActionError | null => {
+    const member = getTeamMembers(shopId).find(
+      (candidate) => candidate.id === memberId && candidate.role === role && candidate.is_active,
+    )
+    if (!member) return MEMBER_NOT_ELIGIBLE
+    return role === 'TECHNICIAN'
+      ? run(
+          'assign-technician',
+          (latest) => {
+            saveBooking({
+              ...latest,
+              status: 'ASSIGNED',
+              assignedTechnicianId: member.id,
+              assignedTechnicianName: member.name,
+            })
+            return `${member.name} assigned to ${latest.reference}`
+          },
+          expected,
+        )
+      : run(
+          'assign-parts-person',
+          (latest) => {
+            saveBooking({ ...latest, status: 'PARTS_PENDING', assignedPartsPersonId: member.id })
+            return `${member.name} assigned to ${latest.reference}`
+          },
+          expected,
+        )
+  }
+
+  const sendEstimate = (): ActionError | null => {
+    const latest = getBookingById(booking.id)
+    if (latest?.status === 'ESTIMATE_REVIEW' && latest.estimateItems.length === 0) {
+      return { code: 'ESTIMATE_EMPTY', message: 'Add at least one part or labour line first.' }
+    }
+    return run(
+      'send-estimate',
+      (current) => {
+        const sent = getSaRecord(current.id).estimateVersion
+        recordEstimateSent(current.id)
+        saveBooking({ ...current, status: 'AWAITING_CUSTOMER' })
+        return `Estimate v${sent} sent to ${current.customerName}`
+      },
+      expected,
     )
   }
 
-  const technicians = team.filter((m) => m.role === 'TECHNICIAN' && m.is_active)
-  const partsPeople = team.filter((m) => m.role === 'PARTS_PERSON' && m.is_active)
+  const endBooking = (kind: 'decline' | 'cancel', reason: string): ActionError | null =>
+    run(
+      kind,
+      (latest) => {
+        recordCancellation(latest.id, actor, {
+          kind,
+          reason,
+          fromStatus: latest.status,
+          previousUpdatedAt: latest.updatedAt,
+        })
+        saveBooking({ ...latest, status: 'CANCELLED' })
+        return `${latest.reference} ${kind === 'decline' ? 'declined' : 'cancelled'}`
+      },
+      expected,
+    )
 
-  const handleCopyRef = () => {
-    navigator.clipboard.writeText(booking.reference)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
-
-  // SA Actions
-  const handleConfirmIntake = () => {
-    const updated: MockBooking = {
-      ...booking,
-      status: 'CONFIRMED',
+  const reviseEstimate = (): ActionError | null => {
+    let revisedAt = ''
+    const error = run(
+      'revise-estimate',
+      (latest) => {
+        const history = historySince(latest, getSaRecord(latest.id).loops ?? [])
+        const draft = recordEstimateRevised(latest.id, actor, history).estimateVersion
+        const next: MockBooking = { ...latest, status: 'ESTIMATE_REVIEW' }
+        saveBooking(next)
+        revisedAt = next.updatedAt
+        return `Draft v${draft} created`
+      },
+      expected,
+    )
+    if (!error && revisedAt) {
+      // Spec 09 §4.6: "Then opens the editor" — once the dialog has closed.
+      afterDialog.current = 'editor'
+      editorBackToStep.current = true
+      setEditor({ open: false, version: revisedAt })
     }
-    saveBooking(updated)
-    setSuccessToast(`Intake confirmed for ${booking.reference}. Ready for technician assignment.`)
+    return error
   }
 
-  const handleAssignTechnician = () => {
-    const tech = technicians.find((t) => t.id === selectedTech) || technicians[0]
-    const updated: MockBooking = {
-      ...booking,
-      status: 'ASSIGNED',
-      assignedTechnicianId: tech?.id || 'usr-imran',
-      assignedTechnicianName: tech?.name || 'Imran',
+  const returnToTechnician = (note: string): ActionError | null =>
+    run(
+      'return-to-technician',
+      (latest) => {
+        const history = historySince(latest, getSaRecord(latest.id).loops ?? [])
+        recordReturnedToTechnician(latest.id, actor, note, history)
+        saveBooking({ ...latest, status: 'INSPECTING' })
+        return `Returned to ${latest.assignedTechnicianName ?? 'the technician'}`
+      },
+      expected,
+    )
+
+  const complete = (): ActionError | null =>
+    run(
+      'complete',
+      (latest) => {
+        saveBooking({ ...latest, status: 'COMPLETED', paidAmount: latest.estimateTotal })
+        return `${latest.reference} completed`
+      },
+      expected,
+    )
+
+  const saveEstimate = (items: MockEstimateItem[]): ActionError | null => {
+    const latest = getBookingById(booking.id)
+    if (!latest || !saAllowedActions(latest.status).includes('edit-estimate')) {
+      setEditor((current) => ({ ...current, open: false }))
+      toast.error('This estimate can’t be edited any more.')
+      return null
     }
-    saveBooking(updated)
-    setAssignTechOpen(false)
-    setSuccessToast(`Assigned ${tech?.name || 'Technician'} to ${booking.reference}.`)
-  }
-
-  const handleSendEstimateToCustomer = () => {
-    const updated: MockBooking = {
-      ...booking,
-      status: 'AWAITING_CUSTOMER',
+    if (latest.updatedAt !== editor.version) {
+      setEditor((current) => ({ ...current, version: latest.updatedAt }))
+      return CONCURRENT_UPDATE
     }
-    saveBooking(updated)
-    setSuccessToast(`Inspection estimate sent to customer (${booking.customerEmail}).`)
-  }
-
-  const handleAssignParts = () => {
-    const partsPerson = partsPeople.find((p) => p.id === selectedPartsPerson) || partsPeople[0]
-    const updated: MockBooking = {
-      ...booking,
-      status: 'PARTS_PENDING',
-      assignedPartsPersonId: partsPerson?.id || 'usr-usman',
+    setEditor((current) => ({ ...current, open: false }))
+    if (sameItems(items, latest.estimateItems)) {
+      toast('No changes to save')
+      return null
     }
-    saveBooking(updated)
-    setAssignPartsOpen(false)
-    setSuccessToast(`Estimate approved! Job sent to Parts Specialist (${partsPerson?.name}).`)
+    const saved = recordEstimateEdit(latest.id, actor).estimateVersion
+    saveBooking({ ...latest, estimateItems: items, estimateTotal: estimateTotals(items).total })
+    toast.success(`Estimate saved (v${saved})`)
+    return null
   }
 
-  const handleNotifyReady = () => {
-    setSuccessToast(`Notification dispatched: Vehicle is ready for customer handover!`)
+  const closeDialog = (open: boolean) => {
+    if (!open) setDialog(null)
   }
+  const openSlug = dialog?.slug
 
-  const handleCompleteBooking = () => {
-    const updated: MockBooking = {
-      ...booking,
-      status: 'COMPLETED',
-      paidAmount: booking.estimateTotal,
-    }
-    saveBooking(updated)
-    setSuccessToast(`Booking ${booking.reference} marked COMPLETED and closed.`)
-  }
+  /* -------------------------------------------------------------------- page ------------- */
 
   return (
-    <div className="space-y-6 pb-16">
-      {/* Top Breadcrumb */}
-      <div>
-        <Link
-          href={`${base}/bookings`}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-brand-blue-ink"
-        >
-          <ArrowLeft className="size-3.5" />
-          <span>Back to Bookings Queue</span>
-        </Link>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        back={{ href: `${base}/bookings`, label: 'Bookings' }}
+        title={<span className="font-mono tracking-tight">{reference}</span>}
+        badges={
+          <>
+            <CopyReferenceButton reference={reference} />
+            <StatusBadge status={booking.status} audience="staff" size="md" />
+          </>
+        }
+        description={
+          <>
+            {customer} · {booking.vehicleYear} {vehicle} ·{' '}
+            <span className="font-mono whitespace-nowrap">{booking.licensePlate}</span>
+          </>
+        }
+      />
 
-      {successToast && (
-        <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-xs font-bold text-emerald-950 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-100">
-          <CheckCircle2 className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
-          <span>{successToast}</span>
-        </div>
-      )}
+      <DetailLayout
+        aside={
+          <>
+            <NextStepCard
+              status={booking.status}
+              step={step}
+              plan={plan}
+              onAction={onAction}
+              facts={facts}
+              headingRef={headingRef}
+              note={
+                cancellation ? (
+                  <blockquote className="rounded-xl bg-layer px-4 py-3 text-sm text-foreground">
+                    “{cancellation.reason}”
+                  </blockquote>
+                ) : undefined
+              }
+            />
+            <BookingDetailsCard booking={booking} assignees={assignees} />
+          </>
+        }
+      >
+        <RequestCard booking={booking} services={services} timeZone={timeZone} />
+        <EstimateCard
+          booking={booking}
+          version={version}
+          technician={technician}
+          saDraftOpen={record.saDraftOpen}
+          times={estimateTimes}
+          onEdit={allowed.includes('edit-estimate') ? () => onAction('edit-estimate') : undefined}
+        />
+        {booking.qcPassed !== undefined || booking.qcNotes ? (
+          <QualityCheckCard
+            passed={booking.qcPassed}
+            notes={booking.qcNotes}
+            inspector={qcInspector}
+          />
+        ) : null}
+        <ActivityCard entries={activity} timeZone={timeZone} />
+      </DetailLayout>
 
-      {/* Main Header & Action Bar */}
-      <div className="space-y-4 rounded-2xl border border-border bg-card p-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-xl font-semibold text-brand-blue-ink sm:text-2xl">
-                {booking.reference}
-              </span>
-              <button
-                type="button"
-                onClick={handleCopyRef}
-                className="rounded-full border border-border p-1 text-subtle-foreground hover:text-muted-foreground"
-              >
-                <Copy className="size-3.5" />
-              </button>
-              {copied && (
-                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
-                  Copied!
-                </span>
-              )}
-              <StatusBadge status={booking.status} audience="staff" size="md" />
-            </div>
+      <MobileActionBar plan={plan} onAction={onAction} />
 
-            <p className="text-sm font-bold text-foreground">
-              {booking.customerName} •{' '}
-              <span className="font-mono text-muted-foreground">{booking.licensePlate}</span> (
-              {booking.vehicleYear} {booking.vehicleMake} {booking.vehicleModel})
-            </p>
-            <p className="text-xs text-helper">
-              Scheduled: {booking.scheduledDate} at {booking.scheduledTime}
-            </p>
+      <AssignMemberDialog
+        open={openSlug === 'assign-technician'}
+        onOpenChange={closeDialog}
+        onCloseAutoFocus={onDialogCloseAutoFocus}
+        title={`Assign a technician to ${reference}`}
+        description={
+          <>
+            Choose who inspects {customer}&apos;s {vehicle} (
+            <span className="font-mono whitespace-nowrap">{booking.licensePlate}</span>). The job
+            appears in their queue straight away.
+          </>
+        }
+        groupLabel="Technicians"
+        members={technicians}
+        defaultMemberId="usr-imran"
+        emptyMessage="This shop has no active technicians. The Owner can add one in Team."
+        onConfirm={(memberId) => assign('TECHNICIAN', memberId)}
+      />
+      <AssignMemberDialog
+        open={openSlug === 'assign-parts-person'}
+        onOpenChange={closeDialog}
+        onCloseAutoFocus={onDialogCloseAutoFocus}
+        title={`Assign a parts person to ${reference}`}
+        description="They check stock for the approved parts, order anything missing and reserve the rest for this job."
+        groupLabel="Parts people"
+        members={partsPeople}
+        defaultMemberId="usr-usman"
+        emptyMessage="This shop has no active parts people. The Owner can add one in Team."
+        onConfirm={(memberId) => assign('PARTS_PERSON', memberId)}
+      />
+      <ConfirmActionDialog
+        open={openSlug === 'send-estimate'}
+        onOpenChange={closeDialog}
+        onCloseAutoFocus={onDialogCloseAutoFocus}
+        title={`Send estimate v${version} for ${reference}?`}
+        description={`${customer} is notified and can approve or decline it from their bookings.`}
+        confirmLabel="Send to customer"
+        onConfirm={sendEstimate}
+      >
+        <dl className="space-y-1.5 rounded-xl bg-layer p-4 text-sm">
+          <div className="flex justify-between gap-4">
+            <dt className="text-muted-foreground">Customer</dt>
+            <dd className="min-w-0 text-right text-foreground">
+              {customer}
+              <span className="block text-xs break-all text-helper">{booking.customerEmail}</span>
+            </dd>
           </div>
-
-          {/* Contextual Primary Action Button */}
-          <div className="flex flex-wrap items-center gap-2">
-            {booking.status === 'PENDING' && (
-              <Button
-                onClick={handleConfirmIntake}
-                className="h-9 rounded-full bg-brand-blue px-4 text-xs font-bold text-white hover:bg-blue-700"
-              >
-                Confirm Booking Intake
-              </Button>
-            )}
-
-            {booking.status === 'CONFIRMED' && (
-              <Button
-                onClick={() => setAssignTechOpen(true)}
-                className="h-9 bg-brand-blue px-4 text-xs font-bold text-white hover:bg-blue-700"
-              >
-                <UserCheck className="mr-1.5 size-3.5" />
-                Assign Technician
-              </Button>
-            )}
-
-            {booking.status === 'ESTIMATE_REVIEW' && (
-              <Button
-                onClick={handleSendEstimateToCustomer}
-                className="h-9 rounded-full bg-brand-green px-4 text-xs font-bold text-white hover:bg-emerald-600"
-              >
-                <Send className="mr-1.5 size-3.5" />
-                Send Estimate to Customer
-              </Button>
-            )}
-
-            {booking.status === 'ESTIMATE_APPROVED' && (
-              <Button
-                onClick={() => setAssignPartsOpen(true)}
-                className="h-9 bg-brand-blue px-4 text-xs font-bold text-white hover:bg-blue-700"
-              >
-                <PackageSearch className="mr-1.5 size-3.5" />
-                Assign Parts Specialist
-              </Button>
-            )}
-
-            {booking.status === 'READY_FOR_PICKUP' && (
-              <>
-                <Button
-                  onClick={handleNotifyReady}
-                  variant="outline"
-                  className="h-9 rounded-full text-xs font-semibold"
-                >
-                  <Phone className="mr-1.5 size-3.5 text-brand-blue-ink" />
-                  Notify Customer Ready
-                </Button>
-                <Button
-                  onClick={handleCompleteBooking}
-                  className="h-9 rounded-full bg-emerald-600 px-4 text-xs font-bold text-white hover:bg-emerald-700"
-                >
-                  Complete & Settle
-                </Button>
-              </>
-            )}
+          <div className="flex justify-between gap-4">
+            <dt className="text-muted-foreground">Lines</dt>
+            <dd className="text-foreground tabular-nums">{booking.estimateItems.length}</dd>
           </div>
-        </div>
-      </div>
-
-      {/* Main Grid: Estimate & Assignment Details */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Left Column (2 spans): Estimate & Inspection Details */}
-        <div className="space-y-6 lg:col-span-2">
-          {/* Estimate Table */}
-          <Card className="overflow-hidden border-border">
-            <CardHeader className="flex flex-row items-center justify-between border-b border-border-faint bg-muted/80 p-4">
-              <CardTitle className="flex items-center gap-1.5 text-xs font-bold tracking-[0.32px] text-helper">
-                <FileText className="size-4 text-brand-blue-ink" />
-                Technician Inspection & Estimate ({booking.estimateItems.length} Items)
-              </CardTitle>
-              {booking.estimateApproved ? (
-                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200">
-                  Customer Approved
-                </span>
-              ) : (
-                <span className="font-mono text-xs font-semibold text-helper">
-                  Status: {booking.status}
-                </span>
-              )}
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="border-b border-border bg-muted text-[11px] font-bold text-subtle-foreground">
-                    <tr>
-                      <th className="px-5 py-2.5">Line Description</th>
-                      <th className="px-4 py-2.5">Type</th>
-                      <th className="px-4 py-2.5 text-center">Qty</th>
-                      <th className="px-4 py-2.5 text-right">Unit Price</th>
-                      <th className="px-5 py-2.5 text-right">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border-faint text-muted-foreground">
-                    {booking.estimateItems.map((item) => (
-                      <tr key={item.id}>
-                        <td className="px-5 py-3 font-semibold text-foreground">
-                          {item.description}
-                        </td>
-                        <td className="px-4 py-3">
-                          <span
-                            className={`py-0.2 rounded px-1.5 text-[10px] font-bold ${
-                              item.type === 'PART'
-                                ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300'
-                                : 'bg-secondary text-muted-foreground'
-                            }`}
-                          >
-                            {item.type}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-center">{item.quantity}</td>
-                        <td className="px-4 py-3 text-right">{formatPKR(item.unit_price)}</td>
-                        <td className="px-5 py-3 text-right font-bold text-foreground">
-                          {formatPKR(item.total)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot className="border-t border-border bg-muted/60 font-bold">
-                    <tr>
-                      <td colSpan={4} className="px-5 py-3 text-right text-muted-foreground">
-                        Grand Total
-                      </td>
-                      <td className="px-5 py-3 text-right text-sm font-semibold text-brand-blue-ink">
-                        {formatPKR(booking.estimateTotal)}
-                      </td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-
-              {booking.inspectionNotes && (
-                <div className="border-t border-border-faint bg-blue-50/20 p-4 text-xs dark:bg-blue-950/30">
-                  <span className="font-bold text-foreground">Technician Findings:</span>
-                  <p className="mt-1 leading-relaxed text-muted-foreground italic">
-                    &quot;{booking.inspectionNotes}&quot;
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Right Column: Customer & Staff Assignment Card */}
-        <div className="space-y-6">
-          <Card className="border-border">
-            <CardHeader className="border-b border-border-faint pb-3">
-              <CardTitle className="flex items-center gap-1.5 text-xs font-bold tracking-[0.32px] text-helper">
-                <User className="size-3.5 text-brand-blue-ink" />
-                Customer Contact
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 pt-4 text-xs">
-              <div>
-                <p className="text-sm font-bold text-foreground">{booking.customerName}</p>
-                <div className="mt-1 flex items-center gap-1.5 text-muted-foreground">
-                  <Phone className="size-3.5 text-subtle-foreground" />
-                  <a
-                    href={`tel:${booking.customerPhone}`}
-                    className="font-medium text-brand-blue-ink hover:underline"
-                  >
-                    {booking.customerPhone}
-                  </a>
-                </div>
-                <div className="mt-0.5 flex items-center gap-1.5 text-helper">
-                  <Mail className="size-3.5 text-subtle-foreground" />
-                  <span>{booking.customerEmail}</span>
-                </div>
-              </div>
-
-              <div className="space-y-1 border-t border-border-faint pt-3">
-                <span className="text-[10px] font-bold text-subtle-foreground">
-                  Assigned Technician
-                </span>
-                <p className="font-bold text-foreground">
-                  {booking.assignedTechnicianName || 'Not yet assigned'}
-                </p>
-              </div>
-
-              <div className="space-y-1 border-t border-border-faint pt-2">
-                <span className="text-[10px] font-bold text-subtle-foreground">Vehicle</span>
-                <p className="font-mono font-bold text-foreground">{booking.licensePlate}</p>
-                <p className="text-helper">
-                  {booking.vehicleYear} {booking.vehicleMake} {booking.vehicleModel}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      {/* Assign Technician Dialog */}
-      <Dialog open={assignTechOpen} onOpenChange={setAssignTechOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-base font-bold text-foreground">
-              Assign Workshop Technician
-            </DialogTitle>
-            <DialogDescription className="text-xs text-helper">
-              Select a certified technician to inspect {booking.vehicleMake} {booking.vehicleModel}{' '}
-              ({booking.licensePlate}).
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3 py-2">
-            {technicians.map((tech) => (
-              <div
-                key={tech.id}
-                onClick={() => setSelectedTech(tech.id)}
-                className={`flex cursor-pointer items-center justify-between rounded-xl border p-3 text-xs transition-colors ${
-                  selectedTech === tech.id
-                    ? 'border-brand-blue bg-blue-50/50 dark:bg-blue-950/30'
-                    : 'border-border hover:border-border-medium'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex size-8 items-center justify-center rounded-full bg-blue-100 font-bold text-brand-blue-ink dark:bg-blue-900/40">
-                    {tech.name.charAt(0)}
-                  </div>
-                  <div>
-                    <p className="font-bold text-foreground">{tech.name}</p>
-                    <p className="text-[11px] text-helper">{tech.email}</p>
-                  </div>
-                </div>
-                {selectedTech === tech.id && (
-                  <CheckCircle2 className="size-4 text-brand-blue-ink" />
-                )}
-              </div>
-            ))}
+          <div className="mt-3 flex items-baseline justify-between gap-4 border-t border-border pt-3">
+            <dt className="font-semibold text-foreground">Grand total</dt>
+            <dd className="text-lg font-bold text-foreground tabular-nums">
+              {formatPKR(booking.estimateTotal)}
+            </dd>
           </div>
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button
-              variant="outline"
-              onClick={() => setAssignTechOpen(false)}
-              className="text-xs font-semibold"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleAssignTechnician}
-              className="rounded-full bg-brand-blue text-xs font-bold text-white"
-            >
-              Confirm Assignment
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        </dl>
+      </ConfirmActionDialog>
+      <ConfirmActionDialog
+        open={openSlug === 'revise-estimate'}
+        onOpenChange={closeDialog}
+        onCloseAutoFocus={onDialogCloseAutoFocus}
+        title={`Revise the estimate for ${reference}?`}
+        description={`A new draft (v${version + 1}) is made from the declined estimate, and the editor opens so you can change it before you send it again.`}
+        confirmLabel="Revise estimate"
+        onConfirm={reviseEstimate}
+      />
+      <NoteDialog
+        open={openSlug === 'return-to-technician'}
+        onOpenChange={closeDialog}
+        onCloseAutoFocus={onDialogCloseAutoFocus}
+        title={`Return ${reference} to ${technician ?? 'the technician'}?`}
+        description={`${technician ?? 'The technician'} gets a new draft (v${version + 1}) made from the declined estimate, re-inspects the car and submits it again.`}
+        noteLabel={`Note for ${technician ?? 'the technician'} (optional)`}
+        placeholder="e.g. The customer wants to skip the AC service"
+        confirmLabel={`Return to ${technician ?? 'technician'}`}
+        onConfirm={returnToTechnician}
+      />
+      <ConfirmActionDialog
+        open={openSlug === 'complete'}
+        onOpenChange={closeDialog}
+        onCloseAutoFocus={onDialogCloseAutoFocus}
+        title={`Complete ${reference}?`}
+        description={`Confirm that ${customer} has collected the ${vehicle}. The booking closes and ${formatPKR(booking.estimateTotal)} is recorded as paid.`}
+        confirmLabel="Complete booking"
+        onConfirm={complete}
+      />
+      <ReasonDialog
+        open={openSlug === 'decline'}
+        onOpenChange={closeDialog}
+        onCloseAutoFocus={onDialogCloseAutoFocus}
+        title={`Decline booking ${reference}?`}
+        description={`${customer} is told the booking was declined, with your reason, and the slot is freed.`}
+        reasonLabel="Reason for the customer"
+        placeholder="e.g. We can't take the car in that day. Please book another slot."
+        confirmLabel="Decline booking"
+        keepLabel="Keep booking"
+        onConfirm={(reason) => endBooking('decline', reason)}
+      />
+      <ReasonDialog
+        open={openSlug === 'cancel'}
+        onOpenChange={closeDialog}
+        onCloseAutoFocus={onDialogCloseAutoFocus}
+        title={`Cancel booking ${reference}?`}
+        description={`${customer} is told the booking was cancelled, with your reason. Reserved parts go back to stock and the slot is freed.`}
+        reasonLabel="Reason for the customer"
+        placeholder="e.g. The customer called to cancel."
+        confirmLabel="Cancel booking"
+        keepLabel="Keep booking"
+        onConfirm={(reason) => endBooking('cancel', reason)}
+      />
 
-      {/* Assign Parts Person Dialog */}
-      <Dialog open={assignPartsOpen} onOpenChange={setAssignPartsOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-base font-bold text-foreground">
-              Assign Parts Specialist
-            </DialogTitle>
-            <DialogDescription className="text-xs text-helper">
-              Route approved parts list to the inventory specialist to check availability or order
-              stock.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3 py-2">
-            {partsPeople.map((person) => (
-              <div
-                key={person.id}
-                onClick={() => setSelectedPartsPerson(person.id)}
-                className={`flex cursor-pointer items-center justify-between rounded-xl border p-3 text-xs transition-colors ${
-                  selectedPartsPerson === person.id
-                    ? 'border-brand-blue bg-blue-50/50 dark:bg-blue-950/30'
-                    : 'border-border hover:border-border-medium'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex size-8 items-center justify-center rounded-full bg-blue-100 font-bold text-brand-blue-ink dark:bg-blue-900/40">
-                    {person.name.charAt(0)}
-                  </div>
-                  <div>
-                    <p className="font-bold text-foreground">{person.name}</p>
-                    <p className="text-[11px] text-helper">{person.email}</p>
-                  </div>
-                </div>
-                {selectedPartsPerson === person.id && (
-                  <CheckCircle2 className="size-4 text-brand-blue-ink" />
-                )}
-              </div>
-            ))}
-          </div>
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button
-              variant="outline"
-              onClick={() => setAssignPartsOpen(false)}
-              className="text-xs font-semibold"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleAssignParts}
-              className="rounded-full bg-brand-blue text-xs font-bold text-white"
-            >
-              Send to Parts Specialist
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <EstimateEditorSheet
+        open={editor.open}
+        onOpenChange={(open) => setEditor((current) => ({ ...current, open }))}
+        onCloseAutoFocus={onEditorCloseAutoFocus}
+        booking={booking}
+        version={version}
+        saDraftOpen={record.saDraftOpen}
+        technician={technician}
+        inventory={inventory}
+        onSave={saveEstimate}
+      />
     </div>
   )
 }
