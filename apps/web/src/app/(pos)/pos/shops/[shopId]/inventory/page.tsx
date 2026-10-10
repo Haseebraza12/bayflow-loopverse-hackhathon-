@@ -1,410 +1,400 @@
 'use client'
 
-import { CheckCircle2, Plus, Search, SlidersHorizontal } from 'lucide-react'
-import { useParams } from 'next/navigation'
-import { useState, type FormEvent } from 'react'
-
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { useMockStore } from '@/hooks/use-mock-store'
-import { formatPKR } from '@/lib/format'
-import { adjustPartStock, getInventory, savePart, type MockPart } from '@/lib/mock-data'
+  Banknote,
+  Boxes,
+  CheckCheck,
+  PackageCheck,
+  PackageX,
+  Plus,
+  SearchX,
+  Truck,
+} from 'lucide-react'
+import { useParams } from 'next/navigation'
+import { useRef, useState } from 'react'
+import { toast } from 'sonner'
 
+import { DataTableCard, TableSearch } from '@/components/layout/data-table-card'
+import { EmptyState } from '@/components/layout/empty-state'
+import { PageHeader } from '@/components/layout/page-header'
+import { StatCard, type StatTone } from '@/components/layout/stat-card'
+import { AdjustStockSheet } from '@/components/pos/inventory/adjust-stock-sheet'
+import {
+  adjustmentError,
+  categoriesOf,
+  countLabel,
+  filterParts,
+  inventorySummary,
+  SEARCH_MAX_LENGTH,
+  skuTakenBy,
+  type InventorySummary,
+  type StockFilter,
+} from '@/components/pos/inventory/inventory-model'
+import { InventorySkeleton } from '@/components/pos/inventory/inventory-skeleton'
+import { PartSheet, type PartDraft } from '@/components/pos/inventory/part-sheet'
+import { PartsList } from '@/components/pos/inventory/parts-list'
+import { Button } from '@/components/ui/button'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import { useMockStore, useMockStoreReady } from '@/hooks/use-mock-store'
+import { formatPKR } from '@/lib/format'
+import {
+  adjustPartStock,
+  getInventory,
+  getPurchaseOrders,
+  savePart,
+  type MockPart,
+} from '@/lib/mock-data'
+
+/** A sheet's state; `session` changes on every opening so its form starts again. */
+interface SheetState {
+  open: boolean
+  partId: string | null
+  session: number
+}
+
+const CLOSED: SheetState = { open: false, partId: null, session: 0 }
+
+const FILTER_CAPTION: Record<StockFilter, string> = {
+  all: 'Parts',
+  low: 'Parts running low',
+  out: 'Parts out of stock',
+}
+
+/**
+ * PP-03 Inventory (spec 10): the shop's parts with on hand, reserved and available stock, the
+ * reorder level, unit cost and stock state (D45); search and stock filters; a part create / edit
+ * sheet and a stock adjustment sheet (D44, D82).
+ */
 export default function InventoryManagementPage() {
   const params = useParams()
   const shopId = typeof params?.shopId === 'string' ? params.shopId : 'shop-lahore-auto-care'
 
+  const ready = useMockStoreReady()
   const inventory = useMockStore(() => getInventory(shopId))
+  const purchaseOrders = useMockStore(() => getPurchaseOrders(shopId))
 
-  const [search, setSearch] = useState('')
-  const [filterState, setFilterState] = useState<'ALL' | 'LOW' | 'OUT'>('ALL')
+  const [query, setQuery] = useState('')
+  const [filter, setFilter] = useState<StockFilter>('all')
+  const [partSheet, setPartSheet] = useState<SheetState>(CLOSED)
+  const [adjustSheet, setAdjustSheet] = useState<SheetState>(CLOSED)
+  const addButton = useRef<HTMLButtonElement>(null)
+  /** What opened the current sheet: focus goes back there when the sheet closes. */
+  const opener = useRef<HTMLElement | null>(null)
 
-  // Add Part Modal
-  const [addPartOpen, setAddPartOpen] = useState(false)
-  const [newSku, setNewSku] = useState('')
-  const [newName, setNewName] = useState('')
-  const [newCategory] = useState('Brakes & Suspension')
-  const [newReorder, setNewReorder] = useState('5')
-  const [newPrice, setNewPrice] = useState('3500')
+  // The seed data stands in for this browser's stock until it loads (no flash of old counts).
+  if (!ready) return <InventorySkeleton />
 
-  // Adjust Stock Modal
-  const [adjustOpen, setAdjustOpen] = useState(false)
-  const [selectedPart, setSelectedPart] = useState<MockPart | null>(null)
-  const [adjustDelta, setAdjustDelta] = useState('5')
-  const [adjustReason, setAdjustReason] = useState('New shipment physical intake')
-  const [toastMsg, setToastMsg] = useState<string | null>(null)
+  const base = `/pos/shops/${encodeURIComponent(shopId)}`
+  const summary = inventorySummary(inventory, purchaseOrders)
+  const rows = filterParts(inventory, filter, query)
+  const searching = query.trim() !== ''
+  const editingPart =
+    partSheet.partId === null ? null : (inventory.find((p) => p.id === partSheet.partId) ?? null)
+  const adjustPart =
+    adjustSheet.partId === null
+      ? null
+      : (inventory.find((p) => p.id === adjustSheet.partId) ?? null)
 
-  const filteredParts = inventory.filter((p) => {
-    if (filterState === 'LOW' && (p.on_hand > p.reorder_level || p.on_hand === 0)) return false
-    if (filterState === 'OUT' && p.on_hand > 0) return false
+  const openCreate = () => {
+    const focused = document.activeElement
+    opener.current = focused instanceof HTMLElement && focused !== document.body ? focused : null
+    setPartSheet((sheet) => ({ open: true, partId: null, session: sheet.session + 1 }))
+  }
+  const openEdit = (partId: string, menuButton: HTMLElement | null) => {
+    opener.current = menuButton
+    setPartSheet((sheet) => ({ open: true, partId, session: sheet.session + 1 }))
+  }
+  const openAdjust = (partId: string, menuButton: HTMLElement | null) => {
+    opener.current = menuButton
+    setAdjustSheet((sheet) => ({ open: true, partId, session: sheet.session + 1 }))
+  }
+  /**
+   * The sheets are opened from menus and toasts, not a `SheetTrigger`, so Radix has nothing to
+   * return focus to: put it back on the opener, or on "Add part" once the opener is gone.
+   */
+  const restoreFocus = (event: Event) => {
+    event.preventDefault()
+    if (document.querySelector('[data-slot="sheet-content"][data-state="open"]')) return
+    const target = opener.current?.isConnected ? opener.current : addButton.current
+    target?.focus()
+  }
+  const clearFilters = () => {
+    setQuery('')
+    setFilter('all')
+  }
 
-    if (search.trim()) {
-      const q = search.toLowerCase()
-      return p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q)
+  /** Create or edit; returns the SKU field's error when another part already uses the SKU. */
+  const saveDraft = (draft: PartDraft): string | null => {
+    // `savePart` matches on id or SKU across the whole store, so a SKU in use would overwrite
+    // that other part (the API answers 409 CONFLICT, shown on the SKU field).
+    const everyPart = getInventory()
+    const taken = skuTakenBy(everyPart, draft.sku, partSheet.partId ?? undefined)
+    if (taken) {
+      return inventory.some((p) => p.id === taken.id)
+        ? `${draft.sku} is already used by ${taken.name}.`
+        : `${draft.sku} is already used by another part.`
     }
-    return true
-  })
 
-  const handleAddPart = (e: FormEvent) => {
-    e.preventDefault()
-    if (!newSku.trim() || !newName.trim()) return
+    if (partSheet.partId !== null) {
+      const current = everyPart.find((p) => p.id === partSheet.partId)
+      if (!current) return 'This part no longer exists. Close the sheet and try again.'
+      // Catalogue fields only: stock changes go through Adjust stock (D44).
+      savePart({
+        ...current,
+        sku: draft.sku,
+        name: draft.name,
+        category: draft.category,
+        unit_price: draft.unitCost,
+        reorder_level: draft.reorderLevel,
+      })
+      setPartSheet((sheet) => ({ ...sheet, open: false }))
+      toast.success('Part updated', { description: `${draft.sku} · ${draft.name}` })
+      return null
+    }
 
+    // D44: a new part starts at 0 on hand; the opening stock is an adjustment.
     const part: MockPart = {
       id: `prt-${Date.now()}`,
       shopId,
-      sku: newSku.trim().toUpperCase(),
-      name: newName.trim(),
-      category: newCategory,
+      sku: draft.sku,
+      name: draft.name,
+      category: draft.category,
       on_hand: 0,
       reserved: 0,
-      reorder_level: Number(newReorder) || 5,
-      unit_price: Number(newPrice) || 3000,
+      reorder_level: draft.reorderLevel,
+      unit_price: draft.unitCost,
     }
-
     savePart(part)
-    setAddPartOpen(false)
-    setNewSku('')
-    setNewName('')
-    setToastMsg(`Added part "${part.name}" to inventory. Set opening stock using "Adjust".`)
-    setTimeout(() => setToastMsg(null), 3500)
+    setPartSheet((sheet) => ({ ...sheet, open: false }))
+    // Spec 09 §4.9: toasts with an action stay 6 s (hover or focus pauses them).
+    toast.success('Part added', {
+      description: `${part.sku} · ${part.name} starts at 0 on hand.`,
+      action: { label: 'Set opening stock', onClick: () => openAdjust(part.id, null) },
+      duration: 6000,
+    })
+    return null
   }
 
-  const handleAdjustStock = (e: FormEvent) => {
-    e.preventDefault()
-    if (!selectedPart) return
-
-    const delta = Number(adjustDelta) || 0
-    adjustPartStock(selectedPart.id, delta)
-    setAdjustOpen(false)
-    setToastMsg(
-      `Stock for ${selectedPart.name} updated by ${delta > 0 ? `+${delta}` : delta} units.`,
-    )
-    setTimeout(() => setToastMsg(null), 3500)
+  /** Applies a stock adjustment; returns the 409 message when it would break the stock rules. */
+  const applyAdjustment = (delta: number, reason: string): string | null => {
+    const current = getInventory().find((p) => p.id === adjustSheet.partId)
+    if (!current) return 'This part no longer exists. Close the sheet and try again.'
+    const problem = adjustmentError(current, delta)
+    if (problem) return problem
+    const updated = adjustPartStock(current.id, delta)
+    setAdjustSheet((sheet) => ({ ...sheet, open: false }))
+    const why = reason.length > 60 ? `${reason.slice(0, 57).trimEnd()}…` : reason
+    toast.success('Stock adjusted', {
+      description: `${current.sku} · on hand ${current.on_hand} → ${
+        updated?.on_hand ?? current.on_hand + delta
+      } · ${why}`,
+    })
+    return null
   }
 
-  const openAdjust = (part: MockPart) => {
-    setSelectedPart(part)
-    setAdjustDelta('5')
-    setAdjustReason('Physical stock intake / recount')
-    setAdjustOpen(true)
-  }
+  const caption = `${FILTER_CAPTION[filter]}${searching ? ` matching “${query.trim()}”` : ''}`
 
   return (
-    <div className="space-y-6 pb-12">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <span className="text-xs font-bold tracking-[0.32px] text-brand-blue-ink">
-            Warehouse & Store
-          </span>
-          <h1 className="mt-1 text-2xl font-semibold text-foreground sm:text-3xl">
-            Parts & Lubricants Inventory
-          </h1>
-          <p className="mt-0.5 text-xs text-helper">
-            Monitor on-hand inventory levels, reorder thresholds, and record stock adjustments.
-          </p>
-        </div>
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow="Parts"
+        title="Inventory"
+        description="Stock on hand, what’s reserved for jobs and what needs reordering."
+        actions={
+          // With no parts yet, the empty state's button is the one primary action.
+          inventory.length > 0 ? (
+            <Button ref={addButton} onClick={openCreate}>
+              <Plus aria-hidden="true" data-icon="inline-start" />
+              Add part
+            </Button>
+          ) : null
+        }
+      />
 
-        <Button
-          onClick={() => setAddPartOpen(true)}
-          className="h-9 rounded-lg bg-brand-blue text-xs font-semibold text-white hover:bg-blue-700"
-        >
-          <Plus className="mr-1 size-3.5" />
-          Add New Part SKU
-        </Button>
-      </div>
+      {inventory.length === 0 ? (
+        <EmptyState
+          icon={Boxes}
+          title="No parts yet"
+          description="Add the parts you stock so jobs can reserve them and you can see what to reorder."
+          action={
+            <Button onClick={openCreate}>
+              <Plus aria-hidden="true" data-icon="inline-start" />
+              Add your first part
+            </Button>
+          }
+        />
+      ) : (
+        <>
+          <SummaryCards summary={summary} purchaseOrdersHref={`${base}/purchase-orders`} />
 
-      {toastMsg && (
-        <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-xs font-bold text-emerald-950 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-100">
-          <CheckCircle2 className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
-          <span>{toastMsg}</span>
-        </div>
+          <DataTableCard
+            toolbar={
+              <>
+                <TableSearch
+                  value={query}
+                  onValueChange={(value) => setQuery(value.slice(0, SEARCH_MAX_LENGTH))}
+                  label="Search parts"
+                  placeholder="SKU, name or category"
+                  // TableSearch has its own clear button; hide the browser's second one.
+                  className="[&_input::-webkit-search-cancel-button]:appearance-none"
+                />
+                <ToggleGroup
+                  type="single"
+                  variant="outline"
+                  size="sm"
+                  value={filter}
+                  onValueChange={(value) =>
+                    setFilter(value === 'low' || value === 'out' ? value : 'all')
+                  }
+                  aria-label="Stock filter"
+                  className="flex-wrap"
+                >
+                  <FilterPill value="all" label="All" count={summary.partCount} />
+                  <FilterPill value="low" label="Low stock" count={summary.lowCount} />
+                  <FilterPill value="out" label="Out of stock" count={summary.outCount} />
+                </ToggleGroup>
+                <p className="text-sm text-muted-foreground sm:ml-auto" aria-live="polite">
+                  {rows.length === inventory.length ? (
+                    <>
+                      <span className="font-semibold text-foreground tabular-nums">
+                        {rows.length}
+                      </span>{' '}
+                      {rows.length === 1 ? 'part' : 'parts'}
+                    </>
+                  ) : (
+                    <>
+                      Showing{' '}
+                      <span className="font-semibold text-foreground tabular-nums">
+                        {rows.length}
+                      </span>{' '}
+                      of {countLabel(inventory.length, 'part')}
+                    </>
+                  )}
+                </p>
+              </>
+            }
+          >
+            {rows.length > 0 ? (
+              <PartsList parts={rows} caption={caption} onAdjust={openAdjust} onEdit={openEdit} />
+            ) : searching ? (
+              <EmptyState
+                variant="inline"
+                icon={SearchX}
+                title={`No parts match “${query.trim()}”`}
+                description={
+                  filter === 'all'
+                    ? 'Try another SKU, name or category.'
+                    : `Nothing under ${filter === 'low' ? 'Low stock' : 'Out of stock'} matches. Try another search, or show every part.`
+                }
+                action={
+                  // Resets the search and the stock filter (the search box has its own clear).
+                  <Button variant="outline" onClick={clearFilters}>
+                    Show all parts
+                  </Button>
+                }
+              />
+            ) : filter === 'low' ? (
+              <EmptyState
+                variant="inline"
+                tone="success"
+                icon={CheckCheck}
+                title="Nothing is running low"
+                description="Every part with stock left is above its reorder level."
+              />
+            ) : (
+              <EmptyState
+                variant="inline"
+                tone="success"
+                icon={CheckCheck}
+                title="Nothing is out of stock"
+                description="Every part has stock available to use."
+              />
+            )}
+          </DataTableCard>
+        </>
       )}
 
-      {/* Filter and Search Bar */}
-      <div className="flex flex-col justify-between gap-3 pt-2 sm:flex-row sm:items-center">
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
-          <button
-            type="button"
-            onClick={() => setFilterState('ALL')}
-            className={`rounded-lg px-3.5 py-1.5 text-xs font-bold whitespace-nowrap transition-colors ${
-              filterState === 'ALL'
-                ? 'bg-brand-blue text-white'
-                : 'border border-border bg-card text-muted-foreground hover:border-blue-300 dark:hover:border-blue-700/70'
-            }`}
-          >
-            All Parts ({inventory.length})
-          </button>
+      <PartSheet
+        open={partSheet.open && (partSheet.partId === null || editingPart !== null)}
+        onOpenChange={(open) => setPartSheet((sheet) => ({ ...sheet, open }))}
+        onCloseAutoFocus={restoreFocus}
+        part={editingPart}
+        formKey={`${partSheet.partId ?? 'new'}-${partSheet.session}`}
+        categories={categoriesOf(inventory)}
+        onSave={saveDraft}
+      />
+      <AdjustStockSheet
+        open={adjustSheet.open && adjustPart !== null}
+        onOpenChange={(open) => setAdjustSheet((sheet) => ({ ...sheet, open }))}
+        onCloseAutoFocus={restoreFocus}
+        part={adjustPart}
+        formKey={`${adjustSheet.partId}-${adjustSheet.session}`}
+        onApply={applyAdjustment}
+      />
+    </div>
+  )
+}
 
-          <button
-            type="button"
-            onClick={() => setFilterState('LOW')}
-            className={`rounded-lg px-3.5 py-1.5 text-xs font-bold whitespace-nowrap transition-colors ${
-              filterState === 'LOW'
-                ? 'bg-amber-600 text-white'
-                : 'border border-border bg-card text-muted-foreground hover:border-amber-300 dark:hover:border-amber-700/70'
-            }`}
-          >
-            Low Stock (
-            {inventory.filter((p) => p.on_hand <= p.reorder_level && p.on_hand > 0).length})
-          </button>
+function FilterPill({ value, label, count }: { value: StockFilter; label: string; count: number }) {
+  return (
+    <ToggleGroupItem value={value}>
+      {label} <span className="font-semibold tabular-nums">{count}</span>
+    </ToggleGroupItem>
+  )
+}
 
-          <button
-            type="button"
-            onClick={() => setFilterState('OUT')}
-            className={`rounded-lg px-3.5 py-1.5 text-xs font-bold whitespace-nowrap transition-colors ${
-              filterState === 'OUT'
-                ? 'bg-red-600 text-white'
-                : 'border border-border bg-card text-muted-foreground hover:border-red-300 dark:hover:border-red-700/70'
-            }`}
-          >
-            Out of Stock ({inventory.filter((p) => p.on_hand === 0).length})
-          </button>
-        </div>
+/** The stock value summary (the overview's inventory card, in full): value, restock, on order. */
+function SummaryCards({
+  summary,
+  purchaseOrdersHref,
+}: {
+  summary: InventorySummary
+  purchaseOrdersHref: string
+}) {
+  const restock = summary.lowCount + summary.outCount
+  const restockTone: StatTone =
+    summary.outCount > 0 ? 'danger' : summary.lowCount > 0 ? 'warning' : 'success'
+  const restockHint =
+    restock === 0
+      ? 'Every part is above its reorder level'
+      : [
+          summary.lowCount > 0 ? `${summary.lowCount} running low` : null,
+          summary.outCount > 0 ? `${summary.outCount} out of stock` : null,
+        ]
+          .filter(Boolean)
+          .join(' · ')
 
-        <div className="relative w-full sm:w-72">
-          <Search className="absolute top-2.5 left-3 size-4 text-subtle-foreground" />
-          <Input
-            placeholder="Search by SKU or part name..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="h-9 bg-card pl-9 text-xs"
-          />
-        </div>
-      </div>
-
-      {/* Inventory Table Card */}
-      <Card className="overflow-hidden border-border">
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="border-b border-border bg-muted text-[11px] font-bold text-subtle-foreground">
-                <tr>
-                  <th className="px-5 py-3">SKU</th>
-                  <th className="px-4 py-3">Part Name & Category</th>
-                  <th className="px-4 py-3 text-center">On Hand</th>
-                  <th className="px-4 py-3 text-center">Reorder Level</th>
-                  <th className="px-4 py-3 text-right">Unit Cost</th>
-                  <th className="px-4 py-3 text-center">Stock Status</th>
-                  <th className="px-5 py-3 text-right">Adjust Stock</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border-faint text-muted-foreground">
-                {filteredParts.map((part) => {
-                  const isOut = part.on_hand === 0
-                  const isLow = part.on_hand <= part.reorder_level && !isOut
-
-                  return (
-                    <tr key={part.id} className="hover:bg-muted/60">
-                      <td className="px-5 py-3.5 font-mono font-bold text-foreground">
-                        {part.sku}
-                      </td>
-
-                      <td className="px-4 py-3.5">
-                        <p className="font-bold text-foreground">{part.name}</p>
-                        <p className="text-[11px] text-subtle-foreground">{part.category}</p>
-                      </td>
-
-                      <td className="px-4 py-3.5 text-center text-sm font-bold">{part.on_hand}</td>
-
-                      <td className="px-4 py-3.5 text-center font-medium text-helper">
-                        {part.reorder_level}
-                      </td>
-
-                      <td className="px-4 py-3.5 text-right font-medium text-foreground">
-                        {formatPKR(part.unit_price)}
-                      </td>
-
-                      <td className="px-4 py-3.5 text-center">
-                        {isOut ? (
-                          <span className="rounded bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-800 dark:bg-red-900/40 dark:text-red-200">
-                            Out of Stock
-                          </span>
-                        ) : isLow ? (
-                          <span className="rounded bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">
-                            Low Stock
-                          </span>
-                        ) : (
-                          <span className="rounded bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200">
-                            In Stock
-                          </span>
-                        )}
-                      </td>
-
-                      <td className="px-5 py-3.5 text-right">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openAdjust(part)}
-                          className="h-7 border-border-medium text-xs font-semibold hover:border-brand-blue hover:text-brand-blue-ink"
-                        >
-                          <SlidersHorizontal className="mr-1 size-3" />
-                          Adjust
-                        </Button>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Add Part Modal */}
-      <Dialog open={addPartOpen} onOpenChange={setAddPartOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-base font-bold text-foreground">
-              Create New Inventory Part SKU
-            </DialogTitle>
-            <DialogDescription className="text-xs text-helper">
-              New parts start at 0 quantity. Set initial physical stock using the Adjust tool.
-            </DialogDescription>
-          </DialogHeader>
-
-          <form onSubmit={handleAddPart} className="space-y-4 py-2">
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-muted-foreground">SKU Code</Label>
-              <Input
-                placeholder="e.g. BRK-PAD-042"
-                value={newSku}
-                onChange={(e) => setNewSku(e.target.value.toUpperCase())}
-                className="h-9 font-mono text-xs"
-                required
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-muted-foreground">
-                Part Description
-              </Label>
-              <Input
-                placeholder="Front Ceramic Brake Pads Set"
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                className="h-9 text-xs"
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-muted-foreground">
-                  Unit Price (PKR)
-                </Label>
-                <Input
-                  type="number"
-                  value={newPrice}
-                  onChange={(e) => setNewPrice(e.target.value)}
-                  className="h-9 text-xs"
-                  required
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-muted-foreground">
-                  Reorder Threshold
-                </Label>
-                <Input
-                  type="number"
-                  value={newReorder}
-                  onChange={(e) => setNewReorder(e.target.value)}
-                  className="h-9 text-xs"
-                  required
-                />
-              </div>
-            </div>
-
-            <DialogFooter className="gap-2 pt-2 sm:gap-0">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setAddPartOpen(false)}
-                className="text-xs font-semibold"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                className="rounded-full bg-brand-blue text-xs font-bold text-white"
-              >
-                Create SKU
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Adjust Stock Modal */}
-      <Dialog open={adjustOpen} onOpenChange={setAdjustOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-base font-bold text-foreground">
-              Adjust Stock: {selectedPart?.name}
-            </DialogTitle>
-            <DialogDescription className="text-xs text-helper">
-              Current on-hand: <strong className="text-foreground">{selectedPart?.on_hand}</strong>{' '}
-              units.
-            </DialogDescription>
-          </DialogHeader>
-
-          <form onSubmit={handleAdjustStock} className="space-y-4 py-2">
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-muted-foreground">
-                Quantity Delta (+ to increase, - to decrease)
-              </Label>
-              <Input
-                type="number"
-                value={adjustDelta}
-                onChange={(e) => setAdjustDelta(e.target.value)}
-                className="h-9 text-xs font-bold"
-                required
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-muted-foreground">
-                Adjustment Reason
-              </Label>
-              <Input
-                value={adjustReason}
-                onChange={(e) => setAdjustReason(e.target.value)}
-                placeholder="e.g. Supplier delivery, stock recount, damaged packaging"
-                className="h-9 text-xs"
-                required
-              />
-            </div>
-
-            <DialogFooter className="gap-2 pt-2 sm:gap-0">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setAdjustOpen(false)}
-                className="text-xs font-semibold"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                className="rounded-full bg-brand-blue text-xs font-bold text-white"
-              >
-                Apply Stock Adjustment
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+  return (
+    <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
+      <StatCard
+        className="col-span-2 lg:col-span-1"
+        label="Stock value"
+        value={formatPKR(summary.stockValue)}
+        icon={Banknote}
+        tone="brand"
+        hint={`${countLabel(summary.unitsOnHand, 'unit')} on hand across ${countLabel(
+          summary.partCount,
+          'part',
+        )}`}
+      />
+      <StatCard
+        label="Needs restock"
+        value={restock}
+        icon={restock === 0 ? PackageCheck : PackageX}
+        tone={restockTone}
+        hint={restockHint}
+      />
+      <StatCard
+        label="On order"
+        value={summary.openOrders}
+        icon={Truck}
+        hint={
+          summary.openOrders === 0
+            ? 'No purchase orders waiting'
+            : `${summary.openOrders === 1 ? 'Purchase order' : 'Purchase orders'} not yet received`
+        }
+        href={purchaseOrdersHref}
+      />
     </div>
   )
 }

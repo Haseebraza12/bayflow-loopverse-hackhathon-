@@ -54,9 +54,7 @@ afterEach(() => {
 describe('useMockStore', () => {
   it('renders the POS inventory page without an update loop and re-renders after a stock adjustment', () => {
     render(<InventoryPage />)
-    expect(
-      screen.getByRole('heading', { level: 1, name: /Parts & Lubricants Inventory/ }),
-    ).toBeVisible()
+    expect(screen.getByRole('heading', { level: 1, name: /^Inventory$/ })).toBeVisible()
 
     const onHand = () => within(screen.getByText('OF-TY-01').closest('tr')!).getAllByRole('cell')[2]
     expect(onHand()).toHaveTextContent(/^10$/)
