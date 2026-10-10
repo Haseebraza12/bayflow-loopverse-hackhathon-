@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 
 import { NotificationBell } from '@/components/notifications/notification-bell'
+import { workspaceHref, workspacesOf, type Workspace } from '@/components/pos/hub/hub-data'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,29 +17,15 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { useMockStore } from '@/hooks/use-mock-store'
-import {
-  getCurrentUser,
-  getShops,
-  getTeamMembers,
-  setCurrentUser,
-  type CurrentUserSession,
-} from '@/lib/mock-data'
+import { getCurrentUser, getShops, getTeamMembers, setCurrentUser } from '@/lib/mock-data'
 
 import { AccountMenu, ROLE_NAME } from './account-menu'
 import { Logo } from './logo'
 
-const ROLES: { role: CurrentUserSession['role']; label: string; path: string }[] = [
-  { role: 'OWNER', label: 'Owner (Fatima)', path: 'overview' },
-  { role: 'SERVICE_ADVISOR', label: 'Service Advisor (Bilal)', path: 'bookings' },
-  { role: 'TECHNICIAN', label: 'Technician (Imran)', path: 'jobs' },
-  { role: 'PARTS_PERSON', label: 'Parts Person (Usman)', path: 'parts' },
-  { role: 'QC_INSPECTOR', label: 'QC Inspector (Sara)', path: 'qc' },
-]
-
-/** A shop's own pages (where the shop sidebar is shown), not `/pos/shops/new`. */
-function inShopScope(pathname: string) {
+/** The shop of a shop page (`/pos/shops/{id}/…`), not `/pos/shops/new`; null elsewhere. */
+function shopIdOf(pathname: string): string | null {
   const [, pos, shops, shopId] = pathname.split('/')
-  return pos === 'pos' && shops === 'shops' && Boolean(shopId) && shopId !== 'new'
+  return pos === 'pos' && shops === 'shops' && shopId && shopId !== 'new' ? shopId : null
 }
 
 const PILL =
@@ -46,8 +33,13 @@ const PILL =
 
 /**
  * POS app bar (spec 09 §4.1, spec 10 S-01; DESIGN.md "App shell"): a light, translucent 64px bar
- * like the landing header. Left: sidebar toggle (shop pages), logo, shop switcher pill.
- * Right: role pill (switches the demo role), notifications, account menu.
+ * like the landing header. Left: sidebar toggle (shop pages), logo, shop switcher pill. Right: the
+ * person's role in the current shop, notifications, account menu.
+ *
+ * Everything comes from the person's own active memberships (`/me`, D66): the switcher lists
+ * only their shops, switching takes their role there, and a shop they don't belong to is never
+ * named. There is no role or account switching here (D52: no "log in as"); demo accounts are on
+ * the login page.
  */
 export function PosHeader() {
   const router = useRouter()
@@ -55,70 +47,46 @@ export function PosHeader() {
   const user = useMockStore(() => getCurrentUser())
   const shops = useMockStore(() => getShops())
   const team = useMockStore(() => getTeamMembers())
+  const workspaces = workspacesOf(user.email, team, shops)
   // O-07 is for owners of two or more shops (spec 10 S-01 "All shops summary").
-  const ownedShops = team.filter(
-    (m) => m.role === 'OWNER' && m.is_active && m.email === user.email,
-  ).length
+  const ownedShops = workspaces.filter((workspace) => workspace.role === 'OWNER').length
 
-  const activeShop = shops.find((s) => s.id === user.shopId) || shops[0]
-  const showSidebarToggle = inShopScope(pathname)
+  // On a shop page, the shop in the address; elsewhere, the last one opened.
+  const pageShopId = shopIdOf(pathname)
+  const current = workspaces.find((w) => w.shop.id === (pageShopId ?? user.shopId))
+  const pillLabel = current?.shop.name ?? (workspaces.length > 0 ? 'Choose a shop' : 'No shop yet')
 
-  const handleSwitchShop = (shopId: string, shopName: string) => {
-    setCurrentUser({
-      ...user,
-      shopId,
-      shopName,
-    })
-    router.push(`/pos/shops/${shopId}/overview`)
-  }
-
-  const handleSwitchRole = (role: CurrentUserSession['role'], path: string) => {
-    let name = user.name
-    let email = user.email
-
-    if (role === 'OWNER') {
-      name = 'Fatima Raza'
-      email = 'fatima.owner@bayflow.test'
-    } else if (role === 'SERVICE_ADVISOR') {
-      name = 'Bilal'
-      email = 'bilal.sa@bayflow.test'
-    } else if (role === 'TECHNICIAN') {
-      name = 'Imran'
-      email = 'imran.tech@bayflow.test'
-    } else if (role === 'PARTS_PERSON') {
-      name = 'Usman'
-      email = 'usman.parts@bayflow.test'
-    } else if (role === 'QC_INSPECTOR') {
-      name = 'Sara'
-      email = 'sara.qc@bayflow.test'
-    }
-
+  // Their role there (D66: one role per membership), and that role's home (spec 10 S-04).
+  const handleSwitchShop = ({ shop, role }: Workspace) => {
     setCurrentUser({
       ...user,
       role,
-      name,
-      email,
+      shopId: shop.id,
+      shopName: shop.name,
     })
-    router.push(`/pos/shops/${user.shopId || 'shop-lahore-auto-care'}/${path}`)
+    router.push(workspaceHref({ shop, role }))
   }
 
   return (
     <header className="sticky top-0 z-40 h-16 shrink-0 border-b border-border-faint bg-card/90 backdrop-blur-md">
       <div className="flex h-full items-center gap-1.5 px-3 sm:gap-3 sm:px-4 lg:px-6">
-        {showSidebarToggle && (
+        {/* Only a member's shop page has the sidebar (the 404 view has none). */}
+        {pageShopId && current ? (
           <SidebarTrigger
             aria-label="Toggle shop navigation"
             className="size-10 shrink-0 rounded-full text-muted-foreground hover:text-foreground"
           />
-        )}
+        ) : null}
 
         <Link
           href="/pos"
-          aria-label="BayFlow Shop POS home"
+          // The name starts with the visible "BayFlow" (and "POS" from lg), WCAG 2.5.3.
+          aria-label="BayFlow POS home"
           className="flex shrink-0 items-center gap-2 rounded-full outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring focus-visible:outline-solid"
         >
           <Logo size="sm" showText={false} className="sm:hidden" />
           <Logo size="sm" className="hidden sm:inline-flex" />
+          {/* A real space, so the visible text reads "BayFlow POS", not "BayFlowPOS". */}{' '}
           <span className="hidden rounded-md bg-secondary px-1.5 py-0.5 text-xs font-semibold text-muted-foreground lg:inline">
             POS
           </span>
@@ -126,7 +94,7 @@ export function PosHeader() {
 
         <span aria-hidden="true" className="mx-1 hidden h-6 w-px bg-border sm:block" />
 
-        {/* Shop switcher: All shops first, the shops, Create shop last (spec 10 S-01) */}
+        {/* Shop switcher: All shops first, the person's shops, Create shop last (spec 10 S-01) */}
         <DropdownMenu>
           <DropdownMenuTrigger
             className={`${PILL} border-border-medium bg-card py-1 pr-2.5 pl-3 text-foreground shadow-xs hover:bg-secondary aria-expanded:bg-secondary sm:pl-1`}
@@ -134,13 +102,15 @@ export function PosHeader() {
             <span className="hidden size-7 items-center justify-center rounded-full bg-brand-blue text-brand-blue-foreground sm:flex">
               <Store className="size-3.5" aria-hidden="true" />
             </span>
+            {/* The visible text leads the button's name (WCAG 2.5.3); the purpose follows. */}
             <span className="max-w-[6.5rem] truncate min-[400px]:max-w-[8rem] sm:max-w-[16rem]">
-              {activeShop?.name ?? 'Select shop'}
+              {pillLabel}
             </span>
+            <span className="sr-only">, shop menu</span>
             <ChevronDown className="size-4 text-muted-foreground" aria-hidden="true" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-72">
-            {user.role === 'OWNER' && ownedShops >= 2 && (
+            {ownedShops >= 2 ? (
               <>
                 <DropdownMenuItem asChild>
                   <Link href="/pos/summary">
@@ -150,20 +120,37 @@ export function PosHeader() {
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
               </>
-            )}
-            <DropdownMenuLabel>Switch shop</DropdownMenuLabel>
-            <DropdownMenuGroup>
-              {shops.map((s) => (
-                <DropdownMenuItem key={s.id} onSelect={() => handleSwitchShop(s.id, s.name)}>
-                  <Store aria-hidden="true" />
-                  <span className="min-w-0 flex-1 truncate">{s.name}</span>
-                  {s.id === user.shopId && (
-                    <Check className="text-brand-blue-ink" aria-label="Current shop" />
-                  )}
+            ) : null}
+            {workspaces.length > 0 ? (
+              <>
+                <DropdownMenuLabel>Switch shop</DropdownMenuLabel>
+                <DropdownMenuGroup>
+                  {workspaces.map((workspace) => (
+                    <DropdownMenuItem
+                      key={workspace.shop.id}
+                      onSelect={() => handleSwitchShop(workspace)}
+                    >
+                      <Store aria-hidden="true" />
+                      <span className="min-w-0 flex-1 truncate">{workspace.shop.name}</span>
+                      {workspace.shop.id === current?.shop.id ? (
+                        <Check className="text-brand-blue-ink" aria-label="Current shop" />
+                      ) : null}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+              </>
+            ) : (
+              <>
+                <DropdownMenuItem asChild>
+                  <Link href="/pos">
+                    <LayoutGrid aria-hidden="true" />
+                    Workshop hub
+                  </Link>
                 </DropdownMenuItem>
-              ))}
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
+                <DropdownMenuSeparator />
+              </>
+            )}
             <DropdownMenuItem asChild>
               <Link href="/pos/shops/new">
                 <Plus aria-hidden="true" />
@@ -174,28 +161,16 @@ export function PosHeader() {
         </DropdownMenu>
 
         <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
-          {/* Role switcher for rapid testing of the role views */}
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              className={`${PILL} w-9 shrink-0 justify-center border-brand-blue/20 bg-brand-blue-subtle text-brand-blue-ink hover:border-brand-blue/40 aria-expanded:border-brand-blue/40 sm:w-auto sm:px-3`}
+          {/* The person's role in this shop: their membership, not a switch. */}
+          {current ? (
+            <span
+              className={`${PILL} w-9 shrink-0 justify-center border-brand-blue/20 bg-brand-blue-subtle text-brand-blue-ink sm:w-auto sm:px-3`}
             >
               <ShieldCheck className="size-4" aria-hidden="true" />
-              <span className="hidden sm:inline">{ROLE_NAME[user.role]}</span>
-              <span className="sr-only sm:hidden">Role: {ROLE_NAME[user.role]}</span>
-              <ChevronDown className="hidden size-4 sm:block" aria-hidden="true" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-64">
-              <DropdownMenuLabel>Switch active role</DropdownMenuLabel>
-              {ROLES.map((r) => (
-                <DropdownMenuItem key={r.role} onSelect={() => handleSwitchRole(r.role, r.path)}>
-                  <span className="min-w-0 flex-1">{r.label}</span>
-                  {r.role === user.role && (
-                    <Check className="text-brand-blue-ink" aria-label="Current role" />
-                  )}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+              <span className="sr-only">Your role: </span>
+              <span className="sr-only sm:not-sr-only">{ROLE_NAME[current.role]}</span>
+            </span>
+          ) : null}
 
           <NotificationBell />
           <AccountMenu context="pos" />

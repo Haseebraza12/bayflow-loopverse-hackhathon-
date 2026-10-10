@@ -93,13 +93,15 @@ function navGroups(role: CurrentUserSession['role']): NavGroup[] {
 
 export interface PosSidebarProps {
   shopId: string
+  /** The person's role in this shop (their membership, D66); the session's role until known. */
+  role?: CurrentUserSession['role']
 }
 
-export function PosSidebar({ shopId }: PosSidebarProps) {
+export function PosSidebar({ shopId, role }: PosSidebarProps) {
   const pathname = usePathname()
   const user = useMockStore(getCurrentUser)
   const shop = useMockStore(() => getShopById(shopId))
-  const groups = navGroups(user.role)
+  const groups = navGroups(role ?? user.role)
   const base = `/pos/shops/${encodeURIComponent(shopId)}`
 
   return (

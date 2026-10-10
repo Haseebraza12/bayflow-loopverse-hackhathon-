@@ -24,8 +24,14 @@ export interface PageHeaderProps {
 
 /**
  * Page title row (DESIGN.md "Page header"): optional back link and eyebrow, a 30/36px extra-bold
- * title with chips beside it, a muted description, and the actions on the right (below on phones).
- * Put it first in the page's `space-y-6` stack; it adds 8px below itself.
+ * title with chips beside it, a muted description, and the actions.
+ *
+ * The actions sit on the right only when the header itself has room for them beside a title block
+ * of at least 24rem (384px); otherwise they wrap below it. It answers to the header's own width,
+ * not the screen's, so a 256px sidebar on a tablet never squeezes the title to one word per line.
+ * (A flex wrap rather than a container query: containment would collapse the header wherever a
+ * page puts it in a flex row of its own.) Put it first in the page's `space-y-6` stack; it adds 8px
+ * below itself.
  */
 export function PageHeader({
   title,
@@ -47,8 +53,8 @@ export function PageHeader({
           {back.label}
         </Link>
       ) : null}
-      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div className="min-w-0 space-y-2">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0 flex-[1_1_24rem] space-y-2">
           {eyebrow ? <p className="text-sm font-semibold text-brand-blue-ink">{eyebrow}</p> : null}
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
             <h1 className="text-3xl leading-tight font-extrabold tracking-tight text-foreground sm:text-4xl">
@@ -61,9 +67,7 @@ export function PageHeader({
           ) : null}
         </div>
         {actions ? (
-          <div className="flex flex-wrap items-center gap-2 md:shrink-0 md:justify-end">
-            {actions}
-          </div>
+          <div className="flex min-w-0 flex-wrap items-center gap-2">{actions}</div>
         ) : null}
       </div>
     </div>

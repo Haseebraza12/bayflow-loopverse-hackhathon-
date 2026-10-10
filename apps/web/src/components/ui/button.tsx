@@ -6,7 +6,9 @@ import { Slot } from 'radix-ui'
 // Landing-page button (DESIGN.md "Buttons"): a full pill with a 14px medium-weight label; the
 // primary is brand blue and glows on hover (GarageBox's primary shadow). Heights: sm 36 /
 // default 42 / lg 48. Focus is a 2px brand-blue ring 2px outside the pill, so it shows on blue
-// fills too.
+// fills too. The press nudge is `scale`, which makes the button the containing block of its own
+// `::after` while pressed: a stretched link (`after:absolute after:inset-0` covering a card) must
+// add `active:scale-none` (DESIGN.md §6.14), or a press on the card outside the button is lost.
 const buttonVariants = cva(
   "group/button inline-flex shrink-0 items-center justify-center rounded-full border border-transparent text-sm leading-5 font-medium whitespace-nowrap transition-[background-color,border-color,color,box-shadow,transform] duration-150 ease-out outline-none select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring focus-visible:outline-solid active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none aria-invalid:outline-2 aria-invalid:outline-offset-2 aria-invalid:outline-destructive aria-invalid:outline-solid [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
@@ -20,6 +22,11 @@ const buttonVariants = cva(
         // Secondary action: white pill, stone border, dark label.
         outline:
           'border-border-medium bg-card text-foreground shadow-xs hover:border-border-strong hover:bg-secondary aria-expanded:border-border-strong aria-expanded:bg-secondary',
+        // A destructive action that is not the decision itself (spec 09 §4.6 rule 3: "Cancel
+        // booking", "Suspend shop"; the AlertDialog's confirm is the solid `destructive`). The
+        // outline pill in the danger ink: 6.5 : 1 on white, 5.2 : 1 on the pink hover fill.
+        'destructive-outline':
+          'border-border-medium bg-card text-danger-ink shadow-xs hover:border-status-estimate-rejected-border hover:bg-danger-subtle aria-expanded:border-status-estimate-rejected-border aria-expanded:bg-danger-subtle',
         // Quiet filled action on white cards.
         secondary:
           'bg-secondary text-secondary-foreground hover:bg-layer-selected aria-expanded:bg-layer-selected',
@@ -28,7 +35,8 @@ const buttonVariants = cva(
         // Solid danger (white label stays AA on both themes).
         destructive:
           'bg-destructive-strong text-destructive-foreground shadow-sm shadow-destructive-strong/25 hover:bg-[color-mix(in_oklch,var(--destructive-strong),black_12%)] hover:shadow-md hover:shadow-destructive-strong/25 focus-visible:outline-destructive',
-        link: 'h-auto! rounded-sm! px-0! text-brand-blue-ink underline-offset-4 shadow-none hover:underline active:scale-100',
+        // `scale-none`, not `scale-100`: any scale value makes a containing block (see above).
+        link: 'h-auto! rounded-sm! px-0! text-brand-blue-ink underline-offset-4 shadow-none hover:underline active:scale-none',
       },
       size: {
         default:

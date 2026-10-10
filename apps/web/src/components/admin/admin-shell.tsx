@@ -77,11 +77,13 @@ export function AdminShell({ children }: { children: ReactNode }) {
           />
           <Link
             href="/admin"
-            aria-label="Platform admin home"
+            // Starts with the visible "BayFlow" and "Platform admin" (WCAG 2.5.3).
+            aria-label="BayFlow Platform admin home"
             className="flex min-w-0 items-center gap-2.5 rounded-full outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring focus-visible:outline-solid"
           >
             <Logo size="sm" showText={false} className="sm:hidden" />
             <Logo size="sm" className="hidden sm:inline-flex" />
+            {/* A real space, so the visible text reads "BayFlow Platform admin". */}{' '}
             <span className="inline-flex h-7 items-center gap-1.5 rounded-full bg-foreground px-3 text-xs font-semibold whitespace-nowrap text-background">
               <ShieldCheck className="size-3.5" aria-hidden="true" />
               Platform admin

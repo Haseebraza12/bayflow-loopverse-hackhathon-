@@ -34,7 +34,8 @@ The system has three layers. Build every screen from them, in this order:
    Orange = attention ("action needed"). Phase hues = booking status only. Everything else
    is neutral stone.
 5. **Accessible by default.** Text ≥ 4.5 : 1, control edges and focus ≥ 3 : 1, 12px minimum
-   text, 24px minimum targets (48px for technicians on the floor), visible focus everywhere.
+   text, 40px touch targets (48px for technicians on the floor; 24px is only the WCAG floor for
+   dense desktop rows), visible focus everywhere.
 
 ---
 
@@ -185,7 +186,18 @@ Don't stack big shadows on cards; a clickable card goes `shadow-xs` → `hover:s
 - Grids of cards: `gap-4`; two-column layouts: `gap-6 xl:gap-8`.
 - Card padding: 24px (`Card` does it; 20px on phones). Rows inside cards: `px-5 py-3.5`.
 - Breakpoints: `sm` 640, `md` 768 (below it the sidebar is a sheet and tables stack), `lg`
-  1024 (detail pages go two-column), `xl` 1280.
+  1024, `xl` 1280.
+- **Respond to the space, not the screen.** From `md` the shop sidebar takes 256px, so a 1024px
+  screen leaves a 704px page and a 768px tablet only 464px. Anything that sits side by side inside
+  the page (a title and its actions, a main column and an aside, a table and its stacked list)
+  switches on its own width: a container query (`@container/name` + `@xl/name:…`, as the overview
+  and queue cards do) or an intrinsic wrap (`flex-wrap` with a `flex-basis`, as `PageHeader` does)
+  — never `md:` / `lg:` alone. A query container sizes as if it were empty, so it must never be
+  shrink-to-fit (give it `w-full`, or keep it a block in the page's stack).
+- Touch targets: 40px for every control a finger uses: the default (42px) and `lg` buttons, the
+  toolbar controls (§5 `DataTableCard`), tabs, the table search; 48px for technicians. The `sm`
+  and `icon-sm` sizes are for dense desktop rows; where they must be tapped, extend the hit area
+  with `relative after:absolute after:-inset-1` (as the table-search clear button does).
 - Motion: `transition-colors duration-150` for hovers; overlays fade/zoom 150–200ms. Nothing
   bounces; nothing loops (except the landing marquee).
 
@@ -207,13 +219,13 @@ then draws nothing.
 
 ## 3. App shell (already built — don't rebuild it)
 
-| Area     | Files                                                          | What you get                                                                                                                                                                    |
-| -------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| POS      | `app/(pos)/pos/layout.tsx`, `components/layout/pos-header.tsx` | 64px white translucent bar: sidebar toggle (shop pages), logo, **shop switcher pill** (All shops summary first, the shops, Create shop last), **role pill**, bell, account menu |
-| POS shop | `app/(pos)/pos/shops/[shopId]/layout.tsx`, `pos-sidebar.tsx`   | 256px white sidebar, role-filtered (`lib/pos-access.ts`), active = `#BFDBFE`; collapses to a 64px icon rail (bar toggle, ⌘B, rail); a sheet below `md`; `SectionGate`           |
-| Admin    | `components/admin/admin-shell.tsx`                             | Same bar with a dark "Platform admin" pill, admin sidebar, gate, skeleton                                                                                                       |
-| Customer | `app/(customer)/layout.tsx`                                    | Public header + canvas, `max-w-5xl`                                                                                                                                             |
-| Public   | `app/(public)/layout.tsx`                                      | Public header/footer; `.marketing` pages own their full-bleed sections                                                                                                          |
+| Area     | Files                                                                                              | What you get                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| -------- | -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| POS      | `app/(pos)/pos/layout.tsx`, `components/layout/pos-header.tsx`                                     | 64px white translucent bar: sidebar toggle (a member's shop pages), logo, **shop switcher pill** (All shops summary for owners of 2+ shops, **the person's own shops only**, Create shop last; switching takes their role in that shop), the person's **role in this shop** (a chip, not a switch: no role or account switching, D52; demo accounts are on the login page), bell, account menu. A shop the person is not in is never named ("Choose a shop"; "No shop yet" without any)                                                                     |
+| POS shop | `app/(pos)/pos/shops/[shopId]/layout.tsx`, `shop-scope.tsx`, `section-gate.tsx`, `pos-sidebar.tsx` | **Members only (D20)**: anyone who is not an active member of the shop (other shops' staff, customers, admins without a membership) gets the 404 view "We couldn't find that shop" with no sidebar, the same as for a shop that doesn't exist. Members get the 256px white sidebar of their role in this shop (`lib/pos-access.ts`, active = `#BFDBFE`; a 64px icon rail via the bar toggle, ⌘B or the rail; a sheet below `md`), then `SectionGate`: suspended shop (D96), then another role's section → `ForbiddenState`, judged by the membership's role |
+| Admin    | `components/admin/admin-shell.tsx`                                                                 | Same bar with a dark "Platform admin" pill, admin sidebar, gate, skeleton                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| Customer | `app/(customer)/layout.tsx`                                                                        | Public header + canvas, `max-w-5xl`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| Public   | `app/(public)/layout.tsx`                                                                          | Public header/footer; `.marketing` pages own their full-bleed sections                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 
 The POS hub (`/pos`), new shop (`/pos/shops/new`) and all-shops summary (`/pos/summary`) have
 no sidebar and render their own landmark:
@@ -233,28 +245,28 @@ inside `Table`, long words truncate (`min-w-0` + `truncate` in flex rows). Add
 
 ## 4. Primitives (`components/ui`)
 
-| Component                                                                            | Look                                                                                                                                                                               | Notes                                                                                                                                                |
-| ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Button`                                                                             | Pill, 14px medium. `default` blue + glow on hover; `outline` white + stone border; `secondary` stone fill; `ghost` clear; `destructive` red; `link` blue text; `cta` orange (rare) | Sizes: `sm` 36, **`default` 42**, `lg` 48, `xs` 28; `icon` 40, `icon-sm` 32, `icon-xs` 24, `icon-lg` 48. Put icons as children; they size themselves |
-| `Input`, `Textarea`, `NativeSelect`, `SelectTrigger`, `InputGroup`                   | 42px, `rounded-lg`, white, 1px `border-input`, `shadow-xs`; focus = blue border + blue halo; invalid = red border + red halo; 16px text on phones                                  | Set `aria-invalid` for errors. `size="sm"` (36px) exists on selects                                                                                  |
-| `Label`, `FieldLabel`                                                                | 14px medium, foreground                                                                                                                                                            | `FieldDescription` 14px muted; `FieldError` 14px red                                                                                                 |
-| `Field`, `FieldGroup`, `FieldSet`, `FieldLegend`                                     | 8px label→control gap; 20px between fields; legend = 20px bold section title                                                                                                       | `Field orientation="responsive"` for label-left layouts                                                                                              |
-| `Checkbox`, `RadioGroupItem`                                                         | 16px, stone edge, checked = blue                                                                                                                                                   | Checkbox corner 5px                                                                                                                                  |
-| `Switch`                                                                             | 24×44 pill, stone track, blue when on                                                                                                                                              | `size="sm"` 20×36                                                                                                                                    |
-| `Card`                                                                               | White, `rounded-2xl`, border, `shadow-xs`, 24px padding                                                                                                                            | `size="sm"` = 16px padding. `CardTitle` 18px semibold                                                                                                |
-| `Table`                                                                              | Flush; header band `bg-layer/60` with 14px helper labels; 48px rows; faint dividers; blue hover tint; no zebra                                                                     | Container is `relative` + scrolls horizontally. Put it in `DataTableCard`                                                                            |
-| `Badge`                                                                              | 24px pill, 12px medium, soft fill + border                                                                                                                                         | Variants: `success`, `warning`, `info`, `neutral`, `brand`, `destructive`, `attention`, `secondary`, `outline`, phase variants                       |
-| `StatusBadge`                                                                        | Booking status chip (see §2.2)                                                                                                                                                     | `size="md"` beside titles                                                                                                                            |
-| `Tabs`                                                                               | `TabsList` default = segmented pill on `bg-secondary`; `variant="line"` = underline tabs (blue indicator)                                                                          | Segmented for views/filters; line for sections of a record                                                                                           |
-| `ToggleGroup` / `Toggle`                                                             | Filter pills; on = blue tint + blue ink                                                                                                                                            | `variant="outline" size="sm"` in toolbars                                                                                                            |
-| `Dialog`, `AlertDialog`                                                              | `rounded-3xl`, white, dialog shadow, navy 40 % blurred scrim, close button top-right                                                                                               | Default `sm:max-w-lg`                                                                                                                                |
-| `Sheet`                                                                              | White panel, `rounded-*-3xl` on the open edge                                                                                                                                      | Right side `sm:max-w-md` by default                                                                                                                  |
-| `DropdownMenu`, `Select` content, `Popover`, `Command`, `Tooltip`                    | Translucent white + blur, `rounded-lg` (popover `rounded-xl`), dropdown shadow, 36px items with 8px corners; tooltip dark `rounded-md`                                             | Menu icons are muted automatically                                                                                                                   |
-| `Alert`                                                                              | `rounded-xl`, soft tint + border; title and icon in the ink, body in foreground                                                                                                    | Variants: `default`, `info`, `success`, `warning`, `destructive`                                                                                     |
-| `Empty`                                                                              | Centered, dashed `rounded-3xl` (add `border bg-card`), blue icon tile                                                                                                              | Prefer `EmptyState`                                                                                                                                  |
-| `Skeleton`                                                                           | `rounded-lg`, stone `#E7E5E4`, pulse                                                                                                                                               | Shape it like the content (`rounded-2xl` for cards, `rounded-full` for pills)                                                                        |
-| `Calendar`                                                                           | Circular days; selected = blue; today = blue tint; disabled days are faded text                                                                                                    | —                                                                                                                                                    |
-| `Accordion`, `Progress`, `Avatar`, `Breadcrumb`, `Pagination`, `Separator`, `Sonner` | Restyled to match (progress = blue on blue-15 %, toasts `rounded-2xl`)                                                                                                             | Toasts: `toast.success('Saved')` from `sonner`; errors stay inline too                                                                               |
+| Component                                                                            | Look                                                                                                                                                                                                                                                             | Notes                                                                                                                                                                                                                            |
+| ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Button`                                                                             | Pill, 14px medium. `default` blue + glow on hover; `outline` white + stone border; `destructive-outline` white + stone border + danger-ink label, pink on hover; `secondary` stone fill; `ghost` clear; `destructive` red; `link` blue text; `cta` orange (rare) | Sizes: `sm` 36, **`default` 42**, `lg` 48, `xs` 28; `icon` 40, `icon-sm` 32, `icon-xs` 24, `icon-lg` 48. Put icons as children; they size themselves. Pressed = `scale` 98 %: a stretched link needs `active:scale-none` (§6.14) |
+| `Input`, `Textarea`, `NativeSelect`, `SelectTrigger`, `InputGroup`                   | 42px, `rounded-lg`, white, 1px `border-input`, `shadow-xs`; focus = blue border + blue halo; invalid = red border + red halo; 16px text on phones                                                                                                                | Set `aria-invalid` for errors. `size="sm"` (36px) exists on selects                                                                                                                                                              |
+| `Label`, `FieldLabel`                                                                | 14px medium, foreground                                                                                                                                                                                                                                          | `FieldDescription` 14px muted; `FieldError` 14px red                                                                                                                                                                             |
+| `Field`, `FieldGroup`, `FieldSet`, `FieldLegend`                                     | 8px label→control gap; 20px between fields; legend = 20px bold section title                                                                                                                                                                                     | `Field orientation="responsive"` for label-left layouts                                                                                                                                                                          |
+| `Checkbox`, `RadioGroupItem`                                                         | 16px, stone edge, checked = blue                                                                                                                                                                                                                                 | Checkbox corner 5px                                                                                                                                                                                                              |
+| `Switch`                                                                             | 24×44 pill, stone track, blue when on                                                                                                                                                                                                                            | `size="sm"` 20×36                                                                                                                                                                                                                |
+| `Card`                                                                               | White, `rounded-2xl`, border, `shadow-xs`, 24px padding                                                                                                                                                                                                          | `size="sm"` = 16px padding. `CardTitle` 18px semibold                                                                                                                                                                            |
+| `Table`                                                                              | Flush; header band `bg-layer/60` with 14px helper labels; 48px rows; faint dividers; blue hover tint; no zebra                                                                                                                                                   | Container is `relative` + scrolls horizontally. Put it in `DataTableCard`                                                                                                                                                        |
+| `Badge`                                                                              | 24px pill, 12px medium, soft fill + border                                                                                                                                                                                                                       | Variants: `success`, `warning`, `info`, `neutral`, `brand`, `destructive`, `attention`, `secondary`, `outline`, phase variants                                                                                                   |
+| `StatusBadge`                                                                        | Booking status chip (see §2.2)                                                                                                                                                                                                                                   | `size="md"` beside titles                                                                                                                                                                                                        |
+| `Tabs`                                                                               | `TabsList` default = segmented pill on `bg-secondary`, 48px, so each trigger is a 40px target; `variant="line"` = underline tabs (blue indicator, 48px)                                                                                                          | Segmented for views/filters; line for sections of a record                                                                                                                                                                       |
+| `ToggleGroup` / `Toggle`                                                             | Filter pills; on = blue tint + blue ink                                                                                                                                                                                                                          | `variant="outline" size="sm"` in toolbars                                                                                                                                                                                        |
+| `Dialog`, `AlertDialog`                                                              | `rounded-3xl`, white, dialog shadow, navy 40 % blurred scrim, close button top-right; never taller than the screen (`100dvh − 2rem`, scrolls inside)                                                                                                             | Default `sm:max-w-lg`. `AlertDialogMedia` sits beside the title from `sm` in its own icon-wide column. Focus goes back to the opener on close (§6.10)                                                                            |
+| `Sheet`                                                                              | White panel, `rounded-*-3xl` on the open edge; scrolls inside when taller than the screen                                                                                                                                                                        | Right side: full width and square on phones, 448px (`sm:max-w-md`) from `sm` — no `w-full` overrides. Focus goes back to the opener on close (§6.10)                                                                             |
+| `DropdownMenu`, `Select` content, `Popover`, `Command`, `Tooltip`                    | Translucent white + blur, `rounded-lg` (popover `rounded-xl`), dropdown shadow, 36px items with 8px corners; tooltip dark `rounded-md`                                                                                                                           | Menu icons are muted automatically                                                                                                                                                                                               |
+| `Alert`                                                                              | `rounded-xl`, soft tint + border; title and icon in the ink, body in foreground                                                                                                                                                                                  | Variants: `default`, `info`, `success`, `warning`, `destructive`                                                                                                                                                                 |
+| `Empty`                                                                              | Centered, dashed `rounded-3xl` (add `border bg-card`), blue icon tile                                                                                                                                                                                            | Prefer `EmptyState`                                                                                                                                                                                                              |
+| `Skeleton`                                                                           | `rounded-lg`, stone `#E7E5E4`, pulse                                                                                                                                                                                                                             | Shape it like the content (`rounded-2xl` for cards, `rounded-full` for pills)                                                                                                                                                    |
+| `Calendar`                                                                           | Circular days; selected = blue; today = blue tint; disabled days are faded text                                                                                                                                                                                  | —                                                                                                                                                                                                                                |
+| `Accordion`, `Progress`, `Avatar`, `Breadcrumb`, `Pagination`, `Separator`, `Sonner` | Restyled to match (progress = blue on blue-15 %, toasts `rounded-2xl`; a toast's `action` is the small blue pill, its `cancel` the small outline pill, both 36px)                                                                                                | Toasts: `toast.success('Saved')` from `sonner`; errors stay inline too                                                                                                                                                           |
 
 ---
 
@@ -272,7 +284,10 @@ import { PageHeader } from '@/components/layout/page-header'
   actions={<Button><Plus /> New walk-in</Button>}  // one primary at most; others outline/ghost
 />
 
-// It goes first in the page's `space-y-6` stack and adds 8px below itself.
+// It goes first in the page's `space-y-6` stack and adds 8px below itself. The actions sit on
+// the right only when the header has room for them beside a 24rem title block; otherwise they
+// wrap below the description (a tablet with the sidebar open). Always pass them as `actions` —
+// don't put PageHeader in a flex row of your own, and don't add `md:`/`lg:` overrides.
 
 // Detail page: back link + status chip beside the title
 <PageHeader
@@ -319,6 +334,7 @@ also colour the value). With `href` the whole card is a link (hover lift + focus
 import { DataTableCard, TableSearch } from '@/components/layout/data-table-card'
 
 ;<DataTableCard
+  className="@container/list"
   toolbar={
     <>
       <TableSearch
@@ -360,10 +376,10 @@ import { DataTableCard, TableSearch } from '@/components/layout/data-table-card'
     />
   ) : (
     <>
-      {/* phones: stacked rows */}
-      <ul className="divide-y divide-border-faint md:hidden">…see §6.3…</ul>
-      {/* md and up: the table */}
-      <div className="hidden md:block">
+      {/* a narrow card (phones, a tablet with the sidebar open): stacked rows */}
+      <ul className="divide-y divide-border-faint @3xl/list:hidden">…see §6.3…</ul>
+      {/* a card 768px wide and up: the table */}
+      <div className="hidden @3xl/list:block">
         <Table>…</Table>
       </div>
     </>
@@ -372,6 +388,13 @@ import { DataTableCard, TableSearch } from '@/components/layout/data-table-card'
 ```
 
 Props: `title?`, `description?`, `actions?` (title row), `toolbar?`, `footer?`, `children`.
+
+- **The toolbar sizes its controls**: the search, filter pills (`ToggleGroup`, any size), selects
+  (`NativeSelect`, `SelectTrigger`) and `sm`/default buttons in `toolbar` are all 40px tall, so
+  the row lines up and meets the touch-target minimum. Don't set heights on them.
+- `TableSearch`: a 40px pill, capped at 100 characters (spec 09 §2.10; `maxLength` to change it),
+  with its own clear button (the browser's is hidden). Other props (`id`, `name`,
+  `aria-describedby`, `onKeyDown`, …) go to the `<input>`; `className` goes to the pill.
 
 ### `DetailLayout` and `StickyActionBar`
 
@@ -383,9 +406,28 @@ import { DetailLayout, StickyActionBar } from '@/components/layout/detail-layout
 </DetailLayout>
 ```
 
-Main column + 360px aside, sticky under the bar from `lg`; the aside comes **first** on phones
-(`asideFirstOnMobile={false}` to keep it after). `StickyActionBar` pins its buttons to the
-bottom of the screen below `md` and renders inline from `md` up.
+- **Two columns when the layout itself is 58rem (928px) wide**: a container query, so the main
+  column keeps about 550px: from a 1280px screen with the sidebar open, from 1024px without it
+  (the customer portal). Narrower, one column. Don't override it (`lg:grid-cols-…`,
+  `xl:grid-cols-…`, a `className` on the grid): it is right at every width.
+- **Order**: in one column the aside comes **first** (status and next action before the details);
+  `asideFirstOnMobile={false}` puts it after the main column. That is the DOM order, so on phones
+  and tablets reading and focus order are exactly what is seen (no `order-*`); in two columns the
+  grid places the aside on the right and it is still read first, as one complete column (the
+  status and next action, then the record).
+- **Sticky aside**: in two columns it sticks under the app bar, but only while it fits on the
+  screen; a taller aside (two long cards on a short laptop) scrolls with the page, so its end is
+  never out of reach.
+- **Content for one mode only** (a card in the aside in two columns, in the main column in one):
+  render it twice, with `detailLayoutOnly.twoColumns` and `detailLayoutOnly.oneColumn` (exported
+  with `DetailLayout`); never `lg:hidden` / `max-lg:hidden`, the layout switches on its own width.
+- A detail page's loading skeleton renders `DetailLayout` too (with `Skeleton` children), so it
+  switches at the same width as the page.
+
+`StickyActionBar` pins its buttons to the bottom of the screen and renders inline from
+`pinnedUntil` up: `md` (default, phones), `lg` or `xl` (tablets too, for a page whose actions only
+move beside the content on a large screen; hide it there with `lg:hidden` / `xl:hidden`). It
+spans the page gutter while pinned and takes `div` props (`role="region"`, `aria-label`).
 
 ### `Timeline`
 
@@ -553,8 +595,9 @@ Never put `p-5` / `p-4` on `CardContent` or `CardHeader` — the card already pa
 
 Rules: sentence-case headers (the primitive styles them), money right-aligned
 `tabular-nums`, IDs/plates `font-mono`, one action column at the end, no zebra, no `<table>`
-by hand. Phones get the stacked list instead (`md:hidden` list from §6.2 + `hidden md:block`
-table), never a 7-column table squeezed into 390px.
+by hand. A narrow card gets the stacked list instead (the `@3xl/list:hidden` list from §6.2 +
+a `hidden @3xl/list:block` table, on a `@container/list` card, §5), never a 7-column table
+squeezed into 390px or into a tablet beside the sidebar.
 
 ### 6.4 Chips
 
@@ -653,9 +696,40 @@ Spinners only inside buttons while saving: `<Button disabled><Spinner /> Saving�
 ### 6.10 Dialogs and sheets
 
 - `Dialog` for short decisions and small forms (≤ 5 fields); `AlertDialog` for destructive
-  confirmations (the confirm button is `variant="destructive"`).
-- Right `Sheet` for record previews (an audit entry, a parts request, a team member).
+  confirmations (the confirm button is `variant="destructive"`; the button that opens it on the
+  page is `variant="destructive-outline"`, §6.15).
+- Right `Sheet` for record previews (an audit entry, a parts request, a team member). It is full
+  width on phones and 448px from `sm` by itself: no `w-full` / `data-[side=right]:w-full`
+  overrides (a wider form may set `sm:max-w-xl`).
+- None is ever taller than the screen: dialogs and alert dialogs scroll inside
+  (`max-h-[calc(100dvh-2rem)]`), sheets too. Don't add your own `max-h` / `overflow`.
 - Footer: secondary first, primary last: `<DialogFooter><DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose><Button>Save</Button></DialogFooter>`.
+
+**Focus return (WCAG 2.4.3).** When a dialog, alert dialog or sheet closes, focus goes back to
+what opened it. Radix only does that for its own `…Trigger`, so `DialogContent`,
+`AlertDialogContent` and `SheetContent` also remember the element that had focus when they opened
+(a menu item counts as its menu's trigger) and focus it again on close. Nothing to do for the
+common case — a button with `onClick={() => setOpen(true)}`, a row, a menu item. Two cases are
+yours:
+
+```tsx
+// 1. Focus belongs somewhere else after the action (the opener is gone, or the outcome matters
+//    more): take over with onCloseAutoFocus and call preventDefault().
+<DialogContent
+  onCloseAutoFocus={(event) => {
+    if (!confirmed.current) return // cancelled: the opener gets focus back by itself
+    event.preventDefault()
+    nextStepHeadingRef.current?.focus() // the new "Next step", the success notice, …
+  }}
+>
+// 2. A page that focuses its own outcome while the dialog closes (a notice with
+//    `ref={focusOnMount}`) needs nothing: focus that has already moved is left alone.
+```
+
+Keep Radix's own `id` on a menu trigger (don't pass `id` to `DropdownMenuTrigger`'s child): the
+menu points at it to say which button opened it. For another Radix overlay opened from state,
+spread `useFocusReturn(onOpenAutoFocus, onCloseAutoFocus)` (`components/ui/use-focus-return.ts`)
+onto its content.
 
 ### 6.11 Sticky mobile actions
 
@@ -667,6 +741,11 @@ On phones the page's main decision sits at the bottom of the screen:
   <Button>Approve · {formatPKR(total)}</Button>
 </StickyActionBar>
 ```
+
+Below `md` by default. A page whose actions stay out of reach on a tablet (one column until `lg`
+or `xl`) pins them longer with `pinnedUntil="lg"` / `"xl"` and hides the bar where the actions
+show beside the content (`lg:hidden` / `xl:hidden`). Give it `role="region"` and an `aria-label`
+("Job actions") when it holds more than one button.
 
 Technician screens: job actions `size="lg"` (48px) and inspection toggles `h-12`.
 
@@ -697,6 +776,34 @@ import { Handwritten } from '@/components/booking/booking-hero'
 card: `rounded-xl border border-attention-border bg-attention px-4 py-3 text-sm text-foreground`
 with the label in `font-semibold text-cta`.
 
+### 6.14 Stretched links (a whole card that opens a record)
+
+The card is `relative`; the link inside it covers the card with its `::after`. Add
+`active:scale-none`: a pressed `Button` shrinks with `scale`, and any `scale` (even 100 %) makes
+the button the containing block of its own `::after`, so between press and release the overlay
+would shrink to the button and a tap on the card would open nothing.
+
+```tsx
+<Card className="relative">
+  …
+  <Button asChild variant="outline" className="after:absolute after:inset-0 active:scale-none">
+    <Link href={href}>
+      View booking<span className="sr-only"> {booking.reference}</span>
+    </Link>
+  </Button>
+</Card>
+```
+
+The `link` variant already uses `active:scale-none`. Keep one focusable element per card (the
+link), and its focus ring visible.
+
+### 6.15 Destructive actions on the page
+
+A destructive action that is not the final decision (Cancel booking, Suspend shop, Deactivate) is
+`variant="destructive-outline"`: white pill, stone border, danger-ink label (6.5 : 1), pink fill on
+hover (5.2 : 1). It comes last in its group and opens an `AlertDialog` whose confirm button is the
+solid `destructive`. Don't hand-roll it (`variant="outline"` + `text-danger-ink …`).
+
 ---
 
 ## 7. Do / don't
@@ -711,7 +818,11 @@ with the label in `font-semibold text-cta`.
   `text-muted-foreground`.
 - Format money with `formatPKR` + `tabular-nums`; dates with `lib/format`; IDs and plates in
   `font-mono`.
-- Check 1440px and 390px: no horizontal page scroll, targets ≥ 24px (48px for technicians).
+- Check 1440px, 1024px and 768px with the sidebar open, and 390px: no horizontal page scroll,
+  touch targets ≥ 40px (48px for technicians).
+- Make side-by-side layouts respond to their own width (§2.6): container queries or an intrinsic
+  wrap. `PageHeader`, `DetailLayout` and `DataTableCard`'s toolbar already do.
+- Use `variant="destructive-outline"` for destructive actions on the page (§6.15).
 
 **Don't**
 
@@ -734,6 +845,14 @@ with the label in `font-semibold text-cta`.
 - No second handwritten word, and none in data views.
 - No `outline-none … focus-visible:outline-2` without `focus-visible:outline-solid` (it hides
   the focus ring, §2.7).
+- No local overrides of the shared layout: `DetailLayout` columns (`lg:`/`xl:grid-cols-…`),
+  `PageHeader` rows (`[&>div:last-child]:…`, wrapping it in your own flex row), sheet widths
+  (`data-[side=right]:w-full`), dialog heights, toolbar control heights. If the shared component
+  is wrong, report it.
+- No `lg:hidden` / `max-lg:hidden` / `order-*` to move content inside a `DetailLayout` (§5).
+- No role or account switcher in the app (D52); people switch accounts on the login page.
+- No shop data, not even its name, for someone who is not a member of that shop (D20): the shop
+  layout already shows them the 404 view.
 
 ---
 
@@ -743,5 +862,6 @@ with the label in `font-semibold text-cta`.
 2. Only tokens, primitives and shared layout components; no Carbon leftovers (§7).
 3. Every interactive element reachable by keyboard with the blue focus ring visible.
 4. Empty, loading and error states designed (`EmptyState`, skeleton, `Alert`).
-5. Screenshots at 1440 × 900 and 390 × 844 look like the landing page's product.
+5. Screenshots at 1440 × 900, 1024 × 768 and 768 × 1024 (sidebar open) and 390 × 844 look like
+   the landing page's product.
 6. `pnpm exec prettier --write <files>`, `pnpm lint`, `pnpm typecheck`, `pnpm test` pass.

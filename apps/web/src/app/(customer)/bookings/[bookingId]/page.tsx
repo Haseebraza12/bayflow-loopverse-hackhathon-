@@ -381,19 +381,18 @@ export default function CustomerBookingDetailPage() {
           </>
         }
       >
-        {booking.qcNotes ? (
+        {/* Only a passed QC is shown: a failed round's issue is a staff note (D92, spec 03 §3.3). */}
+        {booking.qcPassed === true && booking.qcNotes ? (
           <Card>
             <CardHeader>
               <h2 className="text-lg leading-7 font-semibold text-foreground">Quality check</h2>
               <CardDescription>Checked by the shop&apos;s quality inspector.</CardDescription>
-              {booking.qcPassed !== false ? (
-                <CardAction>
-                  <Badge variant="success">
-                    <ShieldCheck aria-hidden="true" />
-                    Passed
-                  </Badge>
-                </CardAction>
-              ) : null}
+              <CardAction>
+                <Badge variant="success">
+                  <ShieldCheck aria-hidden="true" />
+                  Passed
+                </Badge>
+              </CardAction>
             </CardHeader>
             <CardContent>
               <p className="rounded-xl bg-layer px-4 py-3.5 text-base text-muted-foreground">

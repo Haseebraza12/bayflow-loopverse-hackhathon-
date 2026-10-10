@@ -164,12 +164,26 @@ const BY_STATUS: Partial<
   ],
 }
 
+/**
+ * The issue title of a failed QC (D92: the `FAIL_QC` note, and so the technician's notification,
+ * is the title only). The mock keeps the issue in `qcNotes` as "QC Issue: {title} — {description}";
+ * notes in another shape are used whole. Null when there are none.
+ */
+export function qcIssueTitle(notes: string | undefined): string | null {
+  const text = notes?.trim().replace(/^QC Issue:\s*/i, '')
+  if (!text) return null
+  return text.split(' — ')[0]!.trim() || null
+}
+
 /** A failed QC sends the job back to IN_REPAIR with `qcPassed: false`. */
 const QC_FAILED = {
   type: 'QC_FAILED' as const,
   to: 'TECHNICIAN' as const,
   title: 'QC failed',
-  body: (b: MockBooking) => `${b.licensePlate}: ${b.qcNotes ?? 'see the inspection notes'}.`,
+  body: (b: MockBooking) => {
+    const issue = qcIssueTitle(b.qcNotes)?.replace(/[.\s]+$/, '')
+    return `${b.licensePlate}: ${issue || 'see the inspection notes'}.`
+  },
 }
 
 const LINK: Record<Audience, (b: MockBooking) => string> = {

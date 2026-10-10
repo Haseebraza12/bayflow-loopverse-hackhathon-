@@ -10,6 +10,10 @@ import {
   Loader2Icon,
 } from 'lucide-react'
 
+// A 36px pill (Button `sm`) with a 44px hit area, the label at 14px, the blue focus ring.
+const TOAST_BUTTON =
+  'relative! h-9! rounded-full! border! px-4! text-sm! font-medium! transition-colors! duration-150! after:absolute after:-inset-1 focus-visible:shadow-none! focus-visible:outline-2! focus-visible:outline-offset-2! focus-visible:outline-ring! focus-visible:outline-solid!'
+
 // Follows the light / dark theme (D93); the colours themselves come from the tokens below.
 const Toaster = ({ ...props }: ToasterProps) => {
   const { forcedTheme, resolvedTheme } = useTheme()
@@ -36,6 +40,11 @@ const Toaster = ({ ...props }: ToasterProps) => {
       toastOptions={{
         classNames: {
           toast: 'cn-toast',
+          // The app's pill buttons (DESIGN.md "Buttons"): the action is the small primary, cancel
+          // the small outline. Sonner injects its own button CSS outside Tailwind's layers, which
+          // beats any layered utility, so these need `!`.
+          actionButton: `${TOAST_BUTTON} border-transparent! bg-primary! text-primary-foreground! hover:bg-primary-hover!`,
+          cancelButton: `${TOAST_BUTTON} border-border-medium! bg-card! text-foreground! hover:bg-secondary!`,
         },
       }}
       {...props}

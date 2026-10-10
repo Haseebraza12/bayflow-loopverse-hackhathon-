@@ -1,7 +1,7 @@
 'use client'
 
 import { Search, X } from 'lucide-react'
-import type { ReactNode } from 'react'
+import type { ComponentProps, ReactNode } from 'react'
 
 import {
   InputGroup,
@@ -60,8 +60,12 @@ export function DataTableCard({
       ) : null}
       {toolbar ? (
         <div
+          data-slot="table-toolbar"
           className={cn(
             'flex flex-col gap-3 border-b border-border-faint px-5 py-3 max-sm:*:data-[slot=button]:self-start sm:flex-row sm:flex-wrap sm:items-center',
+            // One control height for the whole row, at the 40px touch-target minimum: the search,
+            // filter pills, selects and small buttons line up whatever size the page asked for.
+            '[&_:is(button,a)[data-size=default]]:h-10 [&_:is(button,a)[data-size=sm]]:h-10 [&_[data-slot=input-group]]:h-10 [&_[data-slot=native-select]]:h-10 [&_[data-slot=select-trigger]]:h-10 [&_[data-slot=toggle-group-item]]:h-10',
             hasHeader && 'border-t',
           )}
         >
@@ -78,43 +82,58 @@ export function DataTableCard({
   )
 }
 
-export interface TableSearchProps {
+/** Spec 09 §2.10: a search box (`q`) takes at most 100 characters. */
+export const SEARCH_MAX_LENGTH = 100
+
+export interface TableSearchProps extends Omit<
+  ComponentProps<'input'>,
+  'value' | 'onChange' | 'type' | 'className'
+> {
   value: string
   onValueChange: (value: string) => void
   /** Accessible name, e.g. "Search bookings". */
   label: string
   placeholder?: string
+  /** Defaults to 100 (spec 09 §2.10). */
+  maxLength?: number
+  /** On the pill (width, flex), not the input. Other props go to the `<input>`. */
   className?: string
 }
 
-/** The toolbar's search field: a pill with a search icon and a clear button. */
+/** The toolbar's search field: a 40px pill with a search icon and a clear button. */
 export function TableSearch({
   value,
   onValueChange,
   label,
   placeholder,
+  maxLength = SEARCH_MAX_LENGTH,
   className,
+  ...inputProps
 }: TableSearchProps) {
   return (
-    <InputGroup className={cn('h-9 rounded-full sm:w-72', className)}>
+    <InputGroup className={cn('h-10 rounded-full sm:w-72', className)}>
       <InputGroupAddon>
         <Search aria-hidden="true" />
       </InputGroupAddon>
       <InputGroupInput
+        {...inputProps}
         type="search"
         value={value}
         onChange={(event) => onValueChange(event.target.value)}
         placeholder={placeholder}
+        maxLength={maxLength}
         aria-label={label}
         // The clear button below replaces the browser's own, which would show a second ✕.
         className="[&::-webkit-search-cancel-button]:hidden"
       />
       {value ? (
         <InputGroupAddon align="inline-end">
+          {/* 32px, with a 40px hit area. */}
           <InputGroupButton
-            size="icon-xs"
+            size="icon-sm"
             aria-label="Clear search"
             onClick={() => onValueChange('')}
+            className="relative after:absolute after:-inset-1"
           >
             <X />
           </InputGroupButton>
