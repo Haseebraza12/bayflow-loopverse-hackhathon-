@@ -1,5 +1,6 @@
 import { CircleDot, Droplets, Gauge, Snowflake, Sparkles, Wrench, Zap } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { createElement } from 'react'
 
 const RULES: ReadonlyArray<[RegExp, LucideIcon]> = [
   [/oil|filter|fluid/i, Droplets],
@@ -13,4 +14,9 @@ const RULES: ReadonlyArray<[RegExp, LucideIcon]> = [
 /** An icon that suits a service, from words in its name; a wrench otherwise. */
 export function serviceIcon(name: string): LucideIcon {
   return RULES.find(([pattern]) => pattern.test(name))?.[1] ?? Wrench
+}
+
+/** The same icon as a decorative element (`aria-hidden`), for lists that render one per row. */
+export function ServiceIcon({ name, className }: { name: string; className?: string }) {
+  return createElement(serviceIcon(name), { className, 'aria-hidden': true })
 }

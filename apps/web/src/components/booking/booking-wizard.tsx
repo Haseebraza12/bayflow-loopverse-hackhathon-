@@ -1,16 +1,17 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
-import { AlertCircle, ArrowLeft, ArrowRight, Check, MapPin, Star } from 'lucide-react'
+import { AlertCircle, ArrowLeft, ArrowRight, Check, MapPin } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { FormProvider, useForm, useWatch, type FieldErrors } from 'react-hook-form'
 
-import { BookingHero, Handwritten } from '@/components/booking/booking-hero'
+import { BookingHero, Handwritten, HeroBackLink } from '@/components/booking/booking-hero'
 import { BookingSteps, type WizardStep } from '@/components/booking/booking-steps'
 import { BookingSummary, BookingSummaryBar } from '@/components/booking/booking-summary'
 import { ShopDirectory } from '@/components/booking/shop-directory'
+import { RatingValue } from '@/components/booking/shop-rating'
 import {
   EMPTY_VALUES,
   STEP_FIELDS,
@@ -47,6 +48,9 @@ import {
 type Step = Exclude<WizardStep, 'shop'>
 const ORDER: ReadonlyArray<Step> = ['services', 'time', 'details', 'review']
 
+/** The services snapshot of an unknown shop: one stable array, as `useMockStore` requires. */
+const NO_SERVICES: ReadonlyArray<MockService> = []
+
 const HEADINGS: Record<Step, { title: string; guest?: string; description: string }> = {
   services: {
     title: 'What does your car need?',
@@ -82,7 +86,7 @@ export function BookingWizard({ slug }: { slug: string }) {
   const nowIso = useNowMinute()
   const found = useMockStore(() => getShopBySlug(slug))
   const suspensions = useMockStore(getShopSuspensions)
-  const services = useMockStore(() => (found ? getServices(found.id) : []))
+  const services = useMockStore(() => (found ? getServices(found.id) : NO_SERVICES))
 
   if (!ready || !nowIso) return <WizardSkeleton />
 
@@ -273,15 +277,7 @@ function WizardForm({
   return (
     <div className="marketing bg-background pb-16">
       <BookingHero
-        eyebrow={
-          <Link
-            href="/book"
-            className="inline-flex items-center gap-1.5 rounded-full text-sm font-semibold text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="size-4" aria-hidden />
-            All workshops
-          </Link>
-        }
+        eyebrow={<HeroBackLink href="/book">All workshops</HeroBackLink>}
         title={
           <>
             <Handwritten>Book at</Handwritten> {shop.name}
@@ -294,9 +290,9 @@ function WizardForm({
               {shop.address}, {shop.city}
             </span>
             {shop.rating && (
-              <span className="inline-flex items-center gap-1.5">
-                <Star className="size-4 fill-amber-400 text-amber-400" aria-hidden />
-                {shop.rating.toFixed(1)} rating
+              <span className="inline-flex items-center gap-1">
+                <RatingValue rating={shop.rating} className="font-semibold text-foreground" />
+                rating
               </span>
             )}
           </span>
@@ -375,19 +371,23 @@ function WizardForm({
                 </div>
               </div>
 
-              <div className="sticky bottom-0 z-10 flex items-center justify-between gap-3 rounded-b-3xl border-t border-border bg-card/95 px-5 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur sm:px-8 lg:static lg:py-5 lg:backdrop-blur-none">
+              {/* 44px actions (spec 10 P-03 Mobile); on phones the primary takes the rest of the
+                  row and the services step's "Change workshop" shortens to "Back", so both fit a
+                  360px screen. */}
+              <div className="sticky bottom-0 z-10 flex items-center justify-between gap-2 rounded-b-3xl border-t border-border bg-card/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur sm:gap-3 sm:px-8 lg:static lg:py-5 lg:backdrop-blur-none">
                 {step === 'services' ? (
-                  <Button asChild variant="outline" className="h-11 rounded-full px-5">
+                  <Button asChild variant="outline" className="h-11 px-4 sm:px-5">
                     <Link href="/book">
                       <ArrowLeft aria-hidden />
-                      Change workshop
+                      <span className="sm:hidden">Back</span>
+                      <span className="hidden sm:inline">Change workshop</span>
                     </Link>
                   </Button>
                 ) : (
                   <Button
                     type="button"
                     variant="outline"
-                    className="h-11 rounded-full px-5"
+                    className="h-11 px-4 sm:px-5"
                     onClick={() => goTo(ORDER[ORDER.indexOf(step) - 1]!)}
                     disabled={submitting}
                   >
@@ -398,7 +398,7 @@ function WizardForm({
                 <Button
                   type="submit"
                   disabled={submitting}
-                  className="h-11 rounded-full bg-brand-blue px-6 font-semibold text-white shadow-md shadow-brand-blue/25 hover:bg-brand-blue-hover"
+                  className="h-11 max-w-60 flex-1 px-5 sm:max-w-none sm:flex-none sm:px-6"
                 >
                   {step === 'review' ? (
                     submitting ? (
@@ -408,7 +408,7 @@ function WizardForm({
                       </>
                     ) : (
                       <>
-                        <Check aria-hidden />
+                        <Check aria-hidden className="max-[359px]:hidden" />
                         Confirm booking
                       </>
                     )

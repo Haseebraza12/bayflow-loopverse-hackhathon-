@@ -43,12 +43,8 @@ import { formatPKR } from '@/lib/format'
 import type { MockService, MockShop } from '@/lib/mock-data'
 import { cn } from '@/lib/utils'
 
-/** Rounded, fully bordered fields: the landing page's look rather than the POS's Carbon rule. */
-const FIELD =
-  'h-12 rounded-xl border border-border bg-card px-4 text-base shadow-xs hover:bg-card sm:text-sm'
-const LABEL = 'text-sm font-medium text-foreground'
-const FIELD_GROUP =
-  'h-12 rounded-xl border border-border bg-card shadow-xs hover:bg-card [&_input]:text-base sm:[&_input]:text-sm'
+// Fields use the primitives' own look (DESIGN.md §4): 42px, 12px corners and the ≥ 3 : 1
+// `border-input` edge, with the blue focus halo.
 
 function useFieldError(name: keyof WizardValues): string | undefined {
   const {
@@ -146,16 +142,14 @@ export function StepServices({ services }: { services: ReadonlyArray<MockService
       />
 
       <Field data-invalid={Boolean(notesError)}>
-        <FieldLabel className={LABEL} htmlFor="notes">
-          Describe the problem (optional)
-        </FieldLabel>
+        <FieldLabel htmlFor="notes">Describe the problem (optional)</FieldLabel>
         <Textarea
           id="notes"
           rows={4}
           maxLength={2000}
           placeholder="Light came on yesterday, car vibrates at idle"
           aria-invalid={Boolean(notesError)}
-          className="min-h-28 rounded-2xl border border-border bg-card p-4 text-base shadow-xs hover:bg-card sm:text-sm"
+          className="min-h-28"
           {...register('notes')}
         />
         <FieldDescription className="flex justify-between gap-3">
@@ -211,10 +205,13 @@ export function StepTime({
     clearErrors(['date', 'time'])
   }
 
+  // The calendar and the times sit side by side only where both fit comfortably: from `md` while
+  // the summary is hidden, then again from `xl` once the summary column has room to spare.
   return (
-    <div className="grid gap-6 md:grid-cols-[auto_minmax(0,1fr)]">
-      <div className="flex justify-center md:block">
-        <div className="rounded-2xl border border-border bg-card p-2 shadow-xs">
+    <div className="grid grid-cols-1 gap-6 md:grid-cols-[auto_minmax(0,1fr)] lg:grid-cols-1 xl:grid-cols-[auto_minmax(0,1fr)]">
+      <div className="min-w-0 sm:flex sm:flex-col sm:items-center md:block lg:flex xl:block">
+        {/* Full width on phones (the day cells grow to share the row), its natural size from sm. */}
+        <div className="w-full rounded-2xl border border-border bg-card p-1 shadow-xs sm:w-fit sm:p-2">
           <Calendar
             mode="single"
             weekStartsOn={1}
@@ -224,7 +221,8 @@ export function StepTime({
             startMonth={first ? fromKey(first) : undefined}
             endMonth={last ? fromKey(last) : undefined}
             disabled={(day) => !open.has(toKey(day))}
-            className="[--cell-size:2.6rem] [&_button[data-selected-single=true]]:bg-brand-blue! [&_button[data-selected-single=true]]:text-white!"
+            classNames={{ root: 'rdp-root w-full sm:w-fit' }}
+            className="p-2 [--cell-size:min(2.6rem,calc((100vw_-_7rem)/7))] sm:p-3 sm:[--cell-size:2.6rem] [&_button[data-selected-single=true]]:bg-brand-blue! [&_button[data-selected-single=true]]:text-white!"
           />
         </div>
         <ErrorText message={dateError} />
@@ -242,8 +240,12 @@ export function StepTime({
         </div>
 
         {taken && (
-          <p role="alert" className="rounded-xl bg-attention px-3.5 py-2.5 text-sm text-cta">
-            That time was just taken. Please pick another.
+          <p
+            role="alert"
+            className="rounded-xl border border-attention-border bg-attention px-4 py-3 text-sm text-foreground"
+          >
+            <span className="font-semibold text-cta">That time was just taken.</span> Please pick
+            another.
           </p>
         )}
 
@@ -288,19 +290,17 @@ export function StepTime({
                   if (group.length === 0) return null
                   return (
                     <div key={period} className="space-y-2">
-                      <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                        {period}
-                      </p>
+                      <p className="text-sm font-semibold text-foreground">{period}</p>
                       <div className="grid grid-cols-3 gap-2 sm:grid-cols-[repeat(auto-fill,minmax(6.25rem,1fr))]">
                         {group.map((slot) => (
                           <RadioGroupPrimitive.Item
                             key={slot.time}
                             value={slot.time}
-                            className="flex h-12 flex-col items-center justify-center rounded-xl border border-border bg-card px-2 text-sm font-semibold whitespace-nowrap text-foreground shadow-xs transition-colors outline-none hover:border-brand-blue/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue data-[state=checked]:border-brand-blue data-[state=checked]:bg-brand-blue data-[state=checked]:text-white data-[state=checked]:shadow-md data-[state=checked]:shadow-brand-blue/25"
+                            className="flex h-12 min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl border border-input bg-card px-2 text-sm font-semibold whitespace-nowrap text-foreground shadow-xs transition-colors outline-none hover:border-brand-blue hover:bg-brand-blue-subtle/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring focus-visible:outline-solid data-[state=checked]:border-brand-blue data-[state=checked]:bg-brand-blue data-[state=checked]:text-white data-[state=checked]:shadow-md data-[state=checked]:shadow-brand-blue/25"
                           >
                             {slot.time}
                             {slot.remaining === 1 && (
-                              <span className="text-[11px] leading-none font-medium opacity-80">
+                              <span className="text-xs leading-none font-medium opacity-80">
                                 1 left
                               </span>
                             )}
@@ -338,16 +338,8 @@ function TextField({
   const error = useFieldError(name)
   return (
     <Field data-invalid={Boolean(error)} className={className}>
-      <FieldLabel className={LABEL} htmlFor={name}>
-        {label}
-      </FieldLabel>
-      <Input
-        id={name}
-        aria-invalid={Boolean(error)}
-        className={FIELD}
-        {...input}
-        {...register(name)}
-      />
+      <FieldLabel htmlFor={name}>{label}</FieldLabel>
+      <Input id={name} aria-invalid={Boolean(error)} {...input} {...register(name)} />
       {description && <FieldDescription>{description}</FieldDescription>}
       <ErrorText message={error} />
     </Field>
@@ -373,7 +365,7 @@ export function StepDetails({
   return (
     <div className="space-y-10">
       <FieldSet>
-        <FieldLegend className="text-lg font-bold">Your details</FieldLegend>
+        <FieldLegend>Your details</FieldLegend>
         {signedInAs ? (
           <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-border bg-muted/50 p-4">
             <Avatar className="size-10">
@@ -412,10 +404,8 @@ export function StepDetails({
               spellCheck={false}
             />
             <Field data-invalid={Boolean(passwordError)} className="sm:col-span-2">
-              <FieldLabel className={LABEL} htmlFor="password">
-                Password
-              </FieldLabel>
-              <InputGroup className={FIELD_GROUP}>
+              <FieldLabel htmlFor="password">Password</FieldLabel>
+              <InputGroup>
                 <InputGroupInput
                   id="password"
                   type={showPassword ? 'text' : 'password'}
@@ -463,19 +453,17 @@ export function StepDetails({
       </FieldSet>
 
       <FieldSet>
-        <FieldLegend className="text-lg font-bold">Your vehicle</FieldLegend>
+        <FieldLegend>Your vehicle</FieldLegend>
         <FieldGroup className="grid gap-5 sm:grid-cols-2">
           <Field data-invalid={Boolean(registrationError)}>
-            <FieldLabel className={LABEL} htmlFor="registration">
-              Registration number
-            </FieldLabel>
+            <FieldLabel htmlFor="registration">Registration number</FieldLabel>
             <Input
               id="registration"
               autoComplete="off"
               spellCheck={false}
               placeholder="LEA-1234"
               aria-invalid={Boolean(registrationError)}
-              className={cn(FIELD, 'font-mono tracking-wide uppercase')}
+              className="font-mono uppercase"
               {...registration}
               onChange={(event) => {
                 event.target.value = event.target.value.toUpperCase()
@@ -500,10 +488,8 @@ export function StepDetails({
             autoComplete="off"
           />
           <Field data-invalid={Boolean(mileageError)}>
-            <FieldLabel className={LABEL} htmlFor="mileage">
-              Mileage (optional)
-            </FieldLabel>
-            <InputGroup className={FIELD_GROUP}>
+            <FieldLabel htmlFor="mileage">Mileage (optional)</FieldLabel>
+            <InputGroup>
               <InputGroupInput
                 id="mileage"
                 inputMode="numeric"
@@ -614,7 +600,7 @@ export function StepReview({
       </ReviewSection>
 
       <ReviewSection title="Vehicle" onEdit={() => onEdit('details')}>
-        <p className="font-mono font-semibold tracking-wide text-foreground">
+        <p className="font-mono font-semibold text-foreground">
           {values.registration?.trim().toUpperCase()}
         </p>
         <p>

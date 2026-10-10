@@ -1,3 +1,5 @@
+import { ArrowLeft } from 'lucide-react'
+import Link from 'next/link'
 import type { ReactNode } from 'react'
 
 import { cn } from '@/lib/utils'
@@ -5,18 +7,24 @@ import { cn } from '@/lib/utils'
 /**
  * The header band of the public booking pages, in the landing page's language: grid paper, a soft
  * blue glow, an extra-bold heading with one handwritten word, and room for the step indicator.
+ * `media` (a shop photo) sits beside the text from `lg` and above it on smaller screens.
  */
 export function BookingHero({
   eyebrow,
   title,
   description,
   children,
+  childrenClassName,
+  media,
   className,
 }: {
   eyebrow?: ReactNode
   title: ReactNode
   description?: ReactNode
   children?: ReactNode
+  /** Classes for the block that holds `children`, e.g. `hidden md:block` for desktop-only actions. */
+  childrenClassName?: string
+  media?: ReactNode
   className?: string
 }) {
   return (
@@ -32,18 +40,28 @@ export function BookingHero({
       />
       <div className="relative mx-auto max-w-6xl px-4 pt-10 pb-8 sm:px-6 md:pt-14 lg:px-8">
         {eyebrow && <div className="mb-4">{eyebrow}</div>}
-        <h1
-          tabIndex={-1}
-          className="max-w-3xl text-4xl leading-[1.08] font-extrabold tracking-tight text-foreground outline-none sm:text-5xl"
+        <div
+          className={cn(
+            media &&
+              'grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,30rem)] lg:items-center lg:gap-12',
+          )}
         >
-          {title}
-        </h1>
-        {description && (
-          <p className="mt-3 max-w-2xl text-base leading-relaxed text-muted-foreground">
-            {description}
-          </p>
-        )}
-        {children && <div className="mt-8">{children}</div>}
+          <div className="min-w-0">
+            <h1
+              tabIndex={-1}
+              className="max-w-3xl text-4xl leading-[1.08] font-extrabold tracking-tight text-foreground outline-none sm:text-5xl"
+            >
+              {title}
+            </h1>
+            {description && (
+              <p className="mt-3 max-w-2xl text-base leading-relaxed text-muted-foreground">
+                {description}
+              </p>
+            )}
+            {children && <div className={cn('mt-8', childrenClassName)}>{children}</div>}
+          </div>
+          {media && <div className="order-first lg:order-none">{media}</div>}
+        </div>
       </div>
     </section>
   )
@@ -65,5 +83,18 @@ export function Eyebrow({ icon, children }: { icon?: ReactNode; children: ReactN
       {icon}
       {children}
     </span>
+  )
+}
+
+/** "← All workshops": the back link at the top of a booking hero. */
+export function HeroBackLink({ href, children }: { href: string; children: ReactNode }) {
+  return (
+    <Link
+      href={href}
+      className="-ml-1 inline-flex items-center gap-1.5 rounded-full px-1 py-0.5 text-sm font-semibold text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring focus-visible:outline-solid"
+    >
+      <ArrowLeft className="size-4" aria-hidden />
+      {children}
+    </Link>
   )
 }

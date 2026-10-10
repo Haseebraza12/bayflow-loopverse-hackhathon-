@@ -19,7 +19,16 @@ export interface SummaryData {
   vehicle: string
 }
 
-function Row({ icon, label, children }: { icon: ReactNode; label: string; children: ReactNode }) {
+/** One line of a booking summary: a blue icon dot, a small label and the value under it. */
+export function SummaryRow({
+  icon,
+  label,
+  children,
+}: {
+  icon: ReactNode
+  label: string
+  children: ReactNode
+}) {
   return (
     <div className="flex gap-3 py-3.5">
       <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-brand-blue-subtle text-brand-blue-ink [&_svg]:size-4">
@@ -28,6 +37,50 @@ function Row({ icon, label, children }: { icon: ReactNode; label: string; childr
       <div className="min-w-0 flex-1">
         <p className="text-xs font-medium text-muted-foreground">{label}</p>
         <div className="mt-0.5 text-sm text-foreground">{children}</div>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * The head of a booking summary: the shop's cover photo under a dark fade, with the shop's name
+ * and city over it and an optional action (the wizard's "Change") on the right.
+ */
+export function ShopPhotoBanner({
+  slug,
+  name,
+  city,
+  label,
+  action,
+  sizes = '380px',
+}: {
+  slug: string
+  name: string
+  city?: string
+  label: string
+  action?: ReactNode
+  sizes?: string
+}) {
+  const photo = shopPhoto(slug)
+  return (
+    <div className="relative aspect-[16/9]">
+      <Image src={photo.src} alt={photo.alt} fill sizes={sizes} className="object-cover" />
+      <div
+        aria-hidden
+        className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"
+      />
+      <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 p-4 text-white">
+        <div className="min-w-0">
+          <p className="text-xs font-medium text-white/80">{label}</p>
+          <p className="truncate font-heading text-2xl leading-tight font-bold">{name}</p>
+          {city && (
+            <p className="flex items-center gap-1 text-xs text-white/85">
+              <MapPin className="size-3.5" aria-hidden />
+              {city}
+            </p>
+          )}
+        </div>
+        {action}
       </div>
     </div>
   )
@@ -43,7 +96,7 @@ function SummaryRows({ services, date, time, vehicle }: Omit<SummaryData, 'shop'
   return (
     <>
       <div className="divide-y divide-border-faint">
-        <Row icon={<Wrench />} label="Services">
+        <SummaryRow icon={<Wrench />} label="Services">
           {services.length === 0 ? (
             <Pending>Choose what your car needs</Pending>
           ) : (
@@ -58,8 +111,8 @@ function SummaryRows({ services, date, time, vehicle }: Omit<SummaryData, 'shop'
               ))}
             </ul>
           )}
-        </Row>
-        <Row icon={<CalendarDays />} label="Date and time">
+        </SummaryRow>
+        <SummaryRow icon={<CalendarDays />} label="Date and time">
           {date && time ? (
             <span className="font-semibold">
               {formatDateKey(date)} · {time}
@@ -71,14 +124,14 @@ function SummaryRows({ services, date, time, vehicle }: Omit<SummaryData, 'shop'
           ) : (
             <Pending>Pick a date and time</Pending>
           )}
-        </Row>
-        <Row icon={<Car />} label="Vehicle">
+        </SummaryRow>
+        <SummaryRow icon={<Car />} label="Vehicle">
           {vehicle ? (
             <span className="font-medium">{vehicle}</span>
           ) : (
             <Pending>Added in step 4</Pending>
           )}
-        </Row>
+        </SummaryRow>
       </div>
       {total > 0 && (
         <div className="mt-1 flex items-baseline justify-between border-t border-border pt-4">
@@ -104,37 +157,25 @@ function SummaryRows({ services, date, time, vehicle }: Omit<SummaryData, 'shop'
 
 /** "Your booking", sticky beside the step on large screens (spec 10 P-03 Shell). */
 export function BookingSummary(data: SummaryData) {
-  const photo = shopPhoto(data.shop.slug)
   return (
     <section
       aria-label="Your booking"
       className="overflow-hidden rounded-3xl border border-border bg-card shadow-sm"
     >
-      <div className="relative aspect-[16/9]">
-        <Image src={photo.src} alt={photo.alt} fill sizes="380px" className="object-cover" />
-        <div
-          aria-hidden
-          className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"
-        />
-        <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 p-4 text-white">
-          <div className="min-w-0">
-            <p className="text-xs font-medium text-white/80">Your booking at</p>
-            <p className="truncate font-heading text-2xl leading-tight font-bold">
-              {data.shop.name}
-            </p>
-            <p className="flex items-center gap-1 text-xs text-white/85">
-              <MapPin className="size-3.5" aria-hidden />
-              {data.shop.city}
-            </p>
-          </div>
+      <ShopPhotoBanner
+        slug={data.shop.slug}
+        name={data.shop.name}
+        city={data.shop.city}
+        label="Your booking at"
+        action={
           <Link
             href="/book"
-            className="shrink-0 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white backdrop-blur hover:bg-white/25"
+            className="shrink-0 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white backdrop-blur outline-none hover:bg-white/25 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white focus-visible:outline-solid"
           >
-            Change
+            Change<span className="sr-only"> workshop</span>
           </Link>
-        </div>
-      </div>
+        }
+      />
       <div className="p-5 pt-2">
         <SummaryRows {...data} />
       </div>
@@ -150,7 +191,7 @@ export function BookingSummaryBar(data: SummaryData) {
   ].filter(Boolean)
   return (
     <Collapsible className="group/summary overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
-      <CollapsibleTrigger className="flex w-full items-center gap-3 px-5 py-4 text-left">
+      <CollapsibleTrigger className="flex w-full items-center gap-3 rounded-3xl px-5 py-4 text-left outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring focus-visible:outline-solid">
         <span className="min-w-0 flex-1">
           <span className="block text-sm font-semibold text-foreground">Your booking</span>
           <span className="block truncate text-xs text-muted-foreground">

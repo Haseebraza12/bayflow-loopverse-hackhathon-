@@ -1,9 +1,10 @@
 'use client'
 
-import { ArrowRight, Clock, MapPin, Star } from 'lucide-react'
+import { ArrowRight, Clock, MapPin } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 
+import { RatingValue } from '@/components/booking/shop-rating'
 import { Button } from '@/components/ui/button'
 import { hoursOn, slotLabel } from '@/lib/booking-slots'
 import { formatPKR, shopDateKey } from '@/lib/format'
@@ -16,6 +17,11 @@ export function openingToday(shop: MockShop, nowIso: string): string {
   return hours
     ? `Open today · ${slotLabel(hours.open)} – ${slotLabel(hours.close)}`
     : 'Closed today'
+}
+
+/** A `tel:` link for a shop phone such as "+92 42 35789011" (digits and the leading + only). */
+export function telHref(phone: string): string {
+  return `tel:${phone.replace(/[^\d+]/g, '')}`
 }
 
 /** Lowest listed price among the shop's services, or null when every price is set on inspection. */
@@ -60,15 +66,7 @@ export function ShopCard({
           {shop.city}
         </span>
         <span className="absolute top-3 right-3 inline-flex items-center gap-1 rounded-full bg-card/95 px-2.5 py-1 text-xs font-semibold text-foreground shadow-sm backdrop-blur">
-          {shop.rating ? (
-            <>
-              <Star className="size-3.5 fill-amber-400 text-amber-400" aria-hidden />
-              {shop.rating.toFixed(1)}
-              <span className="sr-only">out of 5</span>
-            </>
-          ) : (
-            'New'
-          )}
+          {shop.rating ? <RatingValue rating={shop.rating} /> : 'New'}
         </span>
         {nowIso && (
           <span className="absolute bottom-3 left-3 inline-flex items-center gap-1.5 text-xs font-medium text-white">
@@ -83,7 +81,7 @@ export function ShopCard({
           <h3 className="text-2xl leading-tight font-bold text-foreground">
             <Link
               href={`/shops/${shop.slug}`}
-              className="outline-none hover:text-brand-blue-ink focus-visible:underline"
+              className="rounded-md transition-colors outline-none hover:text-brand-blue-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring focus-visible:outline-solid"
             >
               {shop.name}
             </Link>
