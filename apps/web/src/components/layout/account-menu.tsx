@@ -62,7 +62,6 @@ export function AccountMenu({ context = 'public' }: { context?: 'public' | 'pos'
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          aria-label={`Account: ${user.name}`}
           className="flex shrink-0 items-center rounded-full outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring focus-visible:outline-solid"
         >
           <Avatar className="size-9 after:hidden">
@@ -70,6 +69,8 @@ export function AccountMenu({ context = 'public' }: { context?: 'public' | 'pos'
               {initials(user.name)}
             </AvatarFallback>
           </Avatar>
+          {/* The name starts with the visible initials (WCAG 2.5.3 label in name). */}
+          <span className="sr-only">Account: {user.name}</span>
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-64">
