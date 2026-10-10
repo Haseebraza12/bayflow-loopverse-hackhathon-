@@ -2,6 +2,7 @@
 
 import {
   BarChart3,
+  Bell,
   Box,
   Calendar,
   ChevronDown,
@@ -11,139 +12,22 @@ import {
   PhoneCall,
   PlusCircle,
   ShoppingBag,
-  Store,
   Warehouse,
   X,
-  type LucideIcon,
 } from 'lucide-react'
 import Link from 'next/link'
-import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
-import { CONTACT_PHONE } from '@/components/landing/site-contact'
 import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
 
 import { Logo } from './logo'
 import { SessionActions } from './session-actions'
 
-type MenuId = 'features' | 'solutions' | 'company' | 'resources'
-
-interface FeatureItem {
-  title: string
-  desc: string
-  icon: LucideIcon
-  /** Icon tile colours: theme tokens, one hue per feature. */
-  tone: string
-  href: string
-}
-
-/** Every entry points at a real section of the landing page (or a real page), from any page. */
-const FEATURE_ITEMS: ReadonlyArray<FeatureItem> = [
-  {
-    title: 'Online booking',
-    desc: 'Customers pick a shop, the services they need and a free time slot, without a phone call.',
-    icon: Calendar,
-    tone: 'bg-status-intake-bg text-status-intake-fg',
-    href: '/#customers',
-  },
-  {
-    title: 'Workflow',
-    desc: 'A 15-step job lifecycle with one responsible role at every step, from check-in to pick-up.',
-    icon: BarChart3,
-    tone: 'bg-brand-blue-subtle text-brand-blue-ink',
-    href: '/#lifecycle',
-  },
-  {
-    title: 'Estimates',
-    desc: 'Parts and labour estimates that customers approve or decline online.',
-    icon: PlusCircle,
-    tone: 'bg-status-estimate-bg text-status-estimate-fg',
-    href: '/#estimates',
-  },
-  {
-    title: 'Inventory',
-    desc: 'Live stock for every shop, with shortages flagged before they stall a job.',
-    icon: Warehouse,
-    tone: 'bg-status-parts-bg text-status-parts-fg',
-    href: '/#inventory',
-  },
-  {
-    title: 'Quality control',
-    desc: 'A shared QC queue and checklist. Failed checks go back to the technician.',
-    icon: ClipboardCheck,
-    tone: 'bg-status-repair-qc-bg text-status-repair-qc-fg',
-    href: '/#quality-control',
-  },
-  {
-    title: 'Service catalogue',
-    desc: 'Services with a duration and a starting price, ready for online booking.',
-    icon: Box,
-    tone: 'bg-status-inspection-bg text-status-inspection-fg',
-    href: '/#services',
-  },
-  {
-    title: 'Purchase orders',
-    desc: 'Order missing parts and receive them, even when a delivery arrives in parts.',
-    icon: ShoppingBag,
-    tone: 'bg-attention text-cta',
-    href: '/#purchase-orders',
-  },
-  {
-    title: 'Multi-shop owners',
-    desc: 'Each shop has its own team and stock; owners get one summary across all of them.',
-    icon: Store,
-    tone: 'bg-success-subtle text-success-ink',
-    href: '/#workflow',
-  },
-]
-
-const SIMPLE_MENUS: ReadonlyArray<{
-  id: Exclude<MenuId, 'features'>
-  label: string
-  width: string
-  items: ReadonlyArray<{ label: string; href: string }>
-}> = [
-  {
-    id: 'solutions',
-    label: 'Solutions',
-    width: 'w-72',
-    items: [
-      { label: 'For workshop owners', href: '/#workflow' },
-      { label: 'For service advisors', href: '/#roles' },
-      { label: 'For technicians', href: '/#technicians' },
-      { label: 'For QC inspectors', href: '/#quality-control' },
-      { label: 'For parts teams', href: '/#inventory' },
-      { label: 'For car owners', href: '/#customers' },
-    ],
-  },
-  {
-    id: 'company',
-    label: 'Company',
-    width: 'w-64',
-    items: [
-      { label: 'About BayFlow', href: '/#features-all' },
-      { label: 'Contact us', href: '/#contact' },
-    ],
-  },
-  {
-    id: 'resources',
-    label: 'Resources',
-    width: 'w-64',
-    items: [
-      { label: 'Find a shop', href: '/book' },
-      { label: 'Demo accounts', href: '/login' },
-      { label: 'Register your shop', href: '/register' },
-    ],
-  },
-]
-
-const TRIGGER =
-  'inline-flex items-center gap-1 rounded-full px-3 py-2 text-sm font-medium text-muted-foreground transition-colors outline-none hover:text-brand-blue-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring focus-visible:outline-solid aria-expanded:text-brand-blue-ink'
-const MENU_LINK =
-  'block rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors outline-none hover:bg-muted hover:text-brand-blue-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring focus-visible:outline-solid'
-
 export function PublicHeader() {
-  const [openMenu, setOpenMenu] = useState<MenuId | null>(null)
+  const [featuresOpen, setFeaturesOpen] = useState(false)
+  const [solutionsOpen, setSolutionsOpen] = useState(false)
+  const [companyOpen, setCompanyOpen] = useState(false)
+  const [resourcesOpen, setResourcesOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const navRef = useRef<HTMLDivElement>(null)
@@ -151,34 +35,74 @@ export function PublicHeader() {
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (navRef.current && !navRef.current.contains(event.target as Node)) {
-        setOpenMenu(null)
+        setFeaturesOpen(false)
+        setSolutionsOpen(false)
+        setCompanyOpen(false)
+        setResourcesOpen(false)
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  function toggle(menu: MenuId) {
-    setOpenMenu((current) => (current === menu ? null : menu))
-  }
-
-  /** Escape closes an open dropdown and puts focus back on its trigger. */
-  function onNavKeyDown(event: KeyboardEvent<HTMLElement>) {
-    if (event.key !== 'Escape' || !openMenu) return
-    event.preventDefault()
-    document.getElementById(`public-nav-${openMenu}-trigger`)?.focus()
-    setOpenMenu(null)
-  }
-
-  function triggerProps(menu: MenuId) {
-    return {
-      id: `public-nav-${menu}-trigger`,
-      type: 'button' as const,
-      'aria-expanded': openMenu === menu,
-      'aria-controls': `public-nav-${menu}`,
-      onClick: () => toggle(menu),
-    }
-  }
+  const featureItems = [
+    {
+      title: 'Workflow',
+      desc: 'Assign tasks, schedule jobs, and track progress in real time. Keep your team aligned and your shop running like clockwork.',
+      icon: BarChart3,
+      color: 'bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400',
+      href: '#workflow',
+    },
+    {
+      title: 'Estimates',
+      desc: 'Send professional estimates in seconds. Get approvals faster and get to work sooner.',
+      icon: PlusCircle,
+      color: 'bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400',
+      href: '#estimates',
+    },
+    {
+      title: 'Inventory',
+      desc: "Know exactly what's in stock from parts to tires. Reduce delays and keep your jobs moving.",
+      icon: Warehouse,
+      color: 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400',
+      href: '#inventory',
+    },
+    {
+      title: 'Vehicle Inspections',
+      desc: 'Catch issues early and build trust. Create digital inspection reports your customers can see and understand instantly.',
+      icon: ClipboardCheck,
+      color: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400',
+      href: '#inspections',
+    },
+    {
+      title: 'Packaged Services',
+      desc: 'Bundle common repairs and maintenance into convenient packages that deliver more value and more revenue.',
+      icon: Box,
+      color: 'bg-cyan-50 dark:bg-cyan-950/40 text-cyan-600 dark:text-cyan-400',
+      href: '#packages',
+    },
+    {
+      title: 'Procurement',
+      desc: 'Order the right parts, on time. Manage suppliers and restock with confidence without chasing paperwork.',
+      icon: ShoppingBag,
+      color: 'bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400',
+      href: '#procurement',
+    },
+    {
+      title: 'Appointment Scheduling',
+      desc: 'Notifications to prompt action for upcoming tasks or events.',
+      icon: Calendar,
+      color: 'bg-teal-50 dark:bg-teal-950/40 text-teal-600 dark:text-teal-400',
+      href: '#scheduling',
+    },
+    {
+      title: 'Service Reminders',
+      desc: 'Diagnose multiple systems with a single tool.',
+      icon: Bell,
+      color: 'bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400',
+      href: '#reminders',
+    },
+  ]
 
   return (
     <header className="marketing sticky top-0 z-50 w-full border-b border-border/80 bg-card/95 backdrop-blur-md">
@@ -192,123 +116,187 @@ export function PublicHeader() {
         </Link>
 
         {/* Desktop Nav */}
-        <nav
-          aria-label="Main"
-          onKeyDown={onNavKeyDown}
-          className="hidden items-center gap-1 lg:flex xl:gap-2"
-        >
+        <nav aria-label="Main Navigation" className="hidden items-center gap-1 lg:flex xl:gap-2">
           {/* FEATURES DROPDOWN */}
           <div className="relative">
-            <button {...triggerProps('features')} className={TRIGGER}>
+            <button
+              type="button"
+              onClick={() => {
+                setFeaturesOpen(!featuresOpen)
+                setSolutionsOpen(false)
+                setCompanyOpen(false)
+                setResourcesOpen(false)
+              }}
+              className="inline-flex items-center gap-1 px-3 py-2 text-xs font-normal tracking-wider text-muted-foreground uppercase transition-colors hover:text-brand-blue-ink xl:text-sm"
+            >
               Features
               <ChevronDown
-                aria-hidden="true"
-                className={cn(
-                  'size-4 transition-transform duration-200',
-                  openMenu === 'features' && 'rotate-180 text-brand-blue-ink',
-                )}
+                className={`size-4 transition-transform duration-200 ${featuresOpen ? 'rotate-180 text-brand-blue-ink' : ''}`}
               />
             </button>
 
-            {openMenu === 'features' && (
-              <div
-                id="public-nav-features"
-                className="absolute top-full left-1/2 z-50 mt-3 w-[680px] -translate-x-1/2 rounded-3xl border border-border bg-card p-6 shadow-2xl transition-all duration-200 xl:w-[760px]"
-              >
-                <ul className="grid grid-cols-2 gap-4 border-b border-border-faint pb-5">
-                  {FEATURE_ITEMS.map((item) => (
-                    <li key={item.title}>
-                      <Link
-                        href={item.href}
-                        onClick={() => setOpenMenu(null)}
-                        className="group flex items-start gap-3.5 rounded-2xl p-3 transition-colors outline-none hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring focus-visible:outline-solid"
+            {featuresOpen && (
+              <div className="absolute top-full left-1/2 z-50 mt-3 w-[680px] -translate-x-1/2 rounded-3xl border border-border bg-card p-6 shadow-2xl transition-all duration-200 xl:w-[760px]">
+                <div className="grid grid-cols-2 gap-4 border-b border-border-faint pb-5">
+                  {featureItems.map((item) => (
+                    <Link
+                      key={item.title}
+                      href={item.href}
+                      onClick={() => setFeaturesOpen(false)}
+                      className="group flex items-start gap-3.5 rounded-2xl p-3 transition-colors hover:bg-muted"
+                    >
+                      <div
+                        className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${item.color}`}
                       >
-                        <span
-                          className={cn(
-                            'flex size-10 shrink-0 items-center justify-center rounded-xl',
-                            item.tone,
-                          )}
-                        >
-                          <item.icon aria-hidden="true" className="size-5" />
-                        </span>
-                        <span>
-                          <span className="block text-sm font-bold text-foreground transition-colors group-hover:text-brand-blue-ink">
-                            {item.title}
-                          </span>
-                          <span className="mt-0.5 line-clamp-2 block text-xs leading-relaxed text-helper">
-                            {item.desc}
-                          </span>
-                        </span>
-                      </Link>
-                    </li>
+                        <item.icon className="size-5" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-foreground transition-colors group-hover:text-brand-blue-ink">
+                          {item.title}
+                        </h4>
+                        <p className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-helper">
+                          {item.desc}
+                        </p>
+                      </div>
+                    </Link>
                   ))}
-                </ul>
+                </div>
 
-                <div className="flex items-center justify-between px-2 pt-4 text-sm font-semibold">
+                <div className="flex items-center justify-between px-2 pt-4 text-xs font-semibold">
                   <a
-                    href={CONTACT_PHONE.href}
-                    className="inline-flex items-center gap-2 rounded-sm text-muted-foreground transition-colors outline-none hover:text-brand-blue-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring focus-visible:outline-solid"
+                    href="tel:+923125699996"
+                    className="inline-flex items-center gap-2 text-muted-foreground transition-colors hover:text-brand-blue-ink"
                   >
-                    <PhoneCall aria-hidden="true" className="size-4 text-brand-blue-ink" />
-                    <span>Contact sales</span>
+                    <PhoneCall className="size-3.5 text-brand-blue-ink" />
+                    <span>Contact Sales</span>
                   </a>
                   <Link
-                    href="/#features-all"
-                    onClick={() => setOpenMenu(null)}
-                    className="inline-flex items-center gap-1.5 rounded-sm text-brand-blue-ink outline-none hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring focus-visible:outline-solid"
+                    href="#features-all"
+                    onClick={() => setFeaturesOpen(false)}
+                    className="inline-flex items-center gap-1.5 text-brand-blue-ink hover:underline"
                   >
-                    <span>View all features</span>
-                    <ChevronRight aria-hidden="true" className="size-4" />
+                    <span>VIEW ALL FEATURES</span>
+                    <ChevronRight className="size-4" />
                   </Link>
                 </div>
               </div>
             )}
           </div>
 
-          {/* SOLUTIONS, COMPANY AND RESOURCES DROPDOWNS */}
-          {SIMPLE_MENUS.map((menu) => (
-            <div key={menu.id} className="relative">
-              <button {...triggerProps(menu.id)} className={TRIGGER}>
-                {menu.label}
-                <ChevronDown
-                  aria-hidden="true"
-                  className={cn(
-                    'size-4 transition-transform duration-200',
-                    openMenu === menu.id && 'rotate-180 text-brand-blue-ink',
-                  )}
-                />
-              </button>
+          {/* SOLUTIONS DROPDOWN */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => {
+                setSolutionsOpen(!solutionsOpen)
+                setFeaturesOpen(false)
+                setCompanyOpen(false)
+                setResourcesOpen(false)
+              }}
+              className="inline-flex items-center gap-1 px-3 py-2 text-xs font-normal tracking-wider text-muted-foreground uppercase transition-colors hover:text-brand-blue-ink xl:text-sm"
+            >
+              Solutions
+              <ChevronDown
+                className={`size-4 transition-transform duration-200 ${solutionsOpen ? 'rotate-180 text-brand-blue-ink' : ''}`}
+              />
+            </button>
 
-              {openMenu === menu.id && (
-                <div
-                  id={`public-nav-${menu.id}`}
-                  className={cn(
-                    'absolute top-full left-0 z-50 mt-3 rounded-2xl border border-border bg-card p-3 shadow-xl',
-                    menu.width,
-                  )}
-                >
-                  <ul className="space-y-1">
-                    {menu.items.map((item) => (
-                      <li key={item.label}>
-                        <Link
-                          href={item.href}
-                          onClick={() => setOpenMenu(null)}
-                          className={MENU_LINK}
-                        >
-                          {item.label}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
+            {solutionsOpen && (
+              <div className="absolute top-full left-0 z-50 mt-3 w-72 rounded-2xl border border-border bg-card p-3 shadow-xl">
+                <div className="space-y-1">
+                  {[
+                    'Built for Every Type of Shop',
+                    'Scalable for Any Size',
+                    'Win Trust. Keep Customers.',
+                    'From Check-In to Checkout',
+                    'Your Parts and Purchasing',
+                    'Profit Starts with Clarity',
+                  ].map((sol) => (
+                    <Link
+                      key={sol}
+                      href="#solutions"
+                      onClick={() => setSolutionsOpen(false)}
+                      className="block rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-brand-blue-ink"
+                    >
+                      {sol}
+                    </Link>
+                  ))}
                 </div>
-              )}
-            </div>
-          ))}
+              </div>
+            )}
+          </div>
 
-          {/* The customer path (spec 09 G1): the shop directory, one click from every public page */}
-          <Link href="/book" className={TRIGGER}>
-            Book a service
-          </Link>
+          {/* COMPANY DROPDOWN */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => {
+                setCompanyOpen(!companyOpen)
+                setFeaturesOpen(false)
+                setSolutionsOpen(false)
+                setResourcesOpen(false)
+              }}
+              className="inline-flex items-center gap-1 px-3 py-2 text-xs font-normal tracking-wider text-muted-foreground uppercase transition-colors hover:text-brand-blue-ink xl:text-sm"
+            >
+              Company
+              <ChevronDown
+                className={`size-4 transition-transform duration-200 ${companyOpen ? 'rotate-180 text-brand-blue-ink' : ''}`}
+              />
+            </button>
+
+            {companyOpen && (
+              <div className="absolute top-full left-0 z-50 mt-3 w-64 rounded-2xl border border-border bg-card p-3 shadow-xl">
+                <div className="space-y-1">
+                  {['About Us', 'Contact Us'].map((item) => (
+                    <Link
+                      key={item}
+                      href="#offices"
+                      onClick={() => setCompanyOpen(false)}
+                      className="block rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-brand-blue-ink"
+                    >
+                      {item}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* RESOURCES DROPDOWN */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => {
+                setResourcesOpen(!resourcesOpen)
+                setFeaturesOpen(false)
+                setSolutionsOpen(false)
+                setCompanyOpen(false)
+              }}
+              className="inline-flex items-center gap-1 px-3 py-2 text-xs font-normal tracking-wider text-muted-foreground uppercase transition-colors hover:text-brand-blue-ink xl:text-sm"
+            >
+              Resources
+              <ChevronDown
+                className={`size-4 transition-transform duration-200 ${resourcesOpen ? 'rotate-180 text-brand-blue-ink' : ''}`}
+              />
+            </button>
+
+            {resourcesOpen && (
+              <div className="absolute top-full left-0 z-50 mt-3 w-64 rounded-2xl border border-border bg-card p-3 shadow-xl">
+                <div className="space-y-1">
+                  {['Customer Stories', 'Help Center', 'Blog & Updates'].map((res) => (
+                    <Link
+                      key={res}
+                      href="#support"
+                      onClick={() => setResourcesOpen(false)}
+                      className="block rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-brand-blue-ink"
+                    >
+                      {res}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </nav>
 
         {/* Right Actions: emerald Sign In, or the bell and account menu once signed in */}
@@ -322,85 +310,63 @@ export function PublicHeader() {
           <button
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="rounded-lg p-2 text-muted-foreground outline-none hover:bg-secondary hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring focus-visible:outline-solid"
-            aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
-            aria-expanded={mobileMenuOpen}
-            aria-controls="public-mobile-menu"
+            className="rounded-lg p-2 text-muted-foreground hover:bg-secondary hover:text-foreground"
+            aria-label="Toggle navigation"
           >
-            {mobileMenuOpen ? (
-              <X aria-hidden="true" className="size-6" />
-            ) : (
-              <Menu aria-hidden="true" className="size-6" />
-            )}
+            {mobileMenuOpen ? <X className="size-6" /> : <Menu className="size-6" />}
           </button>
         </div>
       </div>
 
       {/* Mobile Menu Drawer */}
       {mobileMenuOpen && (
-        <nav
-          id="public-mobile-menu"
-          aria-label="Main"
-          className="border-t border-border bg-card px-4 py-6 shadow-xl lg:hidden"
-        >
+        <div className="border-t border-border bg-card px-4 py-6 shadow-xl lg:hidden">
           <div className="flex flex-col space-y-4">
-            <Button asChild variant="outline" className="w-full font-semibold">
-              <Link href="/book" onClick={() => setMobileMenuOpen(false)}>
-                <Calendar aria-hidden="true" /> Book a service
-              </Link>
-            </Button>
-
             <div>
-              <p className="mb-2 text-sm font-semibold text-helper">Features</p>
-              <ul className="grid grid-cols-1 gap-1 pl-2">
-                {FEATURE_ITEMS.slice(0, 4).map((item) => (
-                  <li key={item.title}>
-                    <Link
-                      href={item.href}
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="flex min-h-10 items-center gap-2 rounded-lg text-sm font-medium text-foreground outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring focus-visible:outline-solid"
-                    >
-                      <item.icon aria-hidden="true" className="size-4 text-brand-blue-ink" />
-                      <span>{item.title}</span>
-                    </Link>
-                  </li>
+              <p className="mb-2 text-xs font-bold tracking-wider text-subtle-foreground uppercase">
+                Features
+              </p>
+              <div className="grid grid-cols-1 gap-2 pl-2">
+                {featureItems.slice(0, 4).map((item) => (
+                  <Link
+                    key={item.title}
+                    href={item.href}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-2 text-sm font-medium text-foreground"
+                  >
+                    <item.icon className="size-4 text-brand-blue-ink" />
+                    <span>{item.title}</span>
+                  </Link>
                 ))}
-              </ul>
+              </div>
             </div>
 
             <hr className="border-border-faint" />
 
-            <ul className="flex flex-col text-sm font-normal text-foreground">
-              {[
-                { label: 'Solutions', href: '/#roles' },
-                { label: 'See it in action', href: '/#screens' },
-                { label: 'Getting started', href: '/#support' },
-                { label: 'Contact us', href: '/#contact' },
-              ].map((link) => (
-                <li key={link.label}>
-                  <Link
-                    href={link.href}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex min-h-10 items-center rounded-lg outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring focus-visible:outline-solid"
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            <div className="flex flex-col space-y-2.5 text-sm font-normal text-foreground">
+              <Link href="#solutions" onClick={() => setMobileMenuOpen(false)}>
+                Solutions
+              </Link>
+              <Link href="#workflow" onClick={() => setMobileMenuOpen(false)}>
+                Workflow
+              </Link>
+              <Link href="#support" onClick={() => setMobileMenuOpen(false)}>
+                Support & Onboarding
+              </Link>
+            </div>
 
             <div className="pt-2">
               <Button
                 asChild
-                className="w-full rounded-full bg-brand-blue font-semibold text-brand-blue-foreground"
+                className="w-full rounded-full bg-brand-blue font-semibold text-white"
               >
                 <Link href="/register" onClick={() => setMobileMenuOpen(false)}>
-                  Get Started
+                  Book a Demo / Get Started
                 </Link>
               </Button>
             </div>
           </div>
-        </nav>
+        </div>
       )}
     </header>
   )

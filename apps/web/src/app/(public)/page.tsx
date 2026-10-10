@@ -1,240 +1,131 @@
-import { ChartBarLineIcon, ShoppingCart01Icon } from '@hugeicons/core-free-icons'
-import { HugeiconsIcon, type HugeiconsIconProps } from '@hugeicons/react'
+'use client'
+
 import {
-  Bell,
-  Boxes,
-  CalendarCheck,
-  ClipboardList,
-  FileCheck2,
-  Headset,
-  KeyRound,
-  LayoutDashboard,
-  Package,
-  Presentation,
-  Search,
-  ShieldCheck,
-  Store,
-  Truck,
-  Wrench,
-  type LucideIcon,
-} from 'lucide-react'
-import type { Metadata } from 'next'
+  Cancel01Icon,
+  ChartBarLineIcon,
+  ShoppingCart01Icon,
+  StarIcon,
+  Tick02Icon,
+} from '@hugeicons/core-free-icons'
+import { HugeiconsIcon, type HugeiconsIconProps } from '@hugeicons/react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { useState } from 'react'
 
-import { CapabilityArt, type CapabilityKind } from '@/components/landing/capability-art'
-import { PhoneFrame } from '@/components/landing/decor'
-import { DemoRequestButton } from '@/components/landing/demo-request'
-import { CustomerArt, TechnicianArt, WorkflowArt } from '@/components/landing/feature-art'
-import { HeroShowcase } from '@/components/landing/hero-showcase'
-import {
-  LANDING_PHOTOS,
-  LANDING_SCREENS,
-  type LandingImage,
-} from '@/components/landing/landing-media'
-import { ScreenshotCarousel } from '@/components/landing/screenshot-carousel'
-
-export const metadata: Metadata = {
-  description:
-    'BayFlow is garage management software for auto repair workshops in Pakistan: online booking, estimates customers approve from their phone, inventory and purchase orders, and quality control in one role-based workflow.',
-}
+import { CapabilityArt } from '@/components/landing/capability-art'
+import { Button } from '@/components/ui/button'
 
 /** Hugeicons (free stroke-rounded set) under the names this page already uses. */
 type IconProps = Omit<HugeiconsIconProps, 'icon'>
 const BarChart3 = (props: IconProps) => <HugeiconsIcon icon={ChartBarLineIcon} {...props} />
+const Check = (props: IconProps) => <HugeiconsIcon icon={Tick02Icon} {...props} />
 const ShoppingCart = (props: IconProps) => <HugeiconsIcon icon={ShoppingCart01Icon} {...props} />
-
-const OUTLINE_CTA =
-  'rounded-full border border-foreground bg-card px-7 py-3 text-sm font-semibold text-foreground shadow-sm transition-all duration-200 outline-none hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring focus-visible:outline-solid active:scale-95 sm:px-8 sm:text-base'
-const PRIMARY_CTA =
-  'rounded-full bg-brand-blue px-7 py-3 text-center text-sm font-semibold text-white shadow-md shadow-brand-blue/20 transition-all duration-200 outline-none hover:bg-brand-blue-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring focus-visible:outline-solid active:scale-95 sm:px-9 sm:text-base'
-const SECTION_CTA =
-  'inline-block rounded-full bg-brand-blue px-9 py-3.5 text-sm font-semibold text-white shadow-md transition-all outline-none hover:bg-brand-blue-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring focus-visible:outline-solid sm:text-base'
-const TEXT_LINK =
-  'mt-auto self-start rounded-sm px-7 pt-4 text-sm font-semibold text-brand-blue-ink outline-none hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring focus-visible:outline-solid'
-
-/** The five shop roles (glossary §2.1), where the star rating used to be. */
-const SHOP_ROLES: ReadonlyArray<{ label: string; icon: LucideIcon }> = [
-  { label: 'Owner', icon: Store },
-  { label: 'Service advisor', icon: Headset },
-  { label: 'Technician', icon: Wrench },
-  { label: 'QC inspector', icon: ShieldCheck },
-  { label: 'Parts person', icon: Package },
-]
-
-/** What BayFlow covers, where the review-site logos used to be. */
-const COVERAGE: ReadonlyArray<{ label: string; icon: LucideIcon }> = [
-  { label: 'Online booking', icon: CalendarCheck },
-  { label: 'Estimates', icon: FileCheck2 },
-  { label: 'Inventory', icon: Boxes },
-  { label: 'Purchase orders', icon: Truck },
-  { label: 'Quality control', icon: ShieldCheck },
-  { label: 'Multi-shop', icon: Store },
-]
-
-/**
- * How each role works in BayFlow, told through the seeded demo cast of Lahore Auto Care (glossary
- * §14.1). These are demo personas, labelled as such, not customer reviews.
- */
-const ROLE_STORIES: ReadonlyArray<{
-  name: string
-  role: string
-  tint: 'blue' | 'green' | 'orange'
-  photo: LandingImage
-  story: string
-  focus: string
-  icon: LucideIcon
-}> = [
-  {
-    name: 'Fatima Raza',
-    role: 'Owner',
-    tint: 'blue',
-    photo: LANDING_PHOTOS.roleOwner,
-    story:
-      'Runs two shops from one login: bookings by status, team workload and stock for each, plus one summary across both.',
-    focus: 'Shop overview · All-shops summary',
-    icon: LayoutDashboard,
-  },
-  {
-    name: 'Bilal',
-    role: 'Service advisor',
-    tint: 'green',
-    photo: LANDING_PHOTOS.roleAdvisor,
-    story:
-      'Confirms new bookings, assigns a technician and sends the estimate. The customer approves it online, without a phone call.',
-    focus: 'Bookings queue · Estimates',
-    icon: ClipboardList,
-  },
-  {
-    name: 'Imran',
-    role: 'Technician',
-    tint: 'orange',
-    photo: LANDING_PHOTOS.roleTechnician,
-    story:
-      'Sees only his own jobs. Inspects the car, adds parts and labour to the estimate with live stock, then sends it to QC.',
-    focus: 'My jobs · Inspection and estimate',
-    icon: Wrench,
-  },
-  {
-    name: 'Sara',
-    role: 'QC inspector',
-    tint: 'blue',
-    photo: LANDING_PHOTOS.roleQc,
-    story:
-      'Picks the next car from the shared QC queue and runs the checklist. A failed check goes back to the technician as an issue.',
-    focus: 'QC queue · Checklist',
-    icon: ShieldCheck,
-  },
-  {
-    name: 'Usman',
-    role: 'Parts person',
-    tint: 'green',
-    photo: LANDING_PHOTOS.roleParts,
-    story:
-      "Sees every job's parts checked against stock, orders the shortages on a purchase order and allocates parts as they arrive.",
-    focus: 'Parts queue · Purchase orders',
-    icon: Package,
-  },
-]
-
-const ROLE_TONES = {
-  blue: { card: 'from-brand-blue/10 to-card', duo: 'bg-brand-blue', icon: 'text-brand-blue-ink' },
-  green: {
-    card: 'from-brand-green/10 to-card',
-    duo: 'bg-brand-green-accent',
-    icon: 'text-brand-green',
-  },
-  orange: { card: 'from-brand-orange/10 to-card', duo: 'bg-brand-orange', icon: 'text-cta' },
-} as const
-
-/** The "Garage management software" grid. Each card is an anchor the header and footer link to. */
-const CAPABILITIES: ReadonlyArray<{
-  id: string
-  kind: CapabilityKind
-  title: string
-  desc: string
-}> = [
-  {
-    id: 'lifecycle',
-    kind: 'workflow',
-    title: 'Workflow',
-    desc: 'Every booking moves through one 15-step lifecycle, with one responsible role at each step, so nothing waits on a phone call.',
-  },
-  {
-    id: 'estimates',
-    kind: 'estimates',
-    title: 'Estimates',
-    desc: 'Technicians add parts and labour, the service advisor sends the estimate, and the customer approves or declines it online.',
-  },
-  {
-    id: 'inventory',
-    kind: 'inventory',
-    title: 'Inventory',
-    desc: "Know what's in stock in every shop. The parts a job needs are compared with stock automatically, so shortages show up early.",
-  },
-  {
-    id: 'quality-control',
-    kind: 'quality-control',
-    title: 'Quality Control',
-    desc: 'Inspectors pick jobs from a shared QC queue and work through a checklist. A failed check goes back to the technician as an issue.',
-  },
-  {
-    id: 'services',
-    kind: 'services',
-    title: 'Service Catalogue',
-    desc: 'List your services with a duration and a starting price. Customers choose them when they book; the estimate covers the rest.',
-  },
-  {
-    id: 'purchase-orders',
-    kind: 'purchase-orders',
-    title: 'Purchase Orders',
-    desc: 'Order missing parts from your supplier. Receiving a delivery adds the stock, even when it arrives in parts.',
-  },
-]
-
-const DEMO_ACCOUNT_ROWS = [
-  ['Owner', 'Fatima Raza'],
-  ['Service advisor', 'Bilal'],
-  ['Technician', 'Imran'],
-] as const
-
-/** The two outlined entry points under the hero (where the app-store badges used to be). */
-const ENTRY =
-  'inline-flex h-11 items-center gap-2 rounded-lg border border-foreground bg-card pr-3 pl-2.5 text-left text-foreground transition-colors outline-none hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring focus-visible:outline-solid sm:gap-2.5 sm:pr-4 sm:pl-3'
-
-function EntryContent({
-  icon: Icon,
-  eyebrow,
-  label,
-}: {
-  icon: LucideIcon
-  eyebrow: string
-  label: string
-}) {
-  return (
-    <>
-      <Icon aria-hidden="true" className="size-5 shrink-0 sm:size-6" />
-      <span className="leading-tight">
-        <span className="block text-xs text-muted-foreground">{eyebrow}</span>
-        <span className="block text-sm font-semibold sm:text-base">{label}</span>
-      </span>
-    </>
-  )
-}
+const Star = (props: IconProps) => <HugeiconsIcon icon={StarIcon} {...props} />
+const X = (props: IconProps) => <HugeiconsIcon icon={Cancel01Icon} {...props} />
 
 export default function LandingPage() {
+  const [demoModalOpen, setDemoModalOpen] = useState(false)
+  const [demoSubmitted, setDemoSubmitted] = useState(false)
+  const [demoForm, setDemoForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    garageName: '',
+    country: 'Pakistan',
+  })
+
+  const reviews = [
+    {
+      name: 'Kamran Sheikh',
+      tint: 'blue' as const,
+      role: 'Owner, Sheikh Motors · Lahore',
+      metric: '2 shops, 1 dashboard',
+      photo: '/testimonials/mechanic-1.jpg',
+      quote:
+        'I run two shops from one login. Every bay, every job, every rupee: I see it live without calling anyone.',
+      rating: 5,
+    },
+    {
+      name: 'Bilal Ahmed',
+      tint: 'green' as const,
+      role: 'Service Advisor, Karachi',
+      metric: 'Approvals in minutes',
+      photo: '/testimonials/mechanic-2.jpg',
+      quote:
+        'Customers approve estimates from their phone now. No more waiting on WhatsApp replies before we can start work.',
+      rating: 4.9,
+    },
+    {
+      name: 'Imran Ali',
+      tint: 'orange' as const,
+      role: 'Technician, Islamabad',
+      metric: 'No paper job cards',
+      photo: '/testimonials/mechanic-3.jpg',
+      quote:
+        'My screen shows only my jobs. I log the inspection, add photos, and the parts counter already knows what I need.',
+      rating: 4.8,
+    },
+    {
+      name: 'Sara Malik',
+      tint: 'blue' as const,
+      role: 'QC Inspector, Lahore',
+      metric: 'Zero missed checks',
+      photo: '/testimonials/mechanic-4.jpg',
+      quote:
+        'Nothing leaves the bay until I sign it off. If a check fails it goes straight back to the technician, with notes.',
+      rating: 5,
+    },
+    {
+      name: 'Usman Tariq',
+      tint: 'green' as const,
+      role: 'Parts Manager, Faisalabad',
+      metric: 'Parts ready on time',
+      photo: '/testimonials/mechanic-5.jpg',
+      quote:
+        'Parts requests arrive with the job attached. I issue, track and restock without chasing anyone down the floor.',
+      rating: 4.9,
+    },
+  ]
+
+  const capabilities = [
+    {
+      title: 'Workflow' as const,
+      desc: 'Assign tasks, schedule jobs, and track progress in real time. Keep your team aligned and your shop running like clockwork.',
+    },
+    {
+      title: 'Estimates' as const,
+      desc: 'Send professional estimates in seconds. Get approvals faster and get to work sooner.',
+    },
+    {
+      title: 'Inventory' as const,
+      desc: "Know exactly what's in stock from parts to tires. Reduce delays and keep your jobs moving.",
+    },
+    {
+      title: 'Vehicle Inspections' as const,
+      desc: 'Catch issues early and build trust. Create digital inspection reports your customers can see and understand instantly.',
+    },
+    {
+      title: 'Packaged Services' as const,
+      desc: 'Bundle common repairs and maintenance into convenient packages that deliver more value and more revenue.',
+    },
+    {
+      title: 'Procurement' as const,
+      desc: 'Order the right parts, on time. Manage suppliers and restock with confidence without chasing paperwork.',
+    },
+  ]
+
   return (
     <div className="marketing relative w-full overflow-hidden bg-card text-foreground">
       {/* ========================================================
-          1. HERO
+          1. HERO SECTION (100% PIXEL PERFECT TO GARAGEBOX.IO)
           ======================================================== */}
       <section className="bg-grid-pattern relative w-full pt-10 pb-16 md:pt-16 md:pb-24">
         {/* Soft radial backdrop */}
-        <div className="pointer-events-none absolute inset-0 bg-radial-[circle_at_50%_15%] from-brand-blue-subtle/40 via-transparent to-transparent" />
+        <div className="pointer-events-none absolute inset-0 bg-radial-[circle_at_50%_15%] from-blue-50/40 via-transparent to-transparent dark:from-blue-950/40" />
         {/* Halo behind the headline: a faint blue glow, then a white wash that fades the grid out under the copy */}
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute top-[-6%] left-1/2 aspect-square w-[min(1100px,140vw)] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,color-mix(in_srgb,var(--brand-blue)_9%,transparent)_0%,color-mix(in_srgb,var(--brand-blue)_4%,transparent)_35%,transparent_68%)] blur-2xl"
+          className="pointer-events-none absolute top-[-6%] left-1/2 aspect-square w-[min(1100px,140vw)] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(16,71,250,0.09)_0%,rgba(16,71,250,0.04)_35%,transparent_68%)] blur-2xl"
         />
         <div
           aria-hidden="true"
@@ -253,77 +144,160 @@ export default function LandingPage() {
             </h1>
 
             <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed font-normal text-muted-foreground sm:text-lg">
-              Take control of your auto repair business with BayFlow, garage management software
-              built for Pakistani workshops. Simplify online booking, estimates and inventory
-              control.
+              Take control of your auto repair business with BayFlow, Pakistan&apos;s leading garage
+              management software. Simplify job scheduling, invoicing, and inventory control for
+              maximum efficiency.
             </p>
 
-            {/* CTAs: car owners book (spec 09 G1), garages get started (the one primary) */}
+            {/* CTAs */}
             <div className="mt-8 flex flex-row items-center justify-center gap-4">
-              <Link href="/book" className={OUTLINE_CTA}>
-                Book a Service
-              </Link>
-              <Link href="/register" className={PRIMARY_CTA}>
+              <button
+                type="button"
+                onClick={() => setDemoModalOpen(true)}
+                className="rounded-full border border-foreground bg-card px-7 py-3 text-sm font-semibold text-foreground shadow-sm transition-all duration-200 hover:bg-muted active:scale-95 sm:px-8 sm:text-base"
+              >
+                Book a Demo
+              </button>
+              <Link
+                href="/register"
+                className="rounded-full bg-brand-blue px-7 py-3 text-center text-sm font-semibold text-white shadow-md shadow-brand-blue/20 transition-all duration-200 hover:bg-brand-blue-hover active:scale-95 sm:px-9 sm:text-base"
+              >
                 Get Started
               </Link>
             </div>
           </div>
 
-          {/* Two workshop photos and BayFlow's own booking screen, with true product facts */}
-          <HeroShowcase />
-
           {/* ========================================================
-              ROLES · ENTRY POINTS · WHAT BAYFLOW COVERS
+              EXACT HERO IMAGE ASSET (From garagebox.io)
               ======================================================== */}
-          <div className="mt-12 flex flex-col items-center justify-center gap-6 text-center md:mt-16">
-            {/* The five shop roles */}
-            <p className="flex flex-wrap items-center justify-center gap-1.5">
-              <span className="flex items-center gap-1.5" aria-hidden="true">
-                {SHOP_ROLES.map(({ label, icon: Icon }) => (
-                  <Icon key={label} className="size-5 text-brand-blue-ink" />
-                ))}
-              </span>
-              <span className="ml-2 text-sm font-bold text-foreground">
-                One workflow for all 5 shop roles
-              </span>
-            </p>
-
-            {/* Two ways for garages to look closer */}
-            <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4">
-              <Link href="/login" className={ENTRY}>
-                <EntryContent icon={KeyRound} eyebrow="Garage teams" label="Try the demo shop" />
-              </Link>
-              <DemoRequestButton className={ENTRY}>
-                <EntryContent icon={Presentation} eyebrow="Prefer a tour?" label="Book a demo" />
-              </DemoRequestButton>
+          <div className="relative mx-auto mt-12 flex max-w-[1020px] justify-center md:mt-16">
+            {/* Desktop Hero Image */}
+            <div className="hidden w-full md:block">
+              <Image
+                src="/garagebox/hero-desktop.webp"
+                alt="Auto Repair Garage Management Software in Pakistan"
+                width={1020}
+                height={580}
+                priority
+                sizes="(min-width: 1280px) 1020px, (min-width: 768px) 90vw, 100vw"
+                className="pointer-events-none h-auto w-full object-contain drop-shadow-md select-none"
+              />
             </div>
 
-            {/* What BayFlow covers */}
-            <ul
-              aria-label="What BayFlow covers"
-              className="mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-4 sm:gap-x-10 md:gap-x-12"
-            >
-              {COVERAGE.map(({ label, icon: Icon }) => (
-                <li
-                  key={label}
-                  className="inline-flex h-8 items-center gap-2 text-base font-semibold text-muted-foreground"
-                >
-                  <Icon aria-hidden="true" className="size-6 text-subtle-foreground" />
-                  {label}
-                </li>
+            {/* Mobile Hero Image */}
+            <div className="block w-full max-w-[480px] md:hidden">
+              <Image
+                src="/garagebox/hero-mobile.webp"
+                alt="Auto Repair Garage Management Software"
+                width={480}
+                height={480}
+                priority
+                sizes="(max-width: 640px) 100vw, 480px"
+                className="pointer-events-none h-auto w-full object-contain select-none"
+              />
+            </div>
+          </div>
+
+          {/* ========================================================
+              RATING & APP STORES & PLATFORM LOGOS
+              ======================================================== */}
+          <div className="mt-12 flex flex-col items-center justify-center gap-6 text-center md:mt-16">
+            {/* 5-Star Rating */}
+            <div className="flex items-center gap-1.5">
+              {[...Array(5)].map((_, i) => (
+                <Star
+                  key={i}
+                  className="size-5 fill-amber-500 text-amber-500 dark:text-amber-400"
+                />
               ))}
-            </ul>
+              <span className="ml-2 text-sm font-bold text-foreground">
+                5-Star Rated based on 200+ reviews
+              </span>
+            </div>
+
+            {/* App Store Badges */}
+            <div className="flex flex-wrap items-center justify-center gap-4">
+              <a
+                href="#google-play"
+                className="transition-opacity hover:opacity-90"
+                title="Google Play Store"
+              >
+                <Image
+                  src="/garagebox/play-store.svg"
+                  alt="Google Play Store"
+                  width={165}
+                  height={50}
+                  className="h-11 w-auto"
+                />
+              </a>
+              <a
+                href="#app-store"
+                className="transition-opacity hover:opacity-90"
+                title="Apple App Store"
+              >
+                <Image
+                  src="/garagebox/app-store.svg"
+                  alt="Apple App Store"
+                  width={155}
+                  height={50}
+                  className="h-11 w-auto"
+                />
+              </a>
+            </div>
+
+            {/* Platform Review Logos Banner */}
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-6 opacity-85 transition-opacity hover:opacity-100 sm:gap-10 md:gap-12">
+              <Image
+                src="/garagebox/review-google.svg"
+                alt="Google Reviews"
+                width={41}
+                height={36}
+                className="h-8 w-auto object-contain dark:brightness-0 dark:invert"
+              />
+              <Image
+                src="/garagebox/review-g2.svg"
+                alt="G2 Reviews"
+                width={41}
+                height={36}
+                className="h-8 w-auto object-contain dark:brightness-0 dark:invert"
+              />
+              <Image
+                src="/garagebox/review-clutch.svg"
+                alt="Clutch Reviews"
+                width={100}
+                height={36}
+                className="h-8 w-auto object-contain dark:brightness-0 dark:invert"
+              />
+              <Image
+                src="/garagebox/review-trustradius.svg"
+                alt="TrustRadius Reviews"
+                width={50}
+                height={36}
+                className="h-8 w-auto object-contain dark:brightness-0 dark:invert"
+              />
+              <Image
+                src="/garagebox/review-trustpilot.svg"
+                alt="Trustpilot Reviews"
+                width={146}
+                height={36}
+                className="h-8 w-auto object-contain dark:brightness-0 dark:invert"
+              />
+              <Image
+                src="/garagebox/review-softwaresuggest.svg"
+                alt="SoftwareSuggest Reviews"
+                width={120}
+                height={36}
+                className="h-8 w-auto object-contain dark:brightness-0 dark:invert"
+              />
+            </div>
           </div>
         </div>
       </section>
 
       {/* ========================================================
-          SCREENSHOTS
+          HERO CAROUSEL / IMAGE GALLERY SECTION
           ======================================================== */}
-      <section
-        id="screens"
-        className="relative w-full overflow-hidden border-t border-border/70 bg-muted/50 py-20"
-      >
+      <section className="relative w-full overflow-hidden border-t border-border/70 bg-muted/50 py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto mb-12 max-w-3xl text-center">
             <h2 className="text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl md:text-5xl">
@@ -333,34 +307,80 @@ export default function LandingPage() {
               in Action
             </h2>
             <p className="mt-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
-              Swipe through real screens from the owner dashboard, the technician view and the
-              customer portal.
+              Swipe through screenshots of the BayFlow dashboard, technician app, and customer
+              portal.
             </p>
           </div>
 
-          <ScreenshotCarousel />
+          {/* Carousel */}
+          <div className="relative overflow-hidden rounded-2xl border border-border bg-card">
+            <div className="aspect-[16/9] w-full">
+              <Image
+                src="/bayflow/carousel-1.webp"
+                alt="BayFlow Dashboard - Shop Overview"
+                fill
+                priority
+                sizes="(max-width: 768px) 100vw, (max-width: 1280px) 90vw, 1200px"
+                className="object-cover"
+              />
+            </div>
+            <div className="absolute bottom-6 left-1/2 flex -translate-x-1/2 gap-3">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <button
+                  key={i}
+                  className={`h-2.5 w-2.5 rounded-full transition-all duration-300 ${
+                    i === 1 ? 'w-7 bg-brand-blue' : 'bg-white/50 hover:bg-card'
+                  }`}
+                  aria-label={`View screenshot ${i}`}
+                />
+              ))}
+            </div>
+            <button
+              className="absolute top-1/2 left-4 size-10 -translate-y-1/2 rounded-full bg-white/90 text-foreground shadow-lg transition-colors hover:bg-card md:left-6"
+              aria-label="Previous screenshot"
+            >
+              <svg className="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 19l-7-7 7-7"
+                />
+              </svg>
+            </button>
+            <button
+              className="absolute top-1/2 right-4 size-10 -translate-y-1/2 rounded-full bg-white/90 text-foreground shadow-lg transition-colors hover:bg-card md:right-6"
+              aria-label="Next screenshot"
+            >
+              <svg className="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5l7 7-7 7"
+                />
+              </svg>
+            </button>
+          </div>
         </div>
       </section>
 
       {/* ========================================================
-          2. ROLES — story cards (text + duotone photo), demo personas
+          2. TESTIMONIALS SECTION — story cards (text + duotone portrait)
           ======================================================== */}
-      <section
-        id="roles"
-        className="relative w-full overflow-hidden border-t border-border/70 bg-muted/50 py-20"
-      >
+      <section className="relative w-full overflow-hidden border-t border-border/70 bg-muted/50 py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-3xl text-center">
             <h2 className="text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl md:text-5xl">
-              How{' '}
+              Trusted by{' '}
               <span className="font-handwriting text-4xl font-normal text-brand-blue-ink italic sm:text-5xl md:text-6xl">
-                each role
-              </span>{' '}
-              uses <span className="text-brand-green">BayFlow</span>
+                Garages
+              </span>
+              , Proven by <span className="text-brand-green">Performance</span>
             </h2>
             <p className="mt-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
-              Meet the demo team at Lahore Auto Care, the sample shop you can sign in to. Each demo
-              persona shows what one role does in BayFlow, from check-in to pick-up.
+              Owners, service advisors, technicians, QC and parts teams run every job on BayFlow,
+              from check-in to pick-up, on one shared workflow.
             </p>
           </div>
         </div>
@@ -368,37 +388,40 @@ export default function LandingPage() {
         {/* Auto-scrolling marquee: list rendered twice, track slides -50% and loops. Pauses on hover. */}
         <div className="mt-14 overflow-hidden [mask-image:linear-gradient(90deg,transparent,#000_4%,#000_96%,transparent)]">
           <div className="reviews-marquee flex w-max gap-6 py-6">
-            {[...ROLE_STORIES, ...ROLE_STORIES].map((r, i) => {
-              const tone = ROLE_TONES[r.tint]
+            {[...reviews, ...reviews].map((r, i) => {
+              const tone = {
+                blue: { card: 'from-brand-blue/10 to-card', duo: 'bg-brand-blue' },
+                green: { card: 'from-brand-green/10 to-card', duo: 'bg-brand-green' },
+                orange: { card: 'from-brand-orange/10 to-card', duo: 'bg-brand-orange' },
+              }[r.tint]
               return (
                 <article
                   key={`${r.name}-${i}`}
-                  aria-hidden={i >= ROLE_STORIES.length || undefined}
-                  aria-label={i < ROLE_STORIES.length ? `${r.role}: ${r.name}` : undefined}
+                  aria-hidden={i >= reviews.length || undefined}
                   className={`flex w-[88vw] max-w-[780px] shrink-0 flex-col-reverse gap-5 rounded-[28px] border border-card bg-gradient-to-br p-5 shadow-[0_10px_40px_-20px_rgba(17,24,39,0.25)] sm:flex-row sm:p-6 ${tone.card}`}
                 >
                   <div className="flex flex-1 flex-col justify-between gap-8 p-2 sm:py-4">
                     <div>
-                      <p className="text-2xl leading-tight font-semibold tracking-tight text-foreground md:text-[28px]">
-                        {r.story}
-                      </p>
+                      <blockquote className="text-2xl leading-tight font-semibold tracking-tight text-foreground md:text-[28px]">
+                        {r.quote}
+                      </blockquote>
                       <div className="mt-6 text-sm">
                         <p className="font-semibold text-foreground">{r.name}</p>
-                        <p className="text-helper">{r.role} · Demo persona, Lahore Auto Care</p>
+                        <p className="text-helper">{r.role}</p>
                       </div>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">
-                        <r.icon aria-hidden="true" className={`size-4 ${tone.icon}`} />
-                        {r.focus}
+                        <Star className="size-4 fill-amber-500 text-amber-500 dark:text-amber-400" />
+                        {r.rating.toFixed(1)} · {r.metric}
                       </span>
                     </div>
                   </div>
 
-                  {/* Duotone photo: grayscale workshop scene screened with the brand tint */}
+                  {/* Duotone portrait: grayscale photo screened with brand tint */}
                   <div className="relative aspect-[4/5] w-full overflow-hidden rounded-[20px] sm:w-[46%]">
                     <Image
-                      src={r.photo.src}
+                      src={r.photo}
                       alt=""
                       fill
                       sizes="(min-width: 640px) 360px, 88vw"
@@ -417,7 +440,7 @@ export default function LandingPage() {
       </section>
 
       {/* ========================================================
-          3. FEATURE 1: STREAMLINE WORKFLOW
+          3. FEATURE 1: STREAMLINE WORKFLOW (Exact SVG)
           ======================================================== */}
       <section id="workflow" className="relative w-full border-t border-border/60 bg-card py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -436,65 +459,64 @@ export default function LandingPage() {
               {/* Bullet Points */}
               <div className="space-y-6">
                 <div className="flex items-start gap-4">
-                  <BarChart3
-                    aria-hidden="true"
-                    className="mt-0.5 size-6 shrink-0 text-subtle-foreground"
-                  />
+                  <BarChart3 className="mt-0.5 size-6 shrink-0 text-subtle-foreground" />
                   <div>
                     <h3 className="text-base font-bold text-foreground sm:text-lg">
                       Take Control of Your Day
                     </h3>
                     <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                      Bookings, inspections, estimates and approvals in one flow. Assign a
-                      technician and see where every job stands.
+                      Estimates, approvals, inspections and job cards in one flow. Assign tasks and
+                      track labour in real time.
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-4">
-                  <ShoppingCart
-                    aria-hidden="true"
-                    className="mt-0.5 size-6 shrink-0 text-subtle-foreground"
-                  />
+                  <ShoppingCart className="mt-0.5 size-6 shrink-0 text-subtle-foreground" />
                   <div>
                     <h3 className="text-base font-bold text-foreground sm:text-lg">
-                      Spot Shortages Before They Stall a Job
+                      Never Run Out, Never Overstock
                     </h3>
                     <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                      Each job&apos;s parts are checked against stock automatically. Order
-                      what&apos;s missing on a purchase order; receiving it restocks the shelf.
+                      Turn parts requests into purchase orders in seconds. Reserve, issue and track
+                      every part.
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-4">
-                  <BarChart3
-                    aria-hidden="true"
-                    className="mt-0.5 size-6 shrink-0 text-subtle-foreground"
-                  />
+                  <BarChart3 className="mt-0.5 size-6 shrink-0 text-subtle-foreground" />
                   <div>
                     <h3 className="text-base font-bold text-foreground sm:text-lg">
-                      See Every Shop at a Glance
+                      See Where You Earn, and Where You Don&apos;t
                     </h3>
                     <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                      Bookings by status, team workload and low-stock parts for each shop, plus one
-                      summary across all the shops you own.
+                      Visual reports show profit leaks and labour time, so you can decide with data.
                     </p>
                   </div>
                 </div>
               </div>
 
               <div className="pt-2">
-                <Link href="/register" className={SECTION_CTA}>
+                <Link
+                  href="/register"
+                  className="inline-block rounded-full bg-brand-blue px-9 py-3.5 text-sm font-semibold text-white shadow-md transition-all hover:bg-brand-blue-hover sm:text-base"
+                >
                   Get Started
                 </Link>
               </div>
             </div>
 
-            {/* Right Graphic */}
+            {/* Right Graphic: Exact SVG from BayFlow */}
             <div className="flex justify-center lg:col-span-6">
               <div className="relative flex w-full max-w-[514px] justify-center">
-                <WorkflowArt />
+                <Image
+                  src="/garagebox/feature-workflow.svg"
+                  alt="Streamline Workflow, and Control Inventory"
+                  width={514}
+                  height={512}
+                  className="h-auto w-full object-contain drop-shadow-md"
+                />
               </div>
             </div>
           </div>
@@ -502,18 +524,21 @@ export default function LandingPage() {
       </section>
 
       {/* ========================================================
-          4. FEATURE 2: CUSTOMER EXPERIENCE
+          4. FEATURE 2: DELIVER UNFORGETTABLE EXPERIENCE (Exact SVG)
           ======================================================== */}
-      <section
-        id="customers"
-        className="relative w-full border-t border-border/60 bg-muted/50 py-20"
-      >
+      <section className="relative w-full border-t border-border/60 bg-muted/50 py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-12 lg:gap-16">
-            {/* Left Graphic */}
+            {/* Left Graphic: Exact SVG from BayFlow */}
             <div className="order-2 flex justify-center lg:order-1 lg:col-span-6">
               <div className="relative flex w-full max-w-[514px] justify-center">
-                <CustomerArt />
+                <Image
+                  src="/garagebox/feature-crm.svg"
+                  alt="Deliver an Unforgettable Customer Experience"
+                  width={514}
+                  height={512}
+                  className="h-auto w-full object-contain drop-shadow-md"
+                />
               </div>
             </div>
 
@@ -532,7 +557,6 @@ export default function LandingPage() {
               <div className="space-y-6">
                 <div className="flex items-start gap-4">
                   <svg
-                    aria-hidden="true"
                     className="mt-0.5 size-6 shrink-0 fill-current text-subtle-foreground"
                     viewBox="0 0 24 24"
                   >
@@ -540,18 +564,18 @@ export default function LandingPage() {
                   </svg>
                   <div>
                     <h3 className="text-base font-bold text-foreground sm:text-lg">
-                      Estimates Approved Online
+                      Connect, Capture, Communicate
                     </h3>
                     <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                      Customers review the itemised estimate and approve or decline it from their
-                      phone. Each approved version is locked with a timestamp.
+                      Keep customers engaged from first contact to final service. Send real-time
+                      updates about appointments, vehicle inspections, and estimates via SMS, Email,
+                      or WhatsApp.
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-4">
                   <svg
-                    aria-hidden="true"
                     className="mt-0.5 size-6 shrink-0 fill-current text-subtle-foreground"
                     viewBox="0 0 24 24"
                   >
@@ -559,18 +583,17 @@ export default function LandingPage() {
                   </svg>
                   <div>
                     <h3 className="text-base font-bold text-foreground sm:text-lg">
-                      Keep Customers in the Loop
+                      Never Miss a Beat with Smart Reminders
                     </h3>
                     <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                      Customers follow every step of the job in their own portal, with a
-                      notification when the estimate is ready and when the car is ready for pick-up.
+                      Automate service alerts and document renewal reminders. Help customers stay on
+                      top of their maintenance without lifting a finger.
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-4">
                   <svg
-                    aria-hidden="true"
                     className="mt-0.5 size-6 shrink-0 fill-current text-subtle-foreground"
                     viewBox="0 0 24 24"
                   >
@@ -578,25 +601,22 @@ export default function LandingPage() {
                   </svg>
                   <div>
                     <h3 className="text-base font-bold text-foreground sm:text-lg">
-                      Book Online, No Calls Needed
+                      Book Online in Seconds No Calls Needed
                     </h3>
                     <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                      Customers choose a shop, the services they need and a free time slot. Only
-                      open slots are shown, so a slot is never overbooked.
+                      Let your website do the work. With online booking and custom web forms, your
+                      customers can schedule services anytime, from anywhere.
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-x-6 gap-y-3 pt-2">
-                <Link href="/register" className={SECTION_CTA}>
-                  Get Started
-                </Link>
+              <div className="pt-2">
                 <Link
-                  href="/book"
-                  className="rounded-sm text-sm font-semibold text-brand-blue-ink outline-none hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring focus-visible:outline-solid sm:text-base"
+                  href="/register"
+                  className="inline-block rounded-full bg-brand-blue px-9 py-3.5 text-sm font-semibold text-white shadow-md transition-all hover:bg-brand-blue-hover sm:text-base"
                 >
-                  Need a repair? Find a workshop →
+                  Get Started
                 </Link>
               </div>
             </div>
@@ -605,9 +625,9 @@ export default function LandingPage() {
       </section>
 
       {/* ========================================================
-          5. FEATURE 3: TECHNICIANS ON THE BAY FLOOR
+          5. FEATURE 3: MAXIMIZE SHOP PRODUCTIVITY (Exact SVG)
           ======================================================== */}
-      <section id="technicians" className="relative w-full border-t border-border/60 bg-card py-20">
+      <section className="relative w-full border-t border-border/60 bg-card py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-12 lg:gap-16">
             {/* Left Content */}
@@ -617,7 +637,7 @@ export default function LandingPage() {
                   <span className="font-handwriting text-4xl font-normal text-foreground italic sm:text-5xl md:text-6xl">
                     Maximize
                   </span>{' '}
-                  Shop Productivity on the Bay Floor
+                  Shop Productivity with Technician App
                 </h2>
               </div>
 
@@ -625,7 +645,6 @@ export default function LandingPage() {
               <div className="space-y-6">
                 <div className="flex items-start gap-4">
                   <svg
-                    aria-hidden="true"
                     className="mt-0.5 size-6 shrink-0 fill-current text-subtle-foreground"
                     viewBox="0 0 24 24"
                   >
@@ -633,37 +652,35 @@ export default function LandingPage() {
                   </svg>
                   <div>
                     <h3 className="text-base font-bold text-foreground sm:text-lg">
-                      Only Their Own Jobs
+                      Track Time. Drive Results.
                     </h3>
                     <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                      Technicians see just the jobs assigned to them, with the customer&apos;s
-                      concern and the booked services. Nothing else to dig through.
+                      Stay on top of work hours with our intuitive Time Clock feature. Keep your
+                      team motivated, accountable, and focused without micromanaging.
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-4">
                   <svg
-                    aria-hidden="true"
                     className="mt-0.5 size-6 shrink-0 fill-current text-subtle-foreground"
                     viewBox="0 0 24 24"
                   >
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-10 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
                   </svg>
                   <div>
                     <h3 className="text-base font-bold text-foreground sm:text-lg">
-                      Inspect, Estimate, Repair
+                      Bring Order to the Chaos
                     </h3>
                     <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                      Log the inspection and build the estimate with parts and labour; every part
-                      line shows live stock. Then repair and send the car to QC.
+                      Simplify how your team works. With BayFlow, manage tasks, track deadlines, and
+                      stay on top of progress all from a single, easy-to-use dashboard.
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-4">
                   <svg
-                    aria-hidden="true"
                     className="mt-0.5 size-6 shrink-0 fill-current text-subtle-foreground"
                     viewBox="0 0 24 24"
                   >
@@ -671,27 +688,36 @@ export default function LandingPage() {
                   </svg>
                   <div>
                     <h3 className="text-base font-bold text-foreground sm:text-lg">
-                      Works on Any Phone or Tablet
+                      Power Your Team on the Go
                     </h3>
                     <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                      BayFlow runs in the browser, so your technicians have no app to install or
-                      update. They sign in on the phone or tablet they already use.
+                      With the BayFlow for Techs mobile app (iOS & Android), your technicians stay
+                      connected, informed, and engaged wherever they are.
                     </p>
                   </div>
                 </div>
               </div>
 
               <div className="pt-2">
-                <Link href="/register" className={SECTION_CTA}>
+                <Link
+                  href="/register"
+                  className="inline-block rounded-full bg-brand-blue px-9 py-3.5 text-sm font-semibold text-white shadow-md transition-all hover:bg-brand-blue-hover sm:text-base"
+                >
                   Get Started
                 </Link>
               </div>
             </div>
 
-            {/* Right Graphic */}
+            {/* Right Graphic: Exact SVG from BayFlow */}
             <div className="flex justify-center lg:col-span-6">
               <div className="relative flex w-full max-w-[514px] justify-center">
-                <TechnicianArt />
+                <Image
+                  src="/garagebox/feature-technician.svg"
+                  alt="Maximize Shop Productivity with Technician App"
+                  width={514}
+                  height={512}
+                  className="h-auto w-full object-contain drop-shadow-md"
+                />
               </div>
             </div>
           </div>
@@ -711,26 +737,25 @@ export default function LandingPage() {
               Garage Management Software
             </h2>
             <p className="mt-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
-              BayFlow helps you manage online bookings, inspections, estimates, inventory, purchase
-              orders, quality control and customer updates in one garage management platform.
+              BayFlow helps you manage service bookings, estimates, job cards, payments,
+              inspections, inventory, customer communication, and labor tracking in an all-in-one
+              garage management software.
             </p>
           </div>
 
-          {/* Two columns x three rows: copy left, product mock-up right (stacked while the
-              columns are too narrow for both, md to lg) */}
+          {/* Two columns x three rows: copy left, product mock-up right */}
           <div className="mt-14 grid grid-cols-1 gap-6 md:grid-cols-2">
-            {CAPABILITIES.map((c) => (
+            {capabilities.map((c) => (
               <div
-                key={c.id}
-                id={c.id}
-                className="group flex flex-col-reverse overflow-hidden rounded-3xl border border-border bg-card shadow-sm transition-shadow duration-300 hover:shadow-lg sm:min-h-[220px] sm:flex-row md:flex-col-reverse xl:flex-row"
+                key={c.title}
+                className="group flex flex-col-reverse overflow-hidden rounded-3xl border border-border bg-card shadow-sm transition-shadow duration-300 hover:shadow-lg sm:min-h-[220px] sm:flex-row"
               >
                 <div className="flex flex-1 flex-col justify-center p-7">
                   <h3 className="text-lg font-semibold text-foreground">{c.title}</h3>
                   <p className="mt-2 text-sm leading-relaxed text-helper">{c.desc}</p>
                 </div>
-                <div className="h-52 bg-secondary sm:h-auto sm:w-[48%] md:h-52 md:w-auto xl:h-auto xl:w-[48%]">
-                  <CapabilityArt kind={c.kind} />
+                <div className="h-48 bg-secondary sm:h-auto sm:w-[48%]">
+                  <CapabilityArt title={c.title} />
                 </div>
               </div>
             ))}
@@ -739,7 +764,8 @@ export default function LandingPage() {
       </section>
 
       {/* ========================================================
-          7. GETTING STARTED
+          7. SUPPORT & ONBOARDING
+          "Built for Garages. Backed by Humans."
           ======================================================== */}
       <section
         id="support"
@@ -752,25 +778,23 @@ export default function LandingPage() {
               <span className="font-handwriting text-4xl font-normal text-foreground italic sm:text-5xl md:text-6xl">
                 Garages.
               </span>{' '}
-              Easy to Start.
+              Backed by Humans.
             </h2>
             <p className="mt-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
-              From first setup to daily hand-offs, BayFlow keeps every job moving, and you can try
-              all of it in the demo shop first.
+              From setup to daily operations, we are here to keep your garage running smoothly every
+              mile of the way.
             </p>
           </div>
 
           {/* Feature cards: mini product illustration on a grey panel, copy underneath */}
-          <div className="mt-14 grid grid-cols-1 gap-10 sm:mx-auto sm:max-w-md lg:mx-0 lg:max-w-none lg:grid-cols-3 lg:gap-8">
-            {/* Card 1: Guided setup */}
+          <div className="mt-14 grid grid-cols-1 gap-10 md:grid-cols-3 md:gap-8">
+            {/* Card 1: Data Migration */}
             <div className="flex flex-col overflow-hidden rounded-3xl border border-border bg-card pb-7 shadow-sm">
-              <div
-                aria-hidden="true"
-                className="relative flex aspect-[16/11] flex-col items-center justify-center overflow-hidden bg-secondary p-6"
-              >
-                <p className="text-2xl font-semibold tracking-tight text-foreground">Your shop</p>
+              <div className="relative flex aspect-[16/11] flex-col items-center justify-center overflow-hidden bg-secondary p-6">
+                <p className="text-2xl font-semibold tracking-tight text-foreground">BayFlow</p>
                 {/* Connector tree */}
                 <svg
+                  aria-hidden="true"
                   viewBox="0 0 300 48"
                   className="mt-2 h-10 w-[78%] text-border-medium"
                   fill="none"
@@ -780,86 +804,91 @@ export default function LandingPage() {
                   <path d="M150 0 V20 M30 48 V30 Q30 20 40 20 H260 Q270 20 270 30 V48 M150 20 V48" />
                 </svg>
                 <div className="flex w-[86%] justify-between">
-                  {['Services', 'Team', 'Parts'].map((step) => (
+                  {['Excel', 'Paper', 'Old POS'].map((src) => (
                     <span
-                      key={step}
-                      className="flex size-16 items-center justify-center rounded-full bg-card text-xs font-semibold text-muted-foreground shadow-sm ring-1 ring-border"
+                      key={src}
+                      className="flex size-14 items-center justify-center rounded-full bg-card text-[11px] font-semibold text-muted-foreground shadow-sm ring-1 ring-border"
                     >
-                      {step}
+                      {src}
                     </span>
                   ))}
                 </div>
                 <span className="mt-5 rounded-full border border-border bg-card/70 px-4 py-1 text-xs text-helper">
-                  Hours · Time slots · Prices
+                  Customers · Vehicles · Invoices
                 </span>
               </div>
-              <h3 className="mt-6 px-7 text-lg font-semibold text-foreground">Guided Setup</h3>
+              <h3 className="mt-6 px-7 text-lg font-semibold text-foreground">Data Migration</h3>
               <p className="mt-2 px-7 text-sm leading-relaxed text-helper">
-                Create your shop, then follow the setup checklist: add services, invite your team,
-                add parts and list your shop for online booking.
+                We move your customers, vehicles and invoices into BayFlow for you. Nothing left
+                behind.
               </p>
-              <Link href="/register" className={TEXT_LINK}>
-                Create your shop →
-              </Link>
+              <button
+                type="button"
+                onClick={() => setDemoModalOpen(true)}
+                className="mt-auto self-start px-7 pt-4 text-sm font-semibold text-brand-blue-ink hover:underline"
+              >
+                Contact us →
+              </button>
             </div>
 
-            {/* Card 2: Built-in notifications */}
+            {/* Card 2: Live Support */}
             <div className="flex flex-col overflow-hidden rounded-3xl border border-border bg-card pb-7 shadow-sm">
-              <div
-                aria-hidden="true"
-                className="relative flex aspect-[16/11] flex-col justify-center gap-3 overflow-hidden bg-secondary p-6"
-              >
+              <div className="relative flex aspect-[16/11] flex-col justify-center gap-3 overflow-hidden bg-secondary p-6">
                 <div className="max-w-[78%] self-end rounded-2xl rounded-br-md bg-foreground px-4 py-2.5 text-xs text-background shadow-sm">
-                  Estimate approved for LEA-1234
+                  How do I add a second technician?
                 </div>
                 <div className="flex max-w-[86%] items-end gap-2">
-                  <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-brand-blue text-brand-blue-foreground">
-                    <Bell className="size-3.5" />
+                  <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-brand-blue text-[10px] font-bold text-white">
+                    GB
                   </span>
                   <div className="rounded-2xl rounded-bl-md bg-card px-4 py-2.5 text-xs text-muted-foreground shadow-sm ring-1 ring-border">
-                    Parts needed: LEA-1234 needs parts checked against stock.
+                    Go to Team → Add member, pick &ldquo;Technician&rdquo;. Done in 30 seconds.
                   </div>
                 </div>
-                <div className="ml-9 flex w-14 gap-1 rounded-full bg-card px-3 py-2 shadow-sm ring-1 ring-border">
+                <div
+                  className="ml-9 flex w-14 gap-1 rounded-full bg-card px-3 py-2 shadow-sm ring-1 ring-border"
+                  aria-hidden="true"
+                >
                   {[0, 1, 2].map((d) => (
                     <span key={d} className="size-1.5 rounded-full bg-layer-selected" />
                   ))}
                 </div>
                 <span className="absolute bottom-5 left-1/2 -translate-x-1/2 rounded-full border border-border bg-card/70 px-4 py-1 text-xs whitespace-nowrap text-helper">
-                  In-app bell · unread count
+                  Mon–Fri · 10 am – 7 pm
                 </span>
               </div>
-              <h3 className="mt-6 px-7 text-lg font-semibold text-foreground">
-                Built-in Notifications
-              </h3>
+              <h3 className="mt-6 px-7 text-lg font-semibold text-foreground">Live Support</h3>
               <p className="mt-2 px-7 text-sm leading-relaxed text-helper">
-                Each hand-off notifies the next person in BayFlow, with an unread count on the bell,
-                so a job never waits on a phone call.
+                Real people on chat, Monday to Friday, 10 am to 7 pm PKT.
               </p>
-              <Link href="/#roles" className={TEXT_LINK}>
-                See every role →
-              </Link>
+              <a
+                href="https://wa.me/923125699996"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-auto self-start px-7 pt-4 text-sm font-semibold text-brand-blue-ink hover:underline"
+              >
+                Chat with us →
+              </a>
             </div>
 
-            {/* Card 3: Try the demo shop */}
+            {/* Card 3: Help Center */}
             <div className="flex flex-col overflow-hidden rounded-3xl border border-border bg-card pb-7 shadow-sm">
-              <div
-                aria-hidden="true"
-                className="relative aspect-[16/11] overflow-hidden bg-secondary"
-              >
+              <div className="relative aspect-[16/11] overflow-hidden bg-secondary">
                 <div className="absolute inset-y-6 -right-6 left-6 rounded-xl bg-card shadow-sm ring-1 ring-border">
-                  <div className="flex items-center gap-2 border-b border-border-faint px-4 py-3 text-xs text-helper">
-                    <Search className="size-3.5" /> Pick a demo account…
+                  <div className="flex items-center gap-2 border-b border-border-faint px-4 py-3 text-xs text-subtle-foreground">
+                    <span aria-hidden="true">⌕</span> Search guides…
                   </div>
-                  {DEMO_ACCOUNT_ROWS.map(([role, name]) => (
+                  {[
+                    'Create your first job card',
+                    'Send an estimate for approval',
+                    'Set up parts inventory',
+                  ].map((g) => (
                     <div
-                      key={role}
+                      key={g}
                       className="flex items-center gap-3 border-b border-border-faint px-4 py-2.5 text-xs text-muted-foreground"
                     >
                       <span className="size-5 shrink-0 rounded-md bg-secondary" />
-                      <span>
-                        <span className="font-semibold text-foreground">{role}</span> · {name}
-                      </span>
+                      {g}
                     </div>
                   ))}
                   <div className="flex items-center gap-3 px-4 py-2.5">
@@ -868,20 +897,31 @@ export default function LandingPage() {
                   </div>
                 </div>
               </div>
-              <h3 className="mt-6 px-7 text-lg font-semibold text-foreground">Try the Demo Shop</h3>
+              <h3 className="mt-6 px-7 text-lg font-semibold text-foreground">Help Center</h3>
               <p className="mt-2 px-7 text-sm leading-relaxed text-helper">
-                Sign in as any role at Lahore Auto Care, a sample shop with bookings already in
-                progress, and walk a job from booking to pick-up.
+                Step-by-step guides for every feature, from first job card to monthly reports.
               </p>
-              <Link href="/login" className={TEXT_LINK}>
-                Open the demo accounts →
-              </Link>
+              <a
+                href="#help-center"
+                className="mt-auto self-start px-7 pt-4 text-sm font-semibold text-brand-blue-ink hover:underline"
+              >
+                Browse guides →
+              </a>
             </div>
           </div>
 
           <div className="mt-12 flex flex-row items-center justify-center gap-4">
-            <DemoRequestButton className={OUTLINE_CTA}>Book a Demo</DemoRequestButton>
-            <Link href="/register" className={PRIMARY_CTA}>
+            <button
+              type="button"
+              onClick={() => setDemoModalOpen(true)}
+              className="rounded-full border border-foreground bg-card px-7 py-3 text-sm font-semibold text-foreground shadow-sm transition-all hover:bg-muted active:scale-95 sm:px-8 sm:text-base"
+            >
+              Book a Demo
+            </button>
+            <Link
+              href="/register"
+              className="rounded-full bg-brand-blue px-7 py-3 text-center text-sm font-semibold text-white shadow-md shadow-brand-blue/20 transition-all hover:bg-brand-blue-hover active:scale-95 sm:px-9 sm:text-base"
+            >
               Get Started
             </Link>
           </div>
@@ -889,7 +929,7 @@ export default function LandingPage() {
       </section>
 
       {/* ========================================================
-          8. ON ANY PHONE BANNER
+          8. EXPERIENCE MOBILE APP BANNER
           ======================================================== */}
       <section className="relative w-full bg-card py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -901,15 +941,15 @@ export default function LandingPage() {
                   Run your whole garage from your pocket.
                 </h2>
                 <p className="mt-5 max-w-md text-base leading-relaxed text-muted-foreground">
-                  Jobs, inspections, estimates and QC in the browser on any phone, with no app to
-                  install, so your team can work from the bay floor.
+                  Jobs, inspections, estimates and invoices on one app, so your team can work from
+                  the bay floor.
                 </p>
               </div>
 
               <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
                 <Link
                   href="/register"
-                  className="rounded-full bg-brand-blue px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-brand-blue/20 transition outline-none hover:bg-brand-blue-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring focus-visible:outline-solid"
+                  className="rounded-full bg-brand-blue px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-brand-blue/20 transition hover:bg-brand-blue-hover"
                 >
                   Get Started
                 </Link>
@@ -918,15 +958,149 @@ export default function LandingPage() {
 
             {/* Right: phone rises from the bottom edge and is cropped by the card */}
             <div className="relative flex h-[340px] justify-center lg:col-span-5 lg:h-auto">
-              <PhoneFrame
-                screen={LANDING_SCREENS.phoneTechnicianJobs}
-                sizes="(max-width: 1024px) 240px, 300px"
-                className="absolute top-8 w-[260px] shadow-2xl lg:top-20 lg:w-[320px]"
+              <Image
+                src="/garagebox/mobile-mockup.png"
+                alt="BayFlow mobile app"
+                width={350}
+                height={596}
+                sizes="(max-width: 1024px) 260px, 320px"
+                className="absolute top-8 w-[260px] drop-shadow-2xl lg:top-20 lg:w-[320px]"
               />
             </div>
           </div>
         </div>
       </section>
+
+      {/* ========================================================
+          BOOK A DEMO MODAL
+          ======================================================== */}
+      {demoModalOpen && (
+        <div className="fixed inset-0 z-50 flex animate-in items-center justify-center bg-black/60 p-4 backdrop-blur-sm duration-200 fade-in">
+          <div className="relative w-full max-w-lg rounded-3xl border border-border bg-card p-6 shadow-2xl sm:p-8">
+            <button
+              type="button"
+              onClick={() => {
+                setDemoModalOpen(false)
+                setDemoSubmitted(false)
+              }}
+              className="absolute top-5 right-5 rounded-full p-2 text-subtle-foreground transition-colors hover:bg-secondary hover:text-foreground"
+              aria-label="Close"
+            >
+              <X className="size-5" />
+            </button>
+
+            {demoSubmitted ? (
+              <div className="py-6 text-center">
+                <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400">
+                  <Check className="size-8 stroke-[3]" />
+                </div>
+                <h3 className="text-2xl font-bold text-foreground">Demo Request Received!</h3>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Thank you! Our garage software specialist will reach out to you within 2 business
+                  hours on WhatsApp/Phone.
+                </p>
+                <div className="mt-6">
+                  <Button
+                    onClick={() => {
+                      setDemoModalOpen(false)
+                      setDemoSubmitted(false)
+                    }}
+                    className="rounded-full bg-brand-blue px-8"
+                  >
+                    Done
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <p className="text-xs font-bold tracking-wider text-brand-blue-ink uppercase">
+                  Free Live Walkthrough
+                </p>
+                <h3 className="mt-1 text-2xl font-bold text-foreground">
+                  Book a Personalized Demo
+                </h3>
+                <p className="mt-1 text-xs text-helper">
+                  See how BayFlow helps auto garages schedule jobs, track parts, and increase profit
+                  by 40%.
+                </p>
+
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault()
+                    setDemoSubmitted(true)
+                  }}
+                  className="mt-6 space-y-4"
+                >
+                  <div>
+                    <label className="mb-1 block text-xs font-bold text-muted-foreground">
+                      Full Name *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Tariq Mehmood"
+                      value={demoForm.name}
+                      onChange={(e) => setDemoForm({ ...demoForm, name: e.target.value })}
+                      className="w-full rounded-xl border border-border-medium px-3.5 py-2.5 text-sm outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                      <label className="mb-1 block text-xs font-bold text-muted-foreground">
+                        Phone / WhatsApp *
+                      </label>
+                      <input
+                        type="tel"
+                        required
+                        placeholder="+92 300 1234567"
+                        value={demoForm.phone}
+                        onChange={(e) => setDemoForm({ ...demoForm, phone: e.target.value })}
+                        className="w-full rounded-xl border border-border-medium px-3.5 py-2.5 text-sm outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-bold text-muted-foreground">
+                        Work Email
+                      </label>
+                      <input
+                        type="email"
+                        placeholder="tariq@garage.com"
+                        value={demoForm.email}
+                        onChange={(e) => setDemoForm({ ...demoForm, email: e.target.value })}
+                        className="w-full rounded-xl border border-border-medium px-3.5 py-2.5 text-sm outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-xs font-bold text-muted-foreground">
+                      Garage / Workshop Name *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Apex Auto Care Lahore"
+                      value={demoForm.garageName}
+                      onChange={(e) => setDemoForm({ ...demoForm, garageName: e.target.value })}
+                      className="w-full rounded-xl border border-border-medium px-3.5 py-2.5 text-sm outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue"
+                    />
+                  </div>
+
+                  <div className="pt-2">
+                    <button
+                      type="submit"
+                      className="w-full rounded-full bg-brand-blue py-3 text-sm font-bold text-white shadow-md transition-all hover:bg-brand-blue-hover"
+                    >
+                      Confirm Demo Request
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
