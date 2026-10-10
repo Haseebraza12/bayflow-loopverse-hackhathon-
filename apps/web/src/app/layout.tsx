@@ -36,7 +36,7 @@ export const metadata: Metadata = {
     template: '%s · BayFlow',
   },
   description:
-    "Take control of your auto repair business with BayFlow, Pakistan's leading multi-tenant garage management platform. Simplify job scheduling, invoicing, inventory control, and team coordination.",
+    'BayFlow runs an auto repair shop on one shared workflow: online booking, inspection estimates customers approve from their phone, parts, repair and quality checks, with every role on the same live job.',
   applicationName: 'BayFlow',
 }
 
