@@ -22,6 +22,8 @@ export interface TimelineItem {
   time?: ReactNode
   icon?: LucideIcon
   tone?: TimelineTone
+  /** The step the booking is at now, for progress timelines (spec 09 §4.4: `aria-current="step"`). */
+  current?: boolean
 }
 
 /**
@@ -43,7 +45,11 @@ export function Timeline({
         const Icon = item.icon
         const last = index === items.length - 1
         return (
-          <li key={item.id} className={cn('relative flex gap-3', !last && 'pb-5')}>
+          <li
+            key={item.id}
+            aria-current={item.current ? 'step' : undefined}
+            className={cn('relative flex gap-3', !last && 'pb-5')}
+          >
             {!last ? (
               <span aria-hidden="true" className="absolute top-9 bottom-1 left-4 w-px bg-border" />
             ) : null}

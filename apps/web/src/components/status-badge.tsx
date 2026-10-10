@@ -30,7 +30,8 @@ import {
 import { cn } from '@/lib/utils'
 
 /** Icon per status (spec 09 §3.3). Colour is never the only signal: icon + text label always. */
-const STATUS_ICONS = {
+/** The icon for each status, shared with timelines so a status looks the same everywhere. */
+export const STATUS_ICONS = {
   PENDING: Inbox,
   CONFIRMED: CalendarCheck,
   ASSIGNED: UserCheck,
