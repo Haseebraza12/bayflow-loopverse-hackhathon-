@@ -1,260 +1,235 @@
 'use client'
 
-import { ChevronRight, Plus } from 'lucide-react'
-import Link from 'next/link'
-import { useParams } from 'next/navigation'
-import { useState, type FormEvent } from 'react'
+import { PackageCheck, Plus, SearchX, Truck } from 'lucide-react'
+import { useParams, useRouter } from 'next/navigation'
+import { useRef, useState } from 'react'
+import { toast } from 'sonner'
 
+import { DataTableCard, TableSearch } from '@/components/layout/data-table-card'
+import { EmptyState } from '@/components/layout/empty-state'
+import { PageHeader } from '@/components/layout/page-header'
+import { NewPurchaseOrderDialog } from '@/components/pos/purchase-orders/new-po-dialog'
+import { PurchaseOrderRows } from '@/components/pos/purchase-orders/po-list'
+import {
+  PO_FILTERS,
+  filterCounts,
+  formatCount,
+  matchesFilter,
+  matchesQuery,
+  sortForList,
+  type PoFilter,
+} from '@/components/pos/purchase-orders/po-model'
+import { PoReadOnlyNotice, PurchaseOrdersSkeleton } from '@/components/pos/purchase-orders/po-ui'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import { useMockStore, useMockStoreReady } from '@/hooks/use-mock-store'
+import { DEFAULT_SHOP_TZ, formatPKR } from '@/lib/format'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { useMockStore } from '@/hooks/use-mock-store'
-import { formatPKR } from '@/lib/format'
-import {
+  getCurrentUser,
   getInventory,
   getPurchaseOrders,
-  savePurchaseOrder,
+  getShopById,
   type MockPurchaseOrder,
 } from '@/lib/mock-data'
+import { sectionAccess } from '@/lib/pos-access'
 
+function isPoFilter(value: string): value is PoFilter {
+  return PO_FILTERS.some((option) => option.value === value)
+}
+
+/**
+ * PP-04 Purchase orders (spec 10): the shop's orders to suppliers, open ones first and shown by
+ * default, with search, the status filter and "New purchase order" for a general restock. Parts
+ * staff create and receive; the Owner's view is read-only (D16).
+ */
 export default function PurchaseOrdersPage() {
   const params = useParams()
   const shopId = typeof params?.shopId === 'string' ? params.shopId : 'shop-lahore-auto-care'
+  const router = useRouter()
 
+  const ready = useMockStoreReady()
   const pos = useMockStore(() => getPurchaseOrders(shopId))
   const inventory = useMockStore(() => getInventory(shopId))
+  const user = useMockStore(getCurrentUser)
+  const shop = useMockStore(() => getShopById(shopId))
   const base = `/pos/shops/${encodeURIComponent(shopId)}`
 
   const [createOpen, setCreateOpen] = useState(false)
-  const [supplier, setSupplier] = useState('Shell Lubricants Direct')
-  const [partSku, setPartSku] = useState(inventory[0]?.sku || 'OIL-5W30-SYN')
-  const [qty, setQty] = useState('10')
-  const [price, setPrice] = useState('6500')
+  const [filter, setFilter] = useState<PoFilter>('open')
+  const [query, setQuery] = useState('')
+  const newOrderRef = useRef<HTMLButtonElement>(null)
 
-  const handleCreatePo = (e: FormEvent) => {
-    e.preventDefault()
-    const part = inventory.find((p) => p.sku === partSku) || inventory[0]
-    const quantity = Number(qty) || 1
-    const unitPrice = Number(price) || part?.unit_price || 3000
+  // The seed data stands in for this browser's orders until they load (no flash of stale rows).
+  if (!ready) return <PurchaseOrdersSkeleton />
 
-    const newPo: MockPurchaseOrder = {
-      id: `po-${Date.now()}`,
-      po_number: `PO-2026-${Math.floor(100 + Math.random() * 900)}`,
-      shopId,
-      supplier: supplier.trim(),
-      created_at: new Date().toISOString(),
-      status: 'ORDERED',
-      items: [
-        {
-          part_sku: part?.sku || 'SKU-GEN',
-          part_name: part?.name || 'General Component',
-          quantity,
-          unit_price: unitPrice,
-        },
-      ],
-      total_amount: quantity * unitPrice,
-    }
+  // D16: Parts staff create and receive purchase orders; the Owner follows them (lib/pos-access).
+  const canManage = sectionAccess(user.role, 'purchase-orders') === 'manage'
+  const timeZone = shop?.timezone ?? DEFAULT_SHOP_TZ
+  const counts = filterCounts(pos)
+  const rows = sortForList(pos.filter((po) => matchesFilter(po, filter) && matchesQuery(po, query)))
+  const rowsValue = rows.reduce((sum, po) => sum + po.total_amount, 0)
+  const searching = query.trim() !== ''
 
-    savePurchaseOrder(newPo)
+  const handleCreated = (po: MockPurchaseOrder) => {
     setCreateOpen(false)
+    // Show the new order: it is open, and a search could hide it.
+    setFilter('open')
+    setQuery('')
+    const line = po.items[0]
+    toast.success(`${po.po_number} created`, {
+      description: line
+        ? `${formatCount(line.quantity)} × ${line.part_name} from ${po.supplier}`
+        : po.supplier,
+      action: {
+        label: 'View',
+        onClick: () => router.push(`${base}/purchase-orders/${encodeURIComponent(po.id)}`),
+      },
+    })
   }
 
   return (
-    <div className="space-y-6 pb-12">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <span className="text-xs font-bold tracking-[0.32px] text-brand-blue-ink">
-            Procurement & Suppliers
-          </span>
-          <h1 className="mt-1 text-2xl font-semibold text-foreground sm:text-3xl">
-            Purchase Orders
-          </h1>
-          <p className="mt-0.5 text-xs text-helper">
-            Track wholesale orders, supplier shipments, and receive components into active stock.
-          </p>
-        </div>
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow={canManage ? 'Parts' : 'Role view'}
+        title="Purchase orders"
+        description={
+          canManage
+            ? 'Order parts from your suppliers and receive deliveries into stock.'
+            : 'What your parts staff ordered from suppliers, and what has arrived.'
+        }
+        actions={
+          canManage ? (
+            <Button ref={newOrderRef} onClick={() => setCreateOpen(true)}>
+              <Plus aria-hidden="true" data-icon="inline-start" />
+              New purchase order
+            </Button>
+          ) : undefined
+        }
+      />
 
-        <Button
-          onClick={() => setCreateOpen(true)}
-          className="h-9 rounded-lg bg-brand-blue text-xs font-semibold text-white hover:bg-blue-700"
-        >
-          <Plus className="mr-1 size-3.5" />
-          Create Restock PO
-        </Button>
-      </div>
+      {canManage ? null : <PoReadOnlyNotice inventoryHref={`${base}/inventory`} />}
 
-      {/* PO Table */}
-      <Card className="overflow-hidden border-border">
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="border-b border-border bg-muted text-[11px] font-bold text-subtle-foreground">
-                <tr>
-                  <th className="px-5 py-3">PO Number</th>
-                  <th className="px-4 py-3">Supplier</th>
-                  <th className="px-4 py-3">Items Summary</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3 text-right">Total Amount</th>
-                  <th className="px-5 py-3 text-right">Manage</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border-faint text-muted-foreground">
-                {pos.map((po) => (
-                  <tr key={po.id} className="hover:bg-muted/60">
-                    <td className="px-5 py-3.5">
-                      <Link
-                        href={`${base}/purchase-orders/${po.id}`}
-                        className="font-mono font-bold text-brand-blue-ink hover:underline"
-                      >
-                        {po.po_number}
-                      </Link>
-                      <p className="mt-0.5 text-[11px] text-subtle-foreground">
-                        {new Date(po.created_at).toLocaleDateString()}
-                      </p>
-                    </td>
-
-                    <td className="px-4 py-3.5 font-bold text-foreground">{po.supplier}</td>
-
-                    <td className="px-4 py-3.5">
-                      <p className="font-medium text-foreground">
-                        {po.items.map((it) => `${it.quantity}× ${it.part_name}`).join(', ')}
-                      </p>
-                    </td>
-
-                    <td className="px-4 py-3.5">
-                      <span
-                        className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold tracking-[0.32px] ${
-                          po.status === 'RECEIVED'
-                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200'
-                            : po.status === 'PARTIALLY_RECEIVED'
-                              ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200'
-                              : 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200'
-                        }`}
-                      >
-                        {po.status}
-                      </span>
-                    </td>
-
-                    <td className="px-4 py-3.5 text-right font-bold text-foreground">
-                      {formatPKR(po.total_amount)}
-                    </td>
-
-                    <td className="px-5 py-3.5 text-right">
-                      <Button
-                        asChild
-                        variant="outline"
-                        size="sm"
-                        className="h-7 rounded-full text-xs font-semibold"
-                      >
-                        <Link href={`${base}/purchase-orders/${po.id}`}>
-                          {po.status === 'RECEIVED' ? 'View' : 'Receive'}
-                          <ChevronRight className="ml-1 size-3" />
-                        </Link>
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Create PO Dialog */}
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-base font-bold text-foreground">
-              Create Restock Purchase Order
-            </DialogTitle>
-            <DialogDescription className="text-xs text-helper">
-              Dispatch an order to vendor for warehouse restocking.
-            </DialogDescription>
-          </DialogHeader>
-
-          <form onSubmit={handleCreatePo} className="space-y-4 py-2">
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-muted-foreground">Supplier Name</Label>
-              <Input
-                value={supplier}
-                onChange={(e) => setSupplier(e.target.value)}
-                className="h-9 text-xs"
-                required
+      {pos.length === 0 ? (
+        <EmptyState
+          icon={Truck}
+          title="No purchase orders yet"
+          description={
+            canManage
+              ? 'They’re created from a job’s parts screen (Order missing parts) or here for restocking.'
+              : 'Your parts staff create them from a job’s parts screen or here for restocking.'
+          }
+        />
+      ) : (
+        <DataTableCard
+          className="@container/po-list"
+          toolbar={
+            <>
+              <TableSearch
+                value={query}
+                onValueChange={setQuery}
+                label="Search purchase orders"
+                placeholder="PO number, supplier or part"
+                // 42px like the filter pills; hide Chrome's own clear button (TableSearch has one).
+                className="h-10.5 [&_input::-webkit-search-cancel-button]:appearance-none"
               />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-muted-foreground">
-                Part SKU to Order
-              </Label>
-              <select
-                value={partSku}
-                onChange={(e) => setPartSku(e.target.value)}
-                className="w-full rounded-md border border-border bg-card px-3 py-2 text-xs font-medium"
-              >
-                {inventory.map((p) => (
-                  <option key={p.id} value={p.sku}>
-                    {p.name} ({p.sku}) — In Stock: {p.on_hand}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-muted-foreground">Quantity</Label>
-                <Input
-                  type="number"
-                  value={qty}
-                  onChange={(e) => setQty(e.target.value)}
-                  className="h-9 text-xs"
-                  required
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-muted-foreground">
-                  Unit Cost (PKR)
-                </Label>
-                <Input
-                  type="number"
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
-                  className="h-9 text-xs"
-                  required
-                />
-              </div>
-            </div>
-
-            <DialogFooter className="gap-2 pt-2 sm:gap-0">
-              <Button
-                type="button"
+              <ToggleGroup
+                type="single"
                 variant="outline"
-                onClick={() => setCreateOpen(false)}
-                className="text-xs font-semibold"
+                size="lg"
+                value={filter}
+                onValueChange={(value) => {
+                  if (isPoFilter(value)) setFilter(value)
+                }}
+                aria-label="Show purchase orders"
+                className="flex-wrap"
               >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                className="rounded-full bg-brand-blue text-xs font-bold text-white"
-              >
-                Issue Purchase Order
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+                {PO_FILTERS.map((option) => (
+                  <ToggleGroupItem key={option.value} value={option.value} className="px-3.5">
+                    {option.label}{' '}
+                    <Badge variant="secondary" className="h-5 min-w-5 px-1.5 tabular-nums">
+                      {formatCount(counts[option.value])}
+                    </Badge>
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
+              <p className="text-sm text-muted-foreground sm:ml-auto" aria-live="polite">
+                <span className="font-semibold text-foreground tabular-nums">
+                  {formatCount(rows.length)}
+                </span>{' '}
+                {rows.length === 1 ? 'order' : 'orders'} ·{' '}
+                <span className="font-semibold text-foreground tabular-nums">
+                  {formatPKR(rowsValue)}
+                </span>
+              </p>
+            </>
+          }
+        >
+          {rows.length > 0 ? (
+            <PurchaseOrderRows
+              orders={rows}
+              base={base}
+              canReceive={canManage}
+              timeZone={timeZone}
+            />
+          ) : searching ? (
+            <EmptyState
+              variant="inline"
+              icon={SearchX}
+              title="No purchase orders match"
+              description={`Nothing matches “${query.trim()}”${
+                filter === 'all' ? '' : ` in ${filter} orders`
+              }. Try another PO number, supplier or part.`}
+              action={
+                <Button variant="outline" onClick={() => setQuery('')}>
+                  Clear search
+                </Button>
+              }
+            />
+          ) : filter === 'open' ? (
+            <EmptyState
+              variant="inline"
+              tone="success"
+              icon={PackageCheck}
+              title="Nothing awaiting delivery"
+              description="Every purchase order has been received into stock."
+              action={
+                <Button variant="outline" onClick={() => setFilter('all')}>
+                  Show all orders
+                </Button>
+              }
+            />
+          ) : (
+            <EmptyState
+              variant="inline"
+              tone="neutral"
+              icon={Truck}
+              title="Nothing received yet"
+              description="Orders move here once their delivery is received into stock."
+              action={
+                <Button variant="outline" onClick={() => setFilter('all')}>
+                  Show all orders
+                </Button>
+              }
+            />
+          )}
+        </DataTableCard>
+      )}
+
+      {canManage ? (
+        <NewPurchaseOrderDialog
+          open={createOpen}
+          onOpenChange={setCreateOpen}
+          shopId={shopId}
+          inventory={inventory}
+          onCreated={handleCreated}
+          onCloseAutoFocus={(event) => {
+            // Back to "New purchase order" (Radix only returns focus to a `DialogTrigger`).
+            event.preventDefault()
+            newOrderRef.current?.focus()
+          }}
+        />
+      ) : null}
     </div>
   )
 }

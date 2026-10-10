@@ -1,160 +1,260 @@
 'use client'
 
-import { ArrowLeft, CheckCircle2, PackageCheck, Truck } from 'lucide-react'
+import { CircleCheckBig, PackageCheck, SearchX } from 'lucide-react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
+import { toast } from 'sonner'
 
+import { DetailLayout } from '@/components/layout/detail-layout'
+import { PageHeader } from '@/components/layout/page-header'
+import { PoItemsCard } from '@/components/pos/purchase-orders/po-items-card'
+import {
+  formatCount,
+  isOpen,
+  plural,
+  receiptPreview,
+  unitsAdded,
+  type ReceiptLine,
+} from '@/components/pos/purchase-orders/po-model'
+import { PoStatusBadge } from '@/components/pos/purchase-orders/po-status-badge'
+import { PoSummaryCard } from '@/components/pos/purchase-orders/po-summary-card'
+import { PoReadOnlyNotice, PurchaseOrderSkeleton } from '@/components/pos/purchase-orders/po-ui'
+import { ReceiveDialog } from '@/components/pos/purchase-orders/receive-dialog'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { useMockStore } from '@/hooks/use-mock-store'
-import { formatPKR } from '@/lib/format'
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+} from '@/components/ui/empty'
+import { useMockStore, useMockStoreReady } from '@/hooks/use-mock-store'
+import { DEFAULT_SHOP_TZ, formatDate } from '@/lib/format'
 import {
   adjustPartStock,
+  getCurrentUser,
+  getInventory,
   getPurchaseOrders,
+  getShopById,
   savePurchaseOrder,
+  type MockPart,
   type MockPurchaseOrder,
 } from '@/lib/mock-data'
+import { sectionAccess } from '@/lib/pos-access'
 
+/**
+ * PP-05 PO detail and receive (spec 10): the order's lines in the main column; beside them the
+ * state, supplier, total and, for Parts staff while it is open, "Receive into stock", which adds
+ * every line's quantity to inventory after a confirmation that shows the stock before → after.
+ * The Owner's view is read-only (D16).
+ */
 export default function PurchaseOrderDetailPage() {
   const params = useParams()
   const shopId = typeof params?.shopId === 'string' ? params.shopId : 'shop-lahore-auto-care'
   const poId = typeof params?.poId === 'string' ? params.poId : ''
 
+  const ready = useMockStoreReady()
   const pos = useMockStore(() => getPurchaseOrders(shopId))
-  const po = pos.find((p) => p.id === poId || p.po_number === poId)
-
-  const [toastMsg, setToastMsg] = useState<string | null>(null)
+  // The whole inventory: the part list `adjustPartStock` updates when an order is received.
+  const parts = useMockStore(() => getInventory())
+  const user = useMockStore(getCurrentUser)
+  const shop = useMockStore(() => getShopById(shopId))
   const base = `/pos/shops/${encodeURIComponent(shopId)}`
+
+  // Wait for this browser's stored orders: a new order is not in the seed data, so it would
+  // flash "not found" while React hydrates.
+  if (!ready) return <PurchaseOrderSkeleton />
+
+  const po = pos.find((p) => p.id === poId || p.po_number === poId)
 
   if (!po) {
     return (
-      <div className="space-y-4 py-16 text-center">
-        <h1 className="text-xl font-bold text-foreground">Purchase order not found</h1>
-        <Button asChild className="rounded-full bg-brand-blue text-xs text-white">
-          <Link href={`${base}/purchase-orders`}>Back to Orders</Link>
-        </Button>
-      </div>
+      <Empty className="border bg-card py-16 sm:py-20">
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <SearchX aria-hidden="true" />
+          </EmptyMedia>
+          <h1 className="text-2xl font-extrabold tracking-tight text-foreground">
+            We couldn’t find this purchase order
+          </h1>
+          <EmptyDescription className="text-base">
+            It may belong to another shop, or the link is out of date.
+          </EmptyDescription>
+        </EmptyHeader>
+        <EmptyContent>
+          <Button asChild size="lg">
+            <Link href={`${base}/purchase-orders`}>Back to purchase orders</Link>
+          </Button>
+        </EmptyContent>
+      </Empty>
     )
   }
 
-  const handleReceiveAll = () => {
-    // Increase stock for each item in inventory
-    po.items.forEach((it) => {
-      adjustPartStock(it.part_sku, it.quantity)
-    })
+  return (
+    <PurchaseOrderDetail
+      key={po.id}
+      po={po}
+      parts={parts}
+      base={base}
+      // D16: Parts staff receive deliveries; the Owner follows them (lib/pos-access).
+      canReceive={sectionAccess(user.role, 'purchase-orders') === 'manage'}
+      timeZone={shop?.timezone ?? DEFAULT_SHOP_TZ}
+    />
+  )
+}
 
+type ReceivedLine = Pick<ReceiptLine, 'line' | 'part'>
+
+function PurchaseOrderDetail({
+  po,
+  parts,
+  base,
+  canReceive,
+  timeZone,
+}: {
+  po: MockPurchaseOrder
+  parts: ReadonlyArray<MockPart>
+  base: string
+  canReceive: boolean
+  timeZone: string
+}) {
+  const [receiveOpen, setReceiveOpen] = useState(false)
+  /** The stock preview as the dialog opened, so it stays put while the dialog closes. */
+  const [shownPreview, setShownPreview] = useState<ReceiptLine[]>([])
+  /** What the last receipt on this page changed, for the confirmation notice. */
+  const [received, setReceived] = useState<ReceivedLine[] | null>(null)
+  const noticeRef = useRef<HTMLDivElement>(null)
+  const receiveButtonRef = useRef<HTMLButtonElement>(null)
+
+  const open = isOpen(po)
+  const preview = receiptPreview(po, parts)
+  const adding = unitsAdded(preview)
+
+  const openReceive = () => {
+    setShownPreview(preview)
+    setReceiveOpen(true)
+  }
+
+  const handleReceiveAll = () => {
+    // A second click while the dialog closes, or another window, may have received it already.
+    const latest = getPurchaseOrders().find((p) => p.id === po.id)
+    if (!latest || !isOpen(latest)) {
+      setReceiveOpen(false)
+      toast.info(`${po.po_number} is already received`, {
+        description: 'Stock was not changed again.',
+      })
+      return
+    }
+
+    // Receive everything, as before: each line's quantity goes into stock, then the order is
+    // RECEIVED. The updated parts feed the confirmation.
+    const lines = po.items.map((line) => ({
+      line,
+      part: adjustPartStock(line.part_sku, line.quantity),
+    }))
     const updated: MockPurchaseOrder = {
       ...po,
       status: 'RECEIVED',
     }
     savePurchaseOrder(updated)
-    setToastMsg(`Items received into warehouse! Inventory stock balances have been updated.`)
+    setReceived(lines)
+    setReceiveOpen(false)
   }
 
+  const addedNow = received ? unitsAdded(received) : 0
+
   return (
-    <div className="space-y-6 pb-16">
-      {/* Top Breadcrumb */}
-      <div>
-        <Link
-          href={`${base}/purchase-orders`}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-brand-blue-ink"
+    <div className="space-y-6">
+      <PageHeader
+        back={{ href: `${base}/purchase-orders`, label: 'Purchase orders' }}
+        title={<span className="font-mono">{po.po_number}</span>}
+        badges={<PoStatusBadge status={po.status} size="md" />}
+        description={`${po.supplier} · ordered ${formatDate(po.created_at, timeZone)}`}
+      />
+
+      {canReceive ? null : <PoReadOnlyNotice inventoryHref={`${base}/inventory`} />}
+
+      {received ? (
+        <Alert
+          ref={noticeRef}
+          tabIndex={-1}
+          variant="success"
+          role="status"
+          className="outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring focus-visible:outline-solid"
         >
-          <ArrowLeft className="size-3.5" />
-          <span>Back to Purchase Orders</span>
-        </Link>
-      </div>
-
-      {toastMsg && (
-        <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-xs font-bold text-emerald-950 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-100">
-          <CheckCircle2 className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
-          <span>{toastMsg}</span>
-        </div>
-      )}
-
-      {/* Header & Status Card */}
-      <div className="space-y-4 rounded-2xl border border-border bg-card p-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-2xl font-semibold text-brand-blue-ink">
-                {po.po_number}
-              </span>
-              <span
-                className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold tracking-[0.32px] ${
-                  po.status === 'RECEIVED'
-                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200'
-                    : 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200'
-                }`}
-              >
-                {po.status}
-              </span>
+          <CircleCheckBig aria-hidden="true" />
+          <AlertTitle>Delivery received</AlertTitle>
+          <AlertDescription className="text-pretty">
+            <div>
+              {addedNow > 0
+                ? `${plural(addedNow, 'unit')} added to inventory.`
+                : 'No stock changed: none of these parts are in inventory.'}
             </div>
-            <p className="text-sm font-bold text-foreground">Supplier: {po.supplier}</p>
-            <p className="text-xs text-helper">
-              Ordered on {new Date(po.created_at).toLocaleDateString()}
-            </p>
-          </div>
+            <ul className="mt-1.5 list-disc space-y-0.5 pl-5">
+              {received.map(({ line, part }, index) => (
+                <li key={`${line.part_sku}-${index}`}>
+                  {line.part_name}:{' '}
+                  {part ? (
+                    <span className="tabular-nums">now {formatCount(part.on_hand)} on hand</span>
+                  ) : (
+                    'not in inventory, stock unchanged'
+                  )}
+                </li>
+              ))}
+            </ul>
+            <div className="mt-2">
+              <Link href={`${base}/inventory`}>Open inventory</Link>
+            </div>
+          </AlertDescription>
+        </Alert>
+      ) : null}
 
-          {po.status !== 'RECEIVED' && (
-            <Button
-              onClick={handleReceiveAll}
-              className="h-9 rounded-full bg-emerald-600 px-5 text-xs font-bold text-white hover:bg-emerald-700"
-            >
-              <PackageCheck className="mr-1.5 size-4" />
-              Receive Shipment into Stock
-            </Button>
-          )}
-        </div>
-      </div>
+      <DetailLayout
+        aside={
+          <PoSummaryCard
+            po={po}
+            timeZone={timeZone}
+            canReceive={canReceive}
+            action={
+              open && canReceive ? (
+                <div className="space-y-2">
+                  <Button ref={receiveButtonRef} size="lg" className="w-full" onClick={openReceive}>
+                    <PackageCheck aria-hidden="true" data-icon="inline-start" />
+                    Receive into stock
+                  </Button>
+                  <p className="text-center text-sm text-muted-foreground">
+                    {adding > 0
+                      ? `Adds ${plural(adding, 'unit')} to inventory.`
+                      : 'None of its parts are in inventory yet.'}
+                  </p>
+                </div>
+              ) : null
+            }
+          />
+        }
+      >
+        <PoItemsCard po={po} />
+      </DetailLayout>
 
-      {/* Items Card */}
-      <Card className="overflow-hidden border-border">
-        <CardHeader className="border-b border-border-faint bg-muted/80 p-4">
-          <CardTitle className="flex items-center gap-1.5 text-xs font-bold tracking-[0.32px] text-helper">
-            <Truck className="size-4 text-brand-blue-ink" />
-            Ordered Line Items ({po.items.length})
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="border-b border-border bg-muted text-[11px] font-bold text-subtle-foreground">
-                <tr>
-                  <th className="px-5 py-3">Part Description</th>
-                  <th className="px-4 py-3">SKU</th>
-                  <th className="px-4 py-3 text-center">Ordered Qty</th>
-                  <th className="px-4 py-3 text-right">Unit Price</th>
-                  <th className="px-5 py-3 text-right">Total Cost</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border-faint text-muted-foreground">
-                {po.items.map((item, idx) => (
-                  <tr key={idx}>
-                    <td className="px-5 py-3 font-semibold text-foreground">{item.part_name}</td>
-                    <td className="px-4 py-3 font-mono text-helper">{item.part_sku}</td>
-                    <td className="px-4 py-3 text-center font-bold">{item.quantity}</td>
-                    <td className="px-4 py-3 text-right">{formatPKR(item.unit_price)}</td>
-                    <td className="px-5 py-3 text-right font-bold text-foreground">
-                      {formatPKR(item.quantity * item.unit_price)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot className="border-t border-border bg-muted/60 font-bold">
-                <tr>
-                  <td colSpan={4} className="px-5 py-3 text-right text-muted-foreground">
-                    Total Order Value
-                  </td>
-                  <td className="px-5 py-3 text-right text-sm font-semibold text-brand-blue-ink">
-                    {formatPKR(po.total_amount)}
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+      {canReceive ? (
+        <ReceiveDialog
+          open={receiveOpen}
+          onOpenChange={setReceiveOpen}
+          po={po}
+          preview={shownPreview}
+          onConfirm={handleReceiveAll}
+          onCloseAutoFocus={(event) => {
+            // Radix only returns focus to a `DialogTrigger`: back to "Receive into stock" after
+            // Cancel; after a receipt that button is gone, so to the confirmation instead.
+            event.preventDefault()
+            const target =
+              noticeRef.current ?? receiveButtonRef.current ?? document.getElementById('main')
+            target?.focus()
+          }}
+        />
+      ) : null}
     </div>
   )
 }
