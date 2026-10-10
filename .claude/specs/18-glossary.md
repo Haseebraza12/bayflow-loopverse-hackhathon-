@@ -73,9 +73,11 @@ Source of truth for requirements: `helping-folder/Web Dev - Virtual.pdf` (BayFlo
 
 `SYSTEM` is used only for automated actions with no human actor — in practice the bonus AI Front Desk (tasks it creates). The seed script acts **as the real demo people** and never uses `SYSTEM`. No core booking transition is performed by `SYSTEM`.
 
-### 2.3 Role tags (used in demo e-mail addresses and UI chips)
+### 2.3 Role tags (used in demo e-mail addresses)
 
 `owner`, `sa`, `tech`, `parts`, `qc`, `customer`.
+
+The UI shows roles by their §2.1 display name, never by tag: role chips are `brand` badges, and the POS bar's role pill shows only its icon on narrow screens, with the name in `sr-only` text (spec 09 §3.4, §4.1; D101).
 
 ### 2.4 Capabilities (D66)
 
@@ -435,6 +437,7 @@ Worked-example vehicle: 2016 Honda Civic, plate `LEA-1234`. Worked-example price
 - 2026-10-09 (API contract): `tasks.manage` only with the calls module; wording of `NOT_FOUND`, `CONCURRENT_UPDATE`, `INSUFFICIENT_STOCK`, `CONFLICT`; auth routes per D81.
 - 2026-10-09 (wave-2 findings 2): `shop_scoped_router()` (D80), `ShopGridChanging` event (D37), `get_clock()`/`utcnow()` (D63), module files "only as needed".
 - 2026-10-09 (final consistency sweep): ID prefix `DI` for spec 02's data invariants (`DI-1` … `DI-7`, formerly `INV-1` … `INV-7`, which collided with spec 12's inventory tests `INV-01` …), §13.
+- 2026-10-10 (design language, D101): role tags (§2.3) are no longer shown in UI chips; the UI uses the §2.1 display names.
 
 ## Dependencies
 

@@ -8,7 +8,7 @@ Defines how `apps/web` is built and how it looks and behaves: web architecture (
 
 Why it matters: Product & UX is 15 % of the score (brief §10: "Clear landing page and booking wizard; role dashboards that show only relevant work"), and the 35 % core-flow score is earned only if a judge can drive the whole lifecycle through this UI on the live URL (§7.8).
 
-Rules of precedence: names come from [18-glossary.md](18-glossary.md); [17-decisions.md](17-decisions.md) wins every conflict (especially D1, D7, D8, D10, D11, D14, D16, D21, D27, D32–D41, D44, D48, D50, D52, D55, D56, D61, D62, D66–D68, D70, D73, D76, D78, D80–D83, D88); paths, response shapes and request-field limits come from [03-api-contracts.md](03-api-contracts.md), the authoritative endpoint catalogue; booking buttons come from `allowed_actions` as defined in [08-booking-state-machine.md](08-booking-state-machine.md). Framework facts were checked against official docs and package sources on 2026-10-09 (see §8 Sources). Anything not checked is marked **(unverified)**.
+Rules of precedence: names come from [18-glossary.md](18-glossary.md); [17-decisions.md](17-decisions.md) wins every conflict (especially D1, D7, D8, D10, D11, D14, D16, D21, D27, D32–D41, D44, D48, D50, D52, D55, D56, D61, D62, D66–D68, D70, D73, D76, D78, D80–D83, D88, D93, D101); paths, response shapes and request-field limits come from [03-api-contracts.md](03-api-contracts.md), the authoritative endpoint catalogue; booking buttons come from `allowed_actions` as defined in [08-booking-state-machine.md](08-booking-state-machine.md). Framework facts were checked against official docs and package sources on 2026-10-09 (see §8 Sources). The design system (§3, §4.1, §4.14, §5) was rewritten on 2026-10-10 for D101 and checked against `apps/web` (`DESIGN.md`, `globals.css`, `layout.tsx`, `components/ui`, `components/layout`) that day. Anything not checked is marked **(unverified)**.
 
 ---
 
@@ -16,13 +16,13 @@ Rules of precedence: names come from [18-glossary.md](18-glossary.md); [17-decis
 
 | # | Goal (brief) | How the web app delivers it | Demo check |
 |---|---|---|---|
-| G1 | Clear landing page (§7.3, §10) | Navy hero with search and city filter above the fold. Below it, a shop grid (name, city, rating or "New", services offered). One primary CTA per card. | A judge finds Lahore Auto Care and starts a booking in ≤ 2 clicks. |
+| G1 | Clear landing page (§7.3, §10) | A light hero (white, grid paper fading out, a soft brand-blue glow; §3.1, §3.5) with search and a city filter above the fold. Below it, a shop grid (name, city, rating or "New", services offered). One primary (blue) action per card (R7). | A judge finds Lahore Auto Care and starts a booking in ≤ 2 clicks. |
 | G2 | Guided booking wizard (§5.1, §7.3) | Five steps plus a success screen. One decision per step, a visible progress indicator, input kept when going back, and only available slots shown. | The worked-example booking (§6 steps 1–3) takes under 2 minutes on a phone. |
 | G3 | Dashboards show only relevant work (§3, §4, §10) | Each membership role has its own home screen. Lists show only what the API makes visible (D21). Work that needs action is listed first. | Every seeded role logs in and lands on its own queue. |
 | G4 | No role can do another role's action (§7.8) | Booking buttons come only from `allowed_actions` (D48). Other buttons come from API-provided membership `capabilities` (D66, §2.8). The Owner's role views are read-only (D16). | Imran (Technician) never sees "Send to customer". |
 | G5 | Less customer anxiety (§3) | A live status timeline with customer labels, a pending-action banner, an itemised estimate with its version number, and a ready-for-pick-up banner. | Ahmed sees "Estimate awaiting your approval" without refreshing the page. |
 | G6 | Visible accountability (§2, §7.5) | The staff timeline shows who acted, when, from → to, and any note. Estimate versions and decision timestamps are shown, plus the QC issue history. | Bilal can show v1 next to v2 of the estimate. |
-| G7 | Clarity across shops (§7.2) | The POS header always shows the shop name and a role chip. A shop switcher is one click away. | Fatima switches between her two shops in one click. |
+| G7 | Clarity across shops (§7.2) | The POS bar always shows the current shop (on the shop-switcher pill) and the role (the role pill). The switcher is one click away. | Fatima switches between her two shops in one click. |
 | G8 | Works on mobile and is accessible (§7.3) | The customer portal is designed mobile-first. The POS works on tablets. Everything meets WCAG 2.2 AA. | The wizard and estimate approval work at 360 px width. |
 
 ---
@@ -74,11 +74,14 @@ apps/web/
 ├─ vitest.setup.ts
 ├─ Dockerfile                  # image for `docker compose` only; Vercel builds the app itself (spec 07)
 ├─ AGENTS.md                   # Next.js agent rules, (re)written by `next dev`
+├─ DESIGN.md                   # the design system's working reference: tokens, primitives, shared layout parts,
+│                              #   page recipes and do/don't rules (§3, D101)
 ├─ public/                     # logo.svg
 └─ src/
    ├─ proxy.ts                 # optimistic auth gate (Next 16 file convention, §2.8); matcher /pos, /bookings, /book/confirmed
    ├─ app/
-   │  ├─ layout.tsx            # <html lang="en">, Inter + JetBrains Mono (next/font), SkipLink, <Providers>
+   │  ├─ layout.tsx            # <html lang="en">, Fira Sans + Edu NSW ACT Foundation + JetBrains Mono (next/font, §3.6),
+   │  │                        #   SkipLink, <Providers>
    │  ├─ providers.tsx         # 'use client': QueryClientProvider, TooltipProvider, <Toaster/>, Query devtools (dev only);
    │  │                        #   RealtimeProvider joins it (planned); the P2 CallProvider goes in the authenticated layouts
    │  ├─ globals.css           # Tailwind 4 + design tokens (§3.5)
@@ -113,8 +116,10 @@ apps/web/
    │              └─ qc/  qc/[bookingId]/  team/  services/  settings/  calls/ (P2, planned)
    ├─ components/
    │  ├─ ui/                   # shadcn-generated primitives (owned code; edited only for tokens/a11y, §3.12)
-   │  ├─ layout/               # logo, public-header, public-footer, pos-header, pos-sidebar, page-header, skip-link;
-   │  │                        #   planned: shop-switcher, role-chip, user-menu, realtime-indicator
+   │  ├─ layout/               # shells (§4.1): logo, public-header, public-footer, session-actions, pos-header (shop
+   │  │                        #   switcher, role pill), pos-sidebar, section-gate, account-menu, skip-link; shared page
+   │  │                        #   parts (§4.14): page-header, stat-card, data-table-card, detail-layout, timeline,
+   │  │                        #   empty-state, form-section; planned: realtime-indicator
    │  ├─ status-badge.tsx      # StatusBadge (§3.3, §4.2)
    │  ├─ feedback/             # route-error (body of every error.tsx), screen-placeholder (route skeletons);
    │  │                        #   planned: empty-state, error-state, forbidden-state, not-found-state,
@@ -152,9 +157,9 @@ Route groups are folders named `(name)`. They do not appear in the URL, and two 
 
 | Group | URLs | Layout responsibilities | Protection |
 |---|---|---|---|
-| `(public)` | `/`, `/shops/:slug`, `/book`, `/book/:slug` (shop slug in the path, D68) | PublicHeader, footer, marketing width (max-w-6xl) | None. The header shows the logged-in state when `me` exists. |
-| `(auth)` | `/login`, `/register` | Brand panel + form card | None. If already logged in, the page redirects with `resolveHome` (§2.8). |
-| `(customer)` | `/bookings`, `/bookings/:bookingId`, `/book/confirmed/:bookingId` | PublicHeader + content column | `proxy.ts` cookie gate + client `RequireSession` |
+| `(public)` | `/`, `/shops/:slug`, `/book`, `/book/:slug` (shop slug in the path, D68) | PublicHeader, footer; marketing widths (`max-w-7xl` for the landing, `max-w-6xl` for shop pages and the wizard, §3.7) | None. The header shows the logged-in state when `me` exists. |
+| `(auth)` | `/login`, `/register` | Brand panel + form column (§4.1) | None. If already logged in, the page redirects with `resolveHome` (§2.8). |
+| `(customer)` | `/bookings`, `/bookings/:bookingId`, `/book/confirmed/:bookingId` | PublicHeader + a `max-w-5xl` content column on the canvas | `proxy.ts` cookie gate + client `RequireSession` |
 | `(pos)` | `/pos/**` | PosHeader. Under `/pos/shops/:shopId/**`: ShopScope, PosSidebar, page header | `proxy.ts` cookie gate + `RequireSession` + ShopScope membership check |
 
 The full route table with roles is in [10-screens.md §1](10-screens.md).
@@ -616,89 +621,115 @@ stateDiagram-v2
 
 ## 3. Design system
 
+One visual language for every screen — the landing page's — on three layers (D101): **tokens** in `src/app/globals.css` (the only file that writes a colour), **primitives** in `src/components/ui` (shadcn/Radix, restyled, APIs unchanged) and the **shells and shared page parts** in `src/components/layout` (§4.1, §4.14). `apps/web/DESIGN.md` is the working reference with copy-paste recipes; this section records the rules and the values. The tokens, primitives and shells are built and apply to every screen; page compositions follow DESIGN.md's recipes as each screen is rebuilt.
+
 ### 3.1 Brand direction
 
-The brand comes from the brief itself. These colors were extracted from the fill operators in the PDF's content streams:
+**Source (D101).** On 2026-10-10 the owner asked for every screen to look like the public landing page, using "the exact same font, color palettes" as GarageBox (https://www.garagebox.io/en). BayFlow therefore uses GarageBox's fonts, palette, radii and shadows as **values only** — never GarageBox's name, logo, photos, illustrations, copy or code. Where a GarageBox value fails WCAG 2.2 AA, BayFlow uses a corrected value (§3.2, "AA corrections").
 
-| Color | Hex | Where it appears in the brief |
-|---|---|---|
-| Navy | `#14213D` | Cover background, headings, table headers |
-| Orange | `#E8590C` | Cover rule, section headings, callout border |
-| Body text | `#212529` | Body copy |
-| Zebra fill | `#F1F3F5` | Alternating table rows |
-| Border | `#CED4DA` | Table borders |
-| Callout fill | `#FFF4E6` | Callout background |
+The brief's own colours (navy `#14213D` and orange `#E8590C`, extracted from the PDF's content streams) no longer drive the palette. Navy survives on the auth brand panel and in the 40 % scrim behind dialogs and sheets; the orange family survives as the "attention" ink `#BD490A` with its tints (§3.4), and as decoration (the auth panel, landing illustrations).
 
-The grays and the orange are Open Color values, so neutrals and status hues are taken from the same family for a coherent palette.
+**Personality:** light, airy and friendly. White cards on a pale-blue canvas, hairline borders and soft warm shadows; pill buttons and chips; one sans family with heavy headings; colour only where it has a job.
 
-**Personality:** a trustworthy workshop. Navy carries structure and trust, orange is the single "act now" accent, surfaces stay calm, and the POS is dense but legible.
-
-| Color role | Rule |
+| Colour role | Rule |
 |---|---|
-| **Navy = structure** | POS header, primary buttons, links, headings, checked controls |
-| **Orange = action and attention** | In the **customer portal** only, the one conversion button per screen (Book now, Continue, Confirm booking, Approve estimate) uses `cta`. In the **POS**, orange appears only as the focus ring, the active-nav indicator, the unread badge and "Action needed" chips. POS primary buttons are navy. |
-| **Status hues** | Reserved for status badges and status charts (§3.3) |
-| **Never color alone** | Every status or stock state also has a text label and an icon (WCAG 1.4.1) |
+| **Brand blue = the action** | `#002CF1`: the one primary button per view (R7) — in the customer portal, the POS and the admin console alike — plus checked controls, the selected day, links, the focus ring and the unread dot. Never a booking-status colour. |
+| **Green = success** | `#047857` for success fills (white label 5.48 : 1) and green text. GarageBox's `#10B981` is decoration only (progress, dots, illustrations), never under text. |
+| **Orange = attention** | The `cta` ink `#BD490A` on the `attention` tint: "Action needed" chips and banners, and the unread-count badge. Never a button, and never a second call to action next to the blue primary. |
+| **Phase hues = booking status** | Reserved for status chips, their icon tiles and timeline nodes, and status charts (§3.3). |
+| **Stone = everything else** | Warm stone neutrals for text, borders and quiet surfaces; no other grey family. |
+| **Never colour alone** | Every status or stock state also has a text label and an icon (WCAG 1.4.1). |
 
-### 3.2 Color tokens (light theme)
+### 3.2 Colour tokens (light theme)
 
-These map to shadcn's variable names (shadcn theming docs) plus BayFlow extensions. Contrast ratios are in §5.1.
+shadcn's variable names (shadcn theming docs) plus BayFlow extensions *(ext)*. Every value lives in `globals.css` `:root`; screens use the generated utilities, never a hex value. Contrast ratios are in §5.1, dark values in §3.11.
 
 | CSS variable | Hex | Utility | Used for |
 |---|---|---|---|
-| `--background` | `#FFFFFF` | `bg-background` | Page and card surfaces |
-| `--foreground` | `#212529` | `text-foreground` | Body text (the brief's body color) |
-| `--card`, `--popover` | `#FFFFFF` | `bg-card`, `bg-popover` | Cards, menus, popovers |
-| `--card-foreground`, `--popover-foreground` | `#212529` | | |
-| `--primary` | `#14213D` | `bg-primary` | Primary buttons, checked controls, links, selection |
-| `--primary-foreground` | `#FFFFFF` | `text-primary-foreground` | Text on primary |
-| `--primary-hover` *(ext)* | `#1F3157` | `hover:bg-primary-hover` | Primary hover and pressed states, nav hover |
-| `--secondary` | `#F1F3F5` | `bg-secondary` | Secondary buttons, zebra rows, chips |
-| `--secondary-foreground` | `#14213D` | | |
-| `--muted` | `#F8F9FA` | `bg-muted` | POS page background, wells |
-| `--muted-foreground` | `#495057` | `text-muted-foreground` | Helper text, meta, placeholders |
-| `--accent` | `#EEF1F7` | `bg-accent` | shadcn hover and selected surfaces (menu items, rows). **Not** the brand accent. |
-| `--accent-foreground` | `#14213D` | | |
-| `--destructive` | `#C92A2A` | `bg-destructive` | Destructive buttons, error text |
-| `--destructive-foreground` *(ext)* | `#FFFFFF` | | |
-| `--border` | `#DEE2E6` | `border-border` | Dividers and card borders (decorative) |
-| `--input` | `#868E96` | `border-input` | Form control borders, ≥ 3:1 (WCAG 1.4.11) |
-| `--ring` | `#E8590C` | `ring-ring` | Focus ring, 2 px, full opacity (§5.2) |
-| `--cta` *(ext)* | `#BD490A` | `bg-cta` | Portal conversion buttons; orange text on white or `attention` |
-| `--cta-foreground` *(ext)* | `#FFFFFF` | | |
-| `--cta-hover` *(ext)* | `#A53F08` | | |
-| `--brand-navy` *(ext)* | `#14213D` | `bg-brand-navy` | Hero and auth brand panel |
-| `--brand-orange` *(ext)* | `#E8590C` | `bg-brand-orange` | Decorative rules and underlines, large display text (≥ 24 px) on white |
-| `--brand-orange-on-dark` *(ext)* | `#FD7E14` | `text-brand-orange-on-dark` | Small orange text and icons on navy |
-| `--attention` / `--attention-border` *(ext)* | `#FFF4E6` / `#FFC078` | `bg-attention` | "Action needed" callouts and chips (text uses `--cta`) |
-| `--success-subtle` / `--success-ink` *(ext)* | `#EBFBEE` / `#247534` | | Success banners, "In stock", icons |
-| `--warning-subtle` / `--warning-ink` *(ext)* | `#FFF9DB` / `#995400` | | Warnings, "Low stock", icons |
-| `--danger-subtle` / `--danger-ink` *(ext)* | `#FFF5F5` / `#C92A2A` | | Error banners, "Out of stock" |
-| `--info-subtle` / `--info-ink` *(ext)* | `#E7F5FF` / `#1864AB` | | Info banners, read-only banner |
-| `--nav` / `--nav-foreground` *(ext)* | `#14213D` / `#FFFFFF` | | POS header |
-| `--nav-muted` / `--nav-hover` *(ext)* | `#A9B4C8` / `#1F3157` | | Secondary text and hover on the POS header |
-| `--sidebar` / `--sidebar-foreground` | `#F8F9FA` / `#212529` | | POS sidebar (light) |
-| `--sidebar-accent` / `--sidebar-accent-foreground` | `#EEF1F7` / `#14213D` | | Active and hover sidebar item. The active item adds a 3 px `--brand-orange` left bar. |
-| `--sidebar-primary` / `--sidebar-primary-foreground` | `#14213D` / `#FFFFFF` | | |
-| `--sidebar-border` / `--sidebar-ring` | `#DEE2E6` / `#E8590C` | | |
-| `--chart-1` … `--chart-5` | `#1864AB`, `#5F3DC4`, `#995400`, `#0B7285`, `#862E9C` | | Overview bars. These are phase inks, each ≥ 3:1 on white. |
+| `--background` | `#FFFFFF` | `bg-background` | The page of the marketing screens (landing, booking flow, auth) |
+| `--foreground` | `#1C1917` | `text-foreground` | Titles, values, body text |
+| `--card`, `--popover` | `#FFFFFF` | `bg-card`, `bg-popover` | Cards, tables, dialogs, sheets; menus and popovers at 95 % with a blur |
+| `--card-foreground`, `--popover-foreground` | `#1C1917` | | |
+| `--primary` | `#002CF1` | `bg-primary` | The primary button, checked controls, the selected day, progress fill (same value as `--brand-blue`) |
+| `--primary-foreground` | `#FFFFFF` | `text-primary-foreground` | Text on primary (7.98 : 1) |
+| `--primary-hover` *(ext)* | `#1D4ED8` | `hover:bg-primary-hover` | Primary hover (the button does it, with the blue glow) |
+| `--secondary` | `#F4F4F3` | `bg-secondary` | Secondary buttons, neutral chips and icon tiles, the segmented-tabs track |
+| `--secondary-foreground` | `#1C1917` | | |
+| `--muted` | `#FAFAF9` | `bg-muted` | Card and table footer bars, quiet panels, disabled fields |
+| `--muted-foreground` | `#44403C` | `text-muted-foreground` | Descriptions, secondary lines, labels in lists, inactive nav items |
+| `--accent` | `#EAEEF3` | `bg-accent` | Menu-item focus and hover (shadcn's name; **not** a brand accent) |
+| `--accent-foreground` | `#1C1917` | | |
+| `--destructive` | `#DA2626` | `text-destructive`, `border-destructive` | Field errors and invalid borders (AA-corrected, below) |
+| `--destructive-foreground` *(ext)* | `#FFFFFF` | | Text on danger fills |
+| `--destructive-strong` *(ext)* | `#DC2626` | `bg-destructive-strong` | The solid danger button (white label 4.83 : 1) |
+| `--border` | `#D9D9D9` | `border-border` (every element's default) | Card edges and dividers (decorative) |
+| `--input` | `#8B857F` | `border-input` | Control edges: inputs, selects, checkboxes, radios, the switch track (≥ 3 : 1, AA-corrected) |
+| `--ring` | `#002CF1` | `outline-ring` (every element's default outline colour) | The focus outline, 2 px at full opacity (§5.2) |
+| `--canvas` *(ext)* | `#F2F7FE` | `bg-canvas` | Behind the cards on every app screen; the shells set it |
+| `--layer` *(ext)* | `#EDF2FA` | `bg-layer` | "Paper": a tinted well inside a card (totals, notes); the table header band at 60 %. Never a card |
+| `--layer-hover` *(ext)* | `#EAEEF3` | `bg-layer-hover` | Hover surface (same value as `--accent` and `--nav-hover`) |
+| `--layer-accent` *(ext)* | `#E7E5E4` | `bg-layer-accent` | Skeletons |
+| `--layer-selected` *(ext)* | `#E9E8E7` | `bg-layer-selected` | Secondary-button hover |
+| `--field` / `--field-hover` *(ext)* | `#F4F4F3` / `#E9E8E7` | `bg-field` | Left over from the Carbon period; fields are white (`bg-card`) now |
+| `--border-faint` *(ext)* | `#ECECEC` | `border-border-faint` | Table-row dividers, dividers inside cards (`--border-subtle` has the same value) |
+| `--border-medium` *(ext)* | `#D6D3D1` | `border-border-medium` | Outline buttons, filter pills, the shop-switcher pill, the dashed empty-state border |
+| `--border-strong` *(ext)* | `#8B857F` | `border-border-strong` | Same value as `--input`; outline-button hover |
+| `--text-helper` *(ext)* | `#736C67` | `text-helper` | Captions, timestamps, hints, placeholders, table headers, sidebar group labels (AA-corrected) |
+| `--subtle-foreground` *(ext)* | `#A8A29E` | `text-subtle-foreground` | Decoration only: quiet icons, separators. **Never text** (2.52 : 1) |
+| `--overlay` *(ext)* | `rgb(20 33 61 / 0.4)` | `bg-overlay` | The scrim behind dialogs and sheets (navy at 40 %, blurred) |
+| `--brand-blue` / `--brand-blue-hover` *(ext)* | `#002CF1` / `#1D4ED8` | `bg-brand-blue` | Blue fills outside buttons: avatar initials, the switcher's store icon, the unread dot |
+| `--brand-blue-foreground` *(ext)* | `#FFFFFF` | | |
+| `--brand-blue-ink` *(ext)* | `#002CF1` | `text-brand-blue-ink` | Links, IDs that link, eyebrows, selected labels, the active nav icon |
+| `--brand-blue-subtle` *(ext)* | `#E4EBF9` | `bg-brand-blue-subtle` | Icon tiles, selected pills, the role pill, `brand` chips; row hover at 40 % |
+| `--brand-green` / `--brand-green-hover` *(ext)* | `#047857` / `#065F46` | `bg-brand-green` | Success fills and green text, the public header's "Sign In" pill (AA-corrected) |
+| `--brand-green-foreground` *(ext)* | `#FFFFFF` | `text-brand-green-foreground` | Text on green fills (5.48 : 1) |
+| `--brand-green-accent` *(ext)* | `#10B981` | `bg-brand-green-accent` | Decoration only: progress, dots, illustration accents. Never under text |
+| `--cta` / `--cta-hover` *(ext)* | `#BD490A` / `#A53F08` | `text-cta`, `bg-cta` | The attention ink ("Action needed" labels) and the unread-count badge |
+| `--cta-foreground` *(ext)* | `#FFFFFF` | | Text on `cta` (5.10 : 1) |
+| `--attention` / `--attention-border` *(ext)* | `#FFF4E6` / `#FFC078` | `bg-attention`, `border-attention-border` | "Action needed" chips and banners (text in `cta`) |
+| `--success-subtle` / `--success-ink` *(ext)* | `#D9F4EB` / `#047857` | | Success notices and chips, "In stock" |
+| `--warning-subtle` / `--warning-ink` *(ext)* | `#FCF3D7` / `#854D0E` | | Warnings, "Low stock", pending; the offline banner |
+| `--danger-subtle` / `--danger-ink` *(ext)* | `#FCE1E1` / `#B91C1C` | | Error notices, rejected, suspended, "Out of stock" |
+| `--info-subtle` / `--info-ink` *(ext)* | `#D6DDFD` / `#1D4ED8` | | Read-only notices and tips |
+| `--brand-navy` *(ext)* | `#14213D` | `bg-brand-navy` | The auth brand panel only |
+| `--brand-orange` / `--brand-orange-on-dark` *(ext)* | `#E8590C` / `#FD7E14` | | Decoration only (the auth panel's rule and glow, landing illustrations); `-on-dark` for small icons on the navy panel. Never small text on white (3.58 : 1) |
+| `--nav` / `--nav-foreground` *(ext)* | `#FFFFFF` / `#1C1917` | | The app bar (light since D101) |
+| `--nav-muted` / `--nav-hover` *(ext)* | `#44403C` / `#EAEEF3` | `hover:bg-nav-hover` | Secondary text on the bar; nav and sidebar hover |
+| `--role-chip` *(ext)* | `#E4EBF9` | | The role pill's fill (same value as `--brand-blue-subtle`, which the pill uses) |
+| `--sidebar` / `--sidebar-foreground` | `#FFFFFF` / `#1C1917` | | POS and admin sidebar |
+| `--sidebar-accent` / `--sidebar-accent-foreground` | `#BFDBFE` / `#1C1917` | | The current sidebar item (12.31 : 1). Sidebar only |
+| `--sidebar-primary` / `--sidebar-primary-foreground` | `#002CF1` / `#FFFFFF` | | |
+| `--sidebar-border` / `--sidebar-ring` | `#ECECEC` / `#002CF1` | | |
+| `--chart-1` … `--chart-5` | `#1D4ED8`, `#6D28D9`, `#A16207`, `#0E7490`, `#A21CAF` | | Phase inks for charts (intake, inspection, estimate, parts, repair & QC), each ≥ 3 : 1 on white |
+
+**AA corrections against GarageBox's raw values** (WCAG 2.x ratios, computed):
+
+| Token | GarageBox | BayFlow | Why |
+|---|---|---|---|
+| `--text-helper` | `#78716C` | `#736C67` | Theirs is 4.46 on the canvas and 4.27 on paper; ours is 4.79 and 4.59 (5.16 on white) |
+| `--input` (control edges) | `#D9D9D9` | `#8B857F` | Theirs is 1.41 : 1 against white; ours is 3.65 (3.39 on the canvas), meeting WCAG 1.4.11 |
+| `--destructive` (error text) | `#DC2626` | `#DA2626` | Theirs is 4.49 on the canvas; ours is 4.55 (4.90 on white). Solid danger fills keep `#DC2626` (white label 4.83) |
+| `--brand-green` (fills, green text) | `#10B981` | `#047857` | White on theirs is 2.54; on ours 5.48. `#10B981` stays as `--brand-green-accent`, decoration only |
 
 ### 3.3 Booking status colors — all 17 `BookingStatus` values
 
 - **Hue = phase**, so a list can be scanned by phase. The icon and label tell statuses within a phase apart.
 - Customer labels, staff labels and phases are **exactly** those in glossary §3 (phases are the `StatusPhase` values, glossary §5).
-- Every badge is subtle: tinted background, dark text and icon, and a 1 px border.
+- Every chip is soft (GarageBox's style): the phase hue at about 16 % on white as the fill, a 1 px border (the hue at about 32 %), and the dark ink for text and icon. A 24 px pill with a 12 px medium label (`sm`) or 28 px with 14 px (`md`).
+- The same hue and icon for every role: staff and customers see different *words*, never different colours.
+- Brand blue is never a status colour: intake uses its own blue-violet tint (`#D6DDFD` / `#1D4ED8`), not the button blue.
+- The phase tokens (`bg-status-<phase>-bg`, `text-status-<phase>-fg`, `border-status-<phase>-border`) may also tint an icon tile or a timeline node of that phase (the notification panel does), and `--chart-1` … `--chart-5` are the phase inks for charts (§3.2).
 
-| Phase (`StatusPhase`, hue) | Background | Text and icon | Border | Text contrast |
-|---|---|---|---|---|
-| `INTAKE` Intake (blue) | `#E7F5FF` | `#1864AB` | `#A5D8FF` | 5.48 : 1 |
-| `INSPECTION` Inspection (violet) | `#F3F0FF` | `#5F3DC4` | `#D0BFFF` | 6.34 : 1 |
-| `ESTIMATE` Estimate (yellow) | `#FFF9DB` | `#995400` | `#FFE066` | 5.47 : 1 |
-| `ESTIMATE` — `ESTIMATE_REJECTED` only (red override) | `#FFF5F5` | `#C92A2A` | `#FFC9C9` | 5.10 : 1 |
-| `PARTS` Parts (cyan) | `#E3FAFC` | `#0B7285` | `#99E9F2` | 5.15 : 1 |
-| `REPAIR_QC` Repair & QC (grape) | `#F8F0FC` | `#862E9C` | `#EEBEFA` | 6.54 : 1 |
-| `HANDOVER` Hand-over (green) | `#EBFBEE` | `#247534` | `#B2F2BB` | 5.33 : 1 |
-| `CLOSED` Closed (gray) | `#F1F3F5` | `#495057` | `#CED4DA` | 7.35 : 1 |
+| Phase (`StatusPhase`, hue) | Badge variant | Background | Text and icon | Border | Text contrast |
+|---|---|---|---|---|---|
+| `INTAKE` Intake (blue-violet) | `intake` | `#D6DDFD` | `#1D4ED8` | `#ADBBFA` | 4.98 : 1 |
+| `INSPECTION` Inspection (violet) | `inspection` | `#ECE5FE` | `#6D28D9` | `#DACBFC` | 5.82 : 1 |
+| `ESTIMATE` Estimate (yellow) | `estimate` | `#FCF3D7` | `#854D0E` | `#F8E7B0` | 6.18 : 1 |
+| `ESTIMATE` — `ESTIMATE_REJECTED` only (red override) | `estimate-rejected` | `#FCE1E1` | `#B91C1C` | `#FAC3C3` | 5.24 : 1 |
+| `PARTS` Parts (cyan) | `parts` | `#D7F3F8` | `#0E7490` | `#AFE8F1` | 4.61 : 1 |
+| `REPAIR_QC` Repair & QC (fuchsia) | `repair-qc` | `#F9E1FC` | `#A21CAF` | `#F3C4FA` | 5.18 : 1 |
+| `HANDOVER` Hand-over (green) | `handover` | `#D9F4EB` | `#047857` | `#B3E9D7` | 4.72 : 1 |
+| `CLOSED` Closed (stone) | `closed` | `#E9E8E7` | `#44403C` | `#D6D3D1` | 8.39 : 1 |
 
 | # | `BookingStatus` | Phase | Staff label (glossary §3) | Customer label (glossary §3) | Icon (lucide-react) |
 |---|---|---|---|---|---|
@@ -722,142 +753,172 @@ These map to shadcn's variable names (shadcn theming docs) plus BayFlow extensio
 
 **Implementation (built).**
 - `src/lib/status.ts` exports `BOOKING_STATUSES` (glossary §3 order), `BOOKING_STATUS_META` (`satisfies Record<BookingStatus, BookingStatusMeta>`: staff label, customer label, phase, terminal), `STATUS_PHASES`, `STATUS_PHASE_LABELS`, `CANCELLABLE_STATUSES` and the helpers `statusLabel`, `statusPhase`, `statusesInPhase`. TypeScript fails the build if a status is missing. Until the exported OpenAPI document contains `BookingStatus`, the union is declared in that file; a TODO there asserts it equals `components['schemas']['BookingStatus']` once it does (D50, D76).
-- `StatusBadge` (`src/components/status-badge.tsx`) takes `status`, `audience: 'staff' | 'customer'` and `size`. It maps each status to its icon (table above) and its phase to a badge variant (`ESTIMATE_REJECTED` gets the red override), renders `data-status="<VALUE>"` for Playwright, and an `sr-only` prefix "Status:".
+- `StatusBadge` (`src/components/status-badge.tsx`) takes `status`, `audience: 'staff' | 'customer'` and `size` (`sm`, the default, 24 px in lists and tables; `md`, 28 px beside a page title). It maps each status to its icon (table above) and its phase to a badge variant (`ESTIMATE_REJECTED` gets the red override), renders `data-status="<VALUE>"` for Playwright, and an `sr-only` prefix "Status:". Screens always render a booking status with it, never with a hand-made chip.
 
 ### 3.4 Other badge vocabularies
 
-| Vocabulary | Values → color (from §3.3 hues) |
+Other states use the soft `Badge` variants, which follow the status chips' recipe (fill, 1 px border, dark ink): `success` (green: the hand-over hue), `warning` (yellow: the estimate hue), `info` (blue: the intake hue), `neutral` (stone: the closed hue), `destructive` (red: the rejected hue), `brand` (brand-blue tint and ink) and `attention`. `secondary` is a plain stone chip.
+
+| Vocabulary | Values → `Badge` variant |
 |---|---|
-| Stock (D45): the API's `stock_state` on `PartRead` and `PartStockRef` (spec 03 §3.5; never recomputed by the UI) | `OUT` → **Out** (red): `available = on_hand − reserved` is 0. `LOW` → **Low** (yellow): `0 < available ≤ reorder_level`. `OK` → **In stock** (green). "Out" wins over "Low". |
-| `EstimateStatus` | `DRAFT` Draft (gray) · `SUBMITTED` Submitted (blue) · `SENT` Sent to customer (yellow) · `APPROVED` Approved (green) · `REJECTED` Rejected (red) · `SUPERSEDED` Superseded (gray) |
-| `PurchaseOrderStatus` | `ORDERED` Ordered (blue) · `PARTIALLY_RECEIVED` Partially received (yellow) · `RECEIVED` Received (green) |
-| `QcIssueStatus` / `QcResult` | `OPEN` (red) · `RESOLVED` (green) / `PASS` (green) · `FAIL` (red) |
-| Membership | Active (green) · Inactive (gray). Role chips are neutral (`secondary`) with the §2.1 display name, or the §2.3 role tag in upper case (`SA`, `TECH`, …) when width is tight. |
-| Action needed | `attention` background, `cta` text, `attention-border`, plus a `CircleAlert` icon (4.69 : 1) |
-| P2: `CallStatus` / `TaskStatus` / `Sentiment` | `RINGING` blue (pulse; static under reduced motion) · `CONNECTED` green · `ENDED` gray · `MISSED` red / `OPEN` yellow · `DONE` green / `POSITIVE` green · `NEUTRAL` gray · `NEGATIVE` red |
+| Stock (D45): the API's `stock_state` on `PartRead` and `PartStockRef` (spec 03 §3.5; never recomputed by the UI) | `OUT` → **Out** (`destructive`): `available = on_hand − reserved` is 0. `LOW` → **Low** (`warning`): `0 < available ≤ reorder_level`. `OK` → **In stock** (`success`). "Out" wins over "Low". |
+| `EstimateStatus` | `DRAFT` Draft (`neutral`) · `SUBMITTED` Submitted (`info`) · `SENT` Sent to customer (`warning`) · `APPROVED` Approved (`success`) · `REJECTED` Rejected (`destructive`) · `SUPERSEDED` Superseded (`neutral`) |
+| `PurchaseOrderStatus` | `ORDERED` Ordered (`info`) · `PARTIALLY_RECEIVED` Partially received (`warning`) · `RECEIVED` Received (`success`) |
+| `QcIssueStatus` / `QcResult` | `OPEN` (`destructive`) · `RESOLVED` (`success`) / `PASS` (`success`) · `FAIL` (`destructive`) |
+| Membership | Active (`success`) · Inactive (`neutral`). Role names are `brand` chips (blue ink on the blue tint, 6.67 : 1) with the glossary §2.1 display name. |
+| Shop (platform admin, D96) | Suspended (`destructive`) · Unlisted (`neutral`) |
+| Estimate line type | Labour (`neutral`) · Part (`info`) |
+| Counts | `secondary` with `tabular-nums` |
+| Action needed | `attention`: the `attention` fill, `cta` ink (4.69 : 1), `attention-border`, plus a `CircleAlert` icon. Only in the viewer's own queue. |
+| P2: `CallStatus` / `TaskStatus` / `Sentiment` | `RINGING` `info` (pulse; static under reduced motion) · `CONNECTED` `success` · `ENDED` `neutral` · `MISSED` `destructive` / `OPEN` `warning` · `DONE` `success` / `POSITIVE` `success` · `NEUTRAL` `neutral` · `NEGATIVE` `destructive` |
 
 ### 3.5 Tailwind CSS 4 setup (`src/app/globals.css`)
 
 Configuration lives in CSS. There is no `tailwind.config.ts` and no PostCSS config: `next.config.ts` registers the `@tailwindcss/turbopack` loader for `*.css` (`turbopack.rules`, the create-next-app 16.4 default), so Turbopack compiles Tailwind in dev and build. Theme variables defined with `@theme` generate utilities and are emitted as CSS variables on `:root`. `@theme inline` is used for values that reference other variables (verified in the Tailwind docs).
 
 ```css
-@import "tailwindcss";
-@import "tw-animate-css";          /* shadcn: replaces tailwindcss-animate */
-@import "shadcn/tailwind.css";     /* shipped by the shadcn package (keyframes + data-* variants); added by init */
+@import 'tailwindcss';
+@import 'tw-animate-css';          /* shadcn: replaces tailwindcss-animate */
+@import 'shadcn/tailwind.css';     /* shipped by the shadcn package (keyframes + data-* variants); added by init */
 
 /* Class-based dark variant: next-themes adds .dark to <html> (§3.11, D93), so `dark:` follows the
-   user's choice, not only the OS. Tailwind's default dark variant is prefers-color-scheme. */
+   chosen theme, not only the OS. Tailwind's default dark variant is prefers-color-scheme. */
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
   color-scheme: light;
-  --radius: 0.5rem;
-  --background: #FFFFFF;  --foreground: #212529;
-  --card: #FFFFFF;        --card-foreground: #212529;
-  --popover: #FFFFFF;     --popover-foreground: #212529;
-  --primary: #14213D;     --primary-foreground: #FFFFFF;  --primary-hover: #1F3157;
-  --secondary: #F1F3F5;   --secondary-foreground: #14213D;
-  --muted: #F8F9FA;       --muted-foreground: #495057;
-  --accent: #EEF1F7;      --accent-foreground: #14213D;
-  --destructive: #C92A2A; --destructive-foreground: #FFFFFF;
-  --border: #DEE2E6;      --input: #868E96;  --ring: #E8590C;
-  --cta: #BD490A;         --cta-foreground: #FFFFFF;  --cta-hover: #A53F08;
-  --brand-navy: #14213D;  --brand-orange: #E8590C;  --brand-orange-on-dark: #FD7E14;
-  --attention: #FFF4E6;   --attention-border: #FFC078;
-  /* …success/warning/danger/info, nav, sidebar, chart and status-<phase>-{bg,fg,border} exactly as §3.2–3.3 */
+  --radius: 0.75rem;                       /* the base (rounded-lg, 12px); the scale is explicit below */
+  --canvas: #f2f7fe;  --layer: #edf2fa;  --text-helper: #736c67;  --border-strong: #8b857f;
+  --background: #ffffff;  --foreground: #1c1917;
+  --primary: #002cf1;  --primary-foreground: #ffffff;  --primary-hover: #1d4ed8;
+  --secondary: #f4f4f3;  --muted: #fafaf9;  --muted-foreground: #44403c;  --accent: #eaeef3;
+  --destructive: #da2626;  --destructive-strong: #dc2626;
+  --border: #d9d9d9;  --input: #8b857f;  --ring: #002cf1;
+  --shadow-card: 0 1px 2px 0 rgb(120 113 108 / 0.16);   /* …dropdown, dialog and primary glow (§3.8) */
+  /* …brand, attention, success/warning/danger/info, nav, sidebar, chart and
+     status-<phase>-{bg,fg,border} exactly as §3.2–§3.3 */
 }
+.dark { color-scheme: dark; /* …a dark value for every token above (§3.11) */ }
 
 @theme inline {
-  --font-sans: var(--font-inter);
-  --font-mono: var(--font-jetbrains-mono);
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --font-sans: var(--font-fira-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-fira-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+  --font-handwriting: var(--font-edu-nsw-act), cursive;
   --color-primary: var(--primary);
-  --color-primary-hover: var(--primary-hover);
-  --color-cta: var(--cta);
-  --color-cta-foreground: var(--cta-foreground);
-  --color-ring: var(--ring);
-  --color-status-intake-bg: var(--status-intake-bg);   /* …one trio per phase */
-  /* …one --color-* line per token above (shadcn pattern: define under :root, expose with @theme inline) */
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
+  --color-helper: var(--text-helper);
+  /* …one --color-* line per token (shadcn pattern: define under :root, expose with @theme inline) */
+  --shadow-dropdown: var(--shadow-dropdown);
+  --shadow-dialog: var(--shadow-dialog);
+  --shadow-glow: var(--shadow-primary);
+}
+
+@theme static {
+  --radius-sm: 0.375rem;  --radius-md: 0.5rem;  --radius-lg: 0.75rem;  --radius-xl: 1rem;
+  --radius-2xl: 1.25rem;  --radius-3xl: 1.5rem;  --radius-4xl: 2rem;
+  --shadow-xs: 0 1px 2px 0 rgb(120 113 108 / 0.16);   /* …2xs to 2xl in warm stone (§3.8) */
 }
 
 @layer base {
-  * { @apply border-border outline-ring; }   /* shadcn ships outline-ring/50; we use full opacity (§5.2) */
-  body { @apply bg-background text-foreground; }
+  * { @apply border-border outline-ring; }   /* full-opacity brand-blue outline colour (§5.2) */
+  html { scroll-padding-top: 5rem; }          /* focused content clears the sticky bars (§5.2) */
+  body { @apply bg-background font-sans text-foreground antialiased; }
+  h1, h2 { font-weight: 800; }  h3, h4, h5 { font-weight: 700; }  h6 { font-weight: 600; }
 }
 ```
 
-**Values are hex, not shadcn's default OKLCH,** so they match the brief exactly. Tailwind 4 accepts any CSS color. The default breakpoints are kept: `sm` 40rem (640), `md` 48rem (768), `lg` 64rem (1024), `xl` 80rem (1280), `2xl` 96rem (1536).
+**Values are hex, not shadcn's default OKLCH,** and `globals.css` is the only file that writes one. Tailwind 4 accepts any CSS colour. The default breakpoints are kept: `sm` 40rem (640), `md` 48rem (768), `lg` 64rem (1024), `xl` 80rem (1280), `2xl` 96rem (1536).
+
+**Also in `globals.css`:** `.marketing` (the landing, its header and footer, the booking flow) pins `--radius` to 12 px; `bg-hero` (a hero band: white, grid paper fading out, a soft brand-blue glow), `bg-grid-pattern` and `.reviews-marquee` (the landing's testimonials loop) serve the hero and landing; `.font-handwriting` sets the accent font upright at 700 (§3.6); the Carbon-era type utilities (`type-label-01` … `type-heading-05`) and the `carbon-focus` helper still compile, restyled to the current type and focus, but new markup does not use them.
+
+**Theme guard.** `src/app/theme-tokens.test.ts` fails any screen file (`.tsx` outside `components/ui`) that uses a hex colour class, `bg-white` or a grey palette step (`gray`, `slate`, `neutral`, `zinc`, `stone`). Raw hues (`bg-blue-50`, `text-emerald-600`, …) are banned by DESIGN.md §7 but not by the test.
 
 ### 3.6 Typography
 
-**Fonts:**
-- **Inter** (variable) for all UI text: neutral grotesque close to the brief's sans, excellent at 12–14 px, and it has tabular figures.
-- **JetBrains Mono** for references, SKUs and PO numbers.
+**Fonts (D101):**
+- **Fira Sans** for all text: body, labels and headings (`font-sans`; `font-heading` is the same family, kept so older code compiles). The family has no variable axis, so the weights in use are loaded one by one: 400 (body), 500 and 600 (labels, card titles), 700 (sub-headings), 800 (page and hero titles), 900 (the large logo wordmark).
+- **Edu NSW ACT Foundation** for the handwritten accent word only (`font-handwriting`, through `<Handwritten>` from `components/booking/booking-hero.tsx`): at most one word per page, in a hero or greeting, never in data views (tables, forms, detail pages). `.font-handwriting` sets it upright at 700 (its variable `wght` axis runs 400–700); the family has no italic, so `font-synthesis-style: none` stops a stray `italic` class from faking a slant.
+- **JetBrains Mono** for booking references, plates, VINs, SKUs, PO numbers and codes (`font-mono`).
 
-Both load through `next/font/google`, which self-hosts them so the browser makes no request to Google: `Inter({ subsets: ['latin'], variable: '--font-inter' })` and `JetBrains_Mono({ subsets: ['latin'], variable: '--font-jetbrains-mono' })`. The variables are set on `<html>` and mapped in `@theme inline`.
+All three are SIL Open Font License fonts and load through `next/font/google`, which self-hosts them at build time, so the browser makes no request to Google: `Fira_Sans({ subsets: ['latin'], weight: ['400', '500', '600', '700', '800', '900'], variable: '--font-fira-sans', display: 'swap' })`, `Edu_NSW_ACT_Foundation({ subsets: ['latin'], variable: '--font-edu-nsw-act', display: 'swap' })` and `JetBrains_Mono({ subsets: ['latin'], variable: '--font-jetbrains-mono', display: 'swap' })`. The variables are set on `<html>` and mapped in `@theme inline` (§3.5).
 
-| Role | Classes | Size / line height | Weight |
+Headings get Fira Sans automatically, at 800 (`h1`, `h2`), 700 (`h3`–`h5`) and 600 (`h6`); a weight class on the element wins. The portal and the POS share one scale. No letter-spacing on body text.
+
+| Role | Classes | Size | Weight |
 |---|---|---|---|
-| Hero display | `text-4xl md:text-5xl tracking-tight` | 36/40 → 48/48 | 700 |
-| Portal page title (h1) | `text-3xl` | 30/36 | 700 |
-| POS page title (h1) | `text-2xl` | 24/32 | 600 |
-| Section title (h2) | `text-xl` | 20/28 | 600 |
-| Card title (h3) | `text-lg` | 18/28 | 600 |
-| Portal body; all inputs on mobile | `text-base` | 16/24 | 400. 16 px inputs stop iOS from zooming; shadcn `Input` uses `text-base md:text-sm`. |
-| POS body, table cells, buttons, labels | `text-sm` | 14/20 | 400 (body), 500 (labels and buttons) |
-| Captions, badges, meta | `text-xs` | 12/16 | 500 |
-| References, SKU, PO | `font-mono text-sm tracking-wide` | 14/20 | 500 |
-| Money and quantities | `tabular-nums`, right-aligned in tables | inherit | 500. Grand total: `text-xl font-semibold`. |
+| Hero or greeting title (one per page at most) | `text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight` | 30 → 36 → 48 px | 800. The landing's own hero goes up to 68 px. |
+| Page title (h1, `PageHeader`) | `text-3xl sm:text-4xl leading-tight font-extrabold tracking-tight` | 30 → 36 px | 800 |
+| Section title (h2) | `text-xl font-bold` (big sections) or `text-lg font-semibold` (card titles; `CardTitle` does this) | 20 / 18 px | 700 / 600 |
+| Sub-section (h3) | `text-base font-semibold` | 16 px | 600 |
+| Dialog and sheet title | `text-xl font-bold` (built into the primitives) | 20 px | 700 |
+| Body for reading (descriptions, notes) | `text-base text-muted-foreground` | 16 px | 400 |
+| Body for UI (tables, lists), buttons | `text-sm` | 14 px | 400 (body), 500 (buttons) |
+| Label | `text-sm font-medium` (`Label`, `FieldLabel` do this) | 14 px | 500 |
+| Small or meta text — the minimum | `text-xs text-helper` | 12 px | 400–500 |
+| Eyebrow | `text-sm font-semibold text-brand-blue-ink` | 14 px | 600 |
+| KPI value | `text-3xl font-extrabold tracking-tight tabular-nums` | 30 px | 800 |
+| References, plates, SKU, PO | `font-mono` (a linked one also `font-semibold text-brand-blue-ink`) | inherit | 400–600 |
+| Money and quantities | `formatPKR(…)` + `tabular-nums`, right-aligned in tables | inherit | 500. Grand total `text-lg font-bold` in the totals well. |
+| Inputs | `text-base sm:text-sm` (built into the field primitives) | 16 px below 640 px, then 14 px | 400. 16 px stops iOS from zooming on focus. |
 
 **Typography rules:**
-- One `h1` per page.
+- One `h1` per page, sentence case.
 - Headings never skip levels.
 - Line length is capped at about 70 characters for prose (`max-w-prose`).
 - Truncated text gets a `Tooltip` showing the full value and keeps it in `title`.
+- Never `text-[10px]` or `text-[11px]`, never uppercase labels with wide tracking (`uppercase tracking-wider`, `tracking-[0.32px]`), and never `font-bold` on 12 px text to make it "visible": use 12 px `text-helper` or larger.
 
 ### 3.7 Spacing and layout
 
 | Token | Value | Use |
 |---|---|---|
 | Base unit | 4 px (Tailwind `--spacing: 0.25rem`) | All spacing uses multiples of it. |
-| Page gutter | 16 px (`px-4`) → 24 px (`sm:px-6`) → 32 px (`lg:px-8`) | All layouts |
-| Section gap | 32 px (`space-y-8`) in the portal; 24 px (`space-y-6`) in the POS | |
-| Card padding | 16 px (`p-4`) → 24 px (`sm:p-6`) | |
-| Form spacing | 8 px between label and control (`gap-2`); 16 px between fields (`gap-4`); 24 px between groups (`gap-6`) | |
-| Control height | 36 px (`h-9`) by default in the POS. 40 px (`h-10`) in the portal and on tablet screens (Technician, QC). 44 px (`h-11`) for mobile primary buttons and sticky-bar buttons. 44 px for checklist toggles. | All targets are ≥ 24 × 24 px (WCAG 2.5.8). |
-| Content width | Portal `max-w-6xl` (1152 px). Wizard `max-w-3xl`. Forms `max-w-2xl`. Auth card `max-w-md`. POS fluid up to `max-w-screen-2xl`. | |
-| POS sidebar | 256 px (`w-64`), collapsing to a 56 px icon rail | shadcn `Sidebar` |
-| Z-order | Sticky header 40. Sticky action bar 30. Radix portals (dialogs, popovers, toasts) 50. P2 incoming-call panel 50: non-modal, so the page under it stays usable (D78). | |
+| Page gutter | 16 px (`px-4`) → 24 px (`sm:px-6`) → 32 px (`lg:px-8`) | Set by the shells (§4.1): pages render content only — no outer padding, no background, no `<main>` (except the three POS pages outside a shop, §4.1) |
+| Page padding (vertical) | 24 → 32 px (`py-6 lg:py-8`) in the POS and the admin console; 32 → 40 px (`py-8 lg:py-10`) in the customer area | Set by the shells |
+| Section gap | 24 px (`space-y-6`); 32 px (`space-y-8`) on big pages and between `FormSection`s | |
+| Grid gap | 16 px (`gap-4`) for grids of cards; 24 → 32 px (`gap-6 xl:gap-8`) for two-column layouts | |
+| Card padding | 24 px (20 px below `sm`; 16 px for `Card size="sm"`); rows inside cards `px-5 py-3.5` | `Card` sets it: never `p-4`/`p-5` on `CardHeader` or `CardContent` |
+| Form spacing | 8 px between label and control (`Field`); 20 px between fields (`FieldGroup`); 24 px between groups (`FieldSet`) | shadcn `Field` components (§2.10) |
+| Control height | Buttons 42 px (`default`), 36 px (`sm`), 48 px (`lg`), 28 px (`xs`); icon buttons 40 px (`icon`), 32, 24 and 48 px (`icon-sm`, `icon-xs`, `icon-lg`). Fields 42 px (selects also 36 px with `size="sm"`); segmented tabs 42 px; filter pills 36 px (32 px `sm`) | Technician and QC screens use `lg` (48 px) job actions and 48 px (`h-12`) inspection toggles. Every target is ≥ 24 × 24 px (WCAG 2.5.8, §5.5). |
+| Content width | POS and admin `max-w-7xl` (1280 px), set by the shells; the three POS pages outside a shop set it on their own `<main>`. Customer area `max-w-5xl` (1024 px). Landing and public header `max-w-7xl`; shop pages and the booking wizard `max-w-6xl` (1152 px). Create pages such as `/pos/shops/new`: one centred `max-w-2xl` column. Auth form column 460 px. | |
+| App bar | 64 px (`h-16`), sticky; the public header is 80 px (`h-20`) | §4.1 |
+| Sidebar | 256 px (`w-64`), collapsing to a 64 px icon rail; a 288 px sheet below `md` | shadcn `Sidebar` (§4.1) |
+| Detail pages | Main column plus a 360 px aside from `lg`, the aside sticky 96 px from the top; on phones the aside comes first | `DetailLayout` (§4.14) |
+| Z-order | Sidebar 10. Sticky action bar 20. App bar 40. Public header and Radix portals (dialogs, sheets, menus, popovers, tooltips) 50. Offline banner 70. Toasts above everything (sonner's own stacking). P2 incoming-call panel 50: non-modal, so the page under it stays usable (D78). | |
 
 ### 3.8 Radius and elevation
 
-**Radius.** `--radius` is 0.5 rem (8 px). shadcn's multipliers derive the rest:
+**Radius.** An explicit scale (`@theme static`, §3.5) replaces shadcn's multipliers; `--radius` (0.75 rem, 12 px) is only the base that shadcn internals read. Nothing is square except the inside of a table.
 
-| Token | Size | Used on |
+| Utility | Size | Used on |
 |---|---|---|
-| `sm` | ≈ 4.8 px | Small inner elements |
-| `md` | ≈ 6.4 px | Buttons, inputs |
-| `lg` | 8 px | |
-| `xl` | ≈ 11.2 px | Cards, dialogs, sheets |
-| `rounded-full` | — | Badges, chips, avatars |
+| `rounded-sm` | 6 px | Tiny marks (`kbd`, swatches) |
+| `rounded-md` | 8 px | Menu and select items, tooltips, plate and SKU tags |
+| `rounded-lg` | 12 px | Inputs, selects, textareas; menus and select lists; skeleton lines |
+| `rounded-xl` | 16 px | Alerts, popovers, sidebar items, icon tiles (36–40 px) |
+| `rounded-2xl` | 20 px | Cards, table cards, KPI cards, list rows that are cards, toasts |
+| `rounded-3xl` | 24 px | Dialogs, the open edge of sheets, hero bands, empty states |
+| `rounded-4xl` | 32 px | In the scale; not used by the primitives |
+| `rounded-full` | pill | Buttons, chips and badges, toggles and filter pills, segmented tabs, the search field, avatars. Never on boxes that hold paragraphs. |
 
-| Level | Token | Used for |
+**Elevation.** GarageBox's warm stone shadows (`#78716C` at 16 %). Cards are flat apart from the hairline `shadow-xs`; only floating surfaces cast real shadows, and big shadows never stack on cards.
+
+| Utility | Value | Used for |
 |---|---|---|
-| 0 | none + `border` | Cards, tables, panels (default) |
-| 1 | `shadow-xs` | Inputs and buttons (shadcn default) |
-| 2 | `shadow-sm` | Shop-card hover, sticky action bar (plus a top border) |
-| 3 | `shadow-md` | Popovers, dropdowns, notification panel |
-| 4 | `shadow-lg` | Dialogs, sheets, the P2 incoming-call panel |
+| `shadow-xs` | `0 1px 2px 0 rgb(120 113 108 / 0.16)` | Cards, fields, outline buttons (the "card" shadow) |
+| `shadow-sm` | `0 1px 3px 0` + `0 1px 2px -1px`, both stone at 16 % | Raised pills, the active segmented tab, the switch thumb |
+| `shadow-md` / `shadow-lg` | `0 8px 16px 0` / `0 12px 24px -4px`, stone at 16 % | The hover lift of a clickable card (`shadow-xs` → `hover:shadow-md`) |
+| `shadow-dropdown` (`shadow-float` is its older name) | `0 0 2px 0 rgb(120 113 108 / 0.24), -20px 20px 40px -4px rgb(120 113 108 / 0.24)` | Menus, popovers, select lists (built in) |
+| `shadow-dialog` | `-40px 40px 80px -8px rgb(0 0 0 / 0.24)` | Dialogs and sheets (built in) |
+| `shadow-glow` | `0 8px 16px 0 rgb(0 44 241 / 0.24)` | The primary button's hover (built in) |
+
+The ramp also has `shadow-2xs` (`0 1px 0 0`, stone at 12 %), `shadow-xl` (`0 20px 40px -4px`) and `shadow-2xl` (`0 24px 48px 0`), both stone at 16 %.
 
 ### 3.9 Iconography
 
 - **Library.** lucide-react 1.x only. Every name used in this spec and in spec 10 was checked against the published `lucide-react@1.54.0` typings. The pre-1.0 aliases `CheckCircle2` and `AlertTriangle` **no longer exist**; use `CircleCheckBig` and `TriangleAlert`.
-- **Sizes.** 16 px (`size-4`) inline and in buttons. 20 px (`size-5`) in navigation. 24 px (`size-6`) in section headers. 40 px in empty states. Stroke width is 2 (the default).
+- **Sizes.** 16 px (`size-4`) inline, in buttons (they size icon children themselves), menus and chips (14 px in 24 px chips). 18 px in sidebar items and KPI tiles. 20 px (`size-5`) for the bar's bell. 24 px in the 48 px empty-state tile. Stroke width is 2 (the default).
+- **Colour.** Icons take the text colour of their context; tinted icon tiles use a tint and its ink (`bg-brand-blue-subtle text-brand-blue-ink`, the semantic subtle/ink pairs, or a phase's tokens). Menu icons are muted automatically.
 - **Accessibility.** Decorative icons get `aria-hidden`. Icon-only buttons need an `aria-label` and a `Tooltip`.
 - **Fixed meanings:**
 
@@ -885,34 +946,37 @@ Both load through `next/font/google`, which self-hosts them so the browser makes
 
 | Motion | Rule |
 |---|---|
-| Hover / press | 150 ms ease-out |
-| Dialogs and sheets | 200 ms, using the shadcn `tw-animate-css` classes |
+| Hover / press | 150 ms ease-out colour transitions (`transition-colors duration-150`); a pressed button scales to 98 %; a clickable card lifts from `shadow-xs` to `shadow-md` |
+| Overlays | Using the shadcn `tw-animate-css` classes: the scrim fades in over 200 ms; dialogs fade and zoom from 95 % in 150 ms; sheets slide in over 200 ms; menus and popovers fade, zoom and slide in over 100 ms |
 | Live status change | On realtime changes, the new timeline entry and the badge get a 1.5 s `attention` background fade, so the change is visible without moving the layout. |
-| Reduced motion | `prefers-reduced-motion` disables transforms, the fade and the ringing pulse (`motion-reduce:` variants). |
-| Never | No parallax and no auto-playing media. |
+| Reduced motion | `prefers-reduced-motion` disables transforms, the fade, the ringing pulse and the landing's testimonials marquee (`motion-reduce:` variants and a media query). |
+| Never | Nothing bounces. Nothing loops except the landing's testimonials marquee (it pauses on hover). No parallax and no auto-playing media. |
+
+The easing curves (`ease-productive`, `ease-entrance`, `ease-exit`) and durations 70–240 ms (`--duration-fast-01` … `--duration-moderate-02`) from the Carbon period stay available in `globals.css`.
 
 ### 3.11 Dark mode decision
 
-**Light and dark themes (D93, amends the earlier light-only decision); the app is forced to light for now.** The owner asked for no theme switcher yet (2026-10-10), so `ThemeProvider` has `forcedTheme="light"` and `ThemeToggle` is not rendered; enabling dark mode later is removing `forcedTheme` and placing the toggle. Everything below is in place and tested.
-- **How:** `next-themes` (class strategy, `attribute="class"`, `defaultTheme="system"`, `disableTransitionOnChange`) puts `.dark` on `<html>` before hydration, so `<html>` carries `suppressHydrationWarning`. `ThemeToggle` (`components/theme/theme-toggle.tsx`, a `DropdownMenu` with Light / Dark / System) sits in the public header, the POS header and the auth pages. The sun/moon icon swaps through `dark:` classes, so the trigger renders identically on server and client.
-- **Tokens:** every colour token has a light value in `:root` (unchanged from §3.2) and a dark value in `.dark` — a navy-black Carbon g100 version of the same palette: canvas `#0A0F1C`, layer `#111A2D`, foreground `#E6EAF2`, primary `#DBE3F7` on navy text, brand blue fill `#2A5CFF` with ink `#8AA8FF`, status hues as light inks on tinted dark fills. `color-scheme: dark` makes native controls and scrollbars follow.
-- **Screens use tokens only.** Neutral steps map to `foreground`, `muted-foreground`, `helper`, `subtle-foreground`, `card`, `muted`, `secondary`, `border`, `border-faint` and `border-medium`; the Carbon screens' blue and green map to `brand-blue` / `brand-blue-ink` / `brand-blue-hover` / `brand-blue-subtle` / `brand-green` / `brand-green-hover`; chromatic palette classes keep their light class plus an explicit `dark:` counterpart. Surfaces that are dark in both themes (the POS header, the auth brand panel) keep their fixed colours.
-- **Danger fills** use `--destructive-strong` (white label stays AA); `--destructive` lightens to `#FF6B6B` in dark for text.
-- **Toasts** follow the resolved theme (`sonner.tsx` reads `useTheme().resolvedTheme`).
+**Light and dark themes (D93, amends the earlier light-only decision); the app is forced to light for now.** The owner asked for no theme switcher yet (2026-10-10), so `ThemeProvider` has `forcedTheme="light"` and `ThemeToggle` is not rendered; enabling dark mode later is removing `forcedTheme` and placing the toggle. D101 replaced the dark values too, so they stay coherent with the light ones while forced off.
+- **How:** `next-themes` with the class strategy (`attribute="class"`, `forcedTheme="light"`, `enableSystem={false}`, `disableTransitionOnChange`) puts the theme class on `<html>` before hydration, so `<html>` carries `suppressHydrationWarning`. `ThemeToggle` (`components/theme/theme-toggle.tsx`, a `DropdownMenu` with Light / Dark / System) exists but is not placed anywhere. Its sun/moon icon swaps through `dark:` classes, so the trigger renders identically on server and client.
+- **Tokens:** every colour token has a light value in `:root` (§3.2) and a dark value in `.dark` — a stone-black version of the same palette: canvas `#0C0A09` (darker than the cards, `#1C1917`), foreground `#F5F5F4`, brand-blue fill `#2A5CFF` (white label 5.16 : 1) with the ink `#93C5FD`, green `#34D399` and orange `#FD7E14` fills with a dark label, status hues as light inks on tinted dark fills. Every text pair stays AA. `color-scheme: dark` makes native controls and scrollbars follow.
+- **Screens use tokens only** (the theme guard, §3.5). Chromatic palette classes, where a marketing screen still has them, need an explicit `dark:` counterpart. The only surface that is dark in both themes is the auth brand panel, which puts `.dark` on itself to use the dark tokens; the app bar is light since D101.
+- **Danger fills** use `--destructive-strong` (`#DC2626` in both themes, white label 4.83 : 1); `--destructive` lightens to `#F87171` in dark for text.
+- **Toasts** follow the theme (`sonner.tsx` passes `forcedTheme ?? resolvedTheme` from `useTheme()`).
 
 ### 3.12 shadcn/ui setup and component inventory
 
 **Init (done):** `pnpm dlx shadcn@4.21.4 init -t next -b radix -p vega` → `components.json` style `radix-vega`, base color neutral, Lucide icons, aliases `@/components`, `@/lib`, `@/hooks`.
-- shadcn 4.21.4 sets up Tailwind 4 projects through **presets** and no longer offers the `new-york` style there (its style prompt only appears for Tailwind 3 projects; checked in the package source). The **Vega** preset is "Lucide / Inter", which matches this design system (§3.6, §3.9); our own tokens (§3.2–§3.5) replace its neutral palette.
+- shadcn 4.21.4 sets up Tailwind 4 projects through **presets** and no longer offers the `new-york` style there (its style prompt only appears for Tailwind 3 projects; checked in the package source). The **Vega** preset is "Lucide / Inter": we keep its Lucide icons (§3.9) and replace its font (Fira Sans, §3.6) and its neutral palette (our tokens, §3.2–§3.5).
 - shadcn switched its **default base to Base UI in July 2026**. Radix stays fully supported, and the CLI's `-b, --base <base>` option accepts `base`, `radix` or `aria`.
 - We pin **Radix** because the team's existing Next.js app (drive-247 portal) uses Radix-based shadcn. Its `asChild` composition is what most examples and AI tools generate; Base UI renames it to `render`. shadcn's generated `combobox` is built on Base UI's `Combobox` even on the Radix base, so it was **removed** (with `@base-ui/react`) to keep the UI Radix-only (D1); searchable pickers use the classic Radix pattern instead — `Popover` + `Command` (cmdk).
 - shadcn's Radix `toast` is deprecated, so we use `sonner`.
 - Recorded as decision D1.
 
-**One-time edits after `shadcn add` (owned code; all three are applied):**
-1. Replace `ring-ring/50` and `outline-ring/50` with full-opacity `ring-ring` / `outline-ring` (focus contrast, §5.2).
-2. Add the `cta` button variant (`bg-cta text-cta-foreground hover:bg-cta-hover`).
-3. Add badge variants per phase (§3.3), plus the `estimate-rejected` override.
+**Edits after `shadcn add` (owned code; all applied, component APIs unchanged):**
+1. Focus: full-opacity `outline-ring` instead of shadcn's `ring-ring/50` / `outline-ring/50`, always written with `focus-visible:outline-solid` (§5.2).
+2. The D101 look: pill buttons (`default` 42 px, `sm` 36, `lg` 48, `xs` 28; icon 40 / 32 / 24 / 48) with a blue glow on the primary's hover; 42 px white fields with a 12 px radius, a ≥ 3 : 1 edge and a blue focus border and halo; 20 px cards; a 48 px-row table with a tinted header band and no zebra; pill tabs (segmented) and underline tabs (`variant="line"`); 24 px dialogs and sheet edges over a blurred navy scrim; translucent, blurred menus and popovers; soft-fill alerts and badges; circular calendar days.
+3. Badge variants per phase (§3.3) plus the `estimate-rejected` override, and the semantic `success`, `warning`, `info`, `neutral`, `brand` and `attention` variants (§3.4).
+4. The `cta` button variant (`bg-cta text-cta-foreground hover:bg-cta-hover`) still exists so older code compiles; screens don't use it (R7).
 
 | Component | Used for |
 |---|---|
@@ -937,21 +1001,25 @@ Both load through `next/font/google`, which self-hosts them so the browser makes
 
 ### 4.1 App shells
 
+Every shell is light (D101): white bars and sidebars, app content on the `#F2F7FE` canvas, and no navy bars (the auth brand panel is the one navy surface). Pages render content only (§3.7).
+
 | Component | Behaviour |
 |---|---|
-| `PublicHeader` | White bar, 64 px, sticky. Left: logo (links to `/`). Centre (≥ md): "Find a shop" (`/#shops`). Right, when anonymous: "Log in" and "Register your shop" (outline). Right, when logged in: "My bookings", `NotificationBell`, `UserMenu`. Below `md`, the links fold into a `Sheet` menu. |
-| `PosHeader` | Navy (`--nav`), 56 px, sticky. Left: logo (links to `/pos`), `ShopSwitcher`, `RoleChip`. Right: `RealtimeIndicator` (≥ lg), `NotificationBell`, `UserMenu`. Below `lg`, a hamburger opens the sidebar sheet. |
-| `PosSidebar` | shadcn `Sidebar`, light. Shows the role's nav items ([10-screens.md §4](10-screens.md)). The Owner also gets a "Role views (read-only)" group. The active item uses `sidebar-accent` with an orange left bar and `aria-current="page"`. Collapses to an icon rail on `lg`, and becomes a sheet below `lg`. |
-| `ShopSwitcher` | A `DropdownMenu` with a `Command` search once there are 5+ shops. Each row shows the shop name (`shop_name`) and role chip from `GET /api/v1/me` (membership items carry no city, spec 03 Open question 3); the current shop has a check. Footer items: "All shops summary" (P1, owners of ≥ 2 shops) and "Create a new shop" (users holding any `OWNER` membership). Switching shops keeps the current section when the user's role in the target shop allows it, otherwise it opens that role's home. |
-| `RoleChip` | Membership role display name (glossary §2.1) on the navy header (white text on `#303C54`, 11.05 : 1). Shows the role tag (`SA`, `TECH`, …) below `sm`. |
-| `NotificationBell` | Icon button. `aria-label="Notifications, {n} unread"`. Unread badge in `cta` with white text, showing 1–99 or "99+". Opens `NotificationPanel` (§4.10). The count is a live query (§2.7). |
-| `UserMenu` | Name and e-mail. "My bookings" (`/bookings`). "Shop POS" (`/pos`, if the user has memberships). "Log out". The realtime status appears here below `lg`. |
+| `PublicHeader` | The landing page's header, on every public and customer page: white at 95 % with a blur, 80 px, sticky (`z-50`), content `max-w-7xl`. Left: the logo (→ `/`). Centre (≥ `lg`): the marketing menus (Features, Solutions, Company, Resources). Right, signed out: a green "Sign In" pill (`brand-green`, white label 5.48 : 1) → `/login`; signed in: `NotificationBell` and `AccountMenu` ("My bookings" is in the menu). Below `lg` the menus fold into a drawer behind a menu button, which ends with a blue "Book a Demo / Get Started" pill → `/register`. Required but not built yet: a "Find a shop" link to the shop directory (G1); today nothing on `/`, in this header or in the footer links to `/book`. |
+| Customer shell | `(customer)/layout.tsx`: `PublicHeader`, then a `<main>` on the canvas with a `max-w-5xl` column (gutters as §3.7, `py-8 lg:py-10`), then `PublicFooter`. |
+| Auth shell | `(auth)/layout.tsx`: from `lg`, the navy brand panel (`bg-brand-navy` with the `.dark` tokens scoped to it: logo, the tagline "Every hand-off, on the record." over an orange rule, a sample booking's hand-offs) beside a white form column (460 px at most) with "Back to website"; below `lg` the logo heads the form. |
+| `PosHeader` | The POS app bar: white at 90 % over the canvas with a blur, 64 px, sticky (`z-40`), a faint bottom border. Left: the sidebar toggle (a 40 px ghost icon button, on shop pages only), the logo (→ `/pos`; the mark alone below `sm`, plus a "POS" tag from `lg`), a divider (≥ `sm`) and the `ShopSwitcher` pill. Right: the `RoleChip` pill, `NotificationBell` and `AccountMenu`; `RealtimeIndicator` joins them with the P1 realtime client (D88). The platform admin console (spec 19 §5) uses the same bar with a dark "Platform admin" pill (white on `foreground`, 17.49 : 1), its own sidebar and access gate. |
+| `PosSidebar` | shadcn `Sidebar`, white, 256 px, below the bar (`top-16`) with a faint right border; its state lives in the POS layout's `SidebarProvider`, so it survives navigation. Shows the role's nav items ([10-screens.md §4](10-screens.md)) in labelled groups: the Owner gets "Manage" and "Role views (read-only)", every other role "Your work"; group labels are 12 px `text-helper`, sentence case. Items are 40 px, `rounded-xl`, an 18 px icon and a 14 px medium label in `muted-foreground`; hover `#EAEEF3`. The current item has the `#BFDBFE` fill, a semibold dark label (12.31 : 1), a brand-blue icon and `aria-current="page"`. It collapses to a 64 px icon rail (labels become tooltips) from the bar's toggle, ⌘B / Ctrl+B or the rail, and becomes a 288 px `Sheet` below `md` (768 px), with the logo and the shop name on top. |
+| `ShopSwitcher` | In the bar: a 36 px white pill (`border-medium`, `shadow-xs`) with a brand-blue store icon (≥ `sm`), the current shop's name (truncated) and a chevron. Its `DropdownMenu` (288 px) lists "All shops summary" first (P1, owners of ≥ 2 shops), then "Switch shop": each membership's shop (`shop_name` and the role, from `GET /api/v1/me`; membership items carry no city, spec 03 Open question 3) with a check on the current one, and "Create new shop" last (any signed-in user may create a shop, D17). A `Command` search appears once there are 5+ shops. Switching shops keeps the current section when the user's role in the target shop allows it, otherwise it opens that role's home. |
+| `RoleChip` (the role pill) | The current membership's role (glossary §2.1 display name) on the right of the bar: a 36 px pill with the `brand-blue-subtle` fill, `brand-blue-ink` text (6.67 : 1), a faint blue border and a `ShieldCheck` icon. Below `sm` only the icon shows; the name stays in `sr-only` text ("Role: Technician"). In the mock-data build the pill also opens a demo role switcher; that menu goes when the bar reads `GET /api/v1/me`, because D52 forbids any "log in as". |
+| `NotificationBell` | A 40 px ghost icon button with a 20 px `Bell`; `aria-label="Notifications, {n} unread"` ("Notifications" at 0). The unread count sits on its corner in a 20 px orange badge (`bg-cta`, white 12 px semibold label, 5.10 : 1, a 2 px white ring), showing 1–9 or "9+". Opens `NotificationPanel` (§4.10). The count is a live query (§2.7). |
+| `AccountMenu` (the user menu) | The signed-in user's 36 px avatar (initials on brand blue) opens a 256 px menu: name, e-mail and role (in brand-blue ink), then "My bookings" (`/bookings`; not in the admin console), "Workshop POS" (public header and admin console, for users with memberships), "Platform admin" (public header, for platform admins, D94), "Website" (POS and admin console) and "Sign out" (the log-out flow, §2.8). Shared by the public header, the POS bar and the admin console. The realtime status appears here below `lg` once `RealtimeIndicator` ships. |
 | `RealtimeIndicator` | P1 with the realtime client (D88; not rendered before it ships). Dot plus text, polite. `open` → "Live" (green). `connecting` or `waiting` → "Reconnecting…" (amber), with the tooltip "Live updates are reconnecting — this page still refreshes every 15 s." `stopped` happens only after logout or session expiry, so it is not shown. The 15 s polling runs in every state (D14), so the indicator is informational and never blocks the UI. |
-| `SkipLink` | The first focusable element in every layout: "Skip to main content", targeting `#main`. |
+| `SkipLink` | The first focusable element in every layout: "Skip to main content", targeting `#main`. Every shell renders `<main id="main" tabIndex={-1}>` (the shop and admin shells through `SidebarInset`); the POS hub (`/pos`), new shop (`/pos/shops/new`) and all-shops summary (`/pos/summary`) have no sidebar and render their own (DESIGN.md §3 gives the markup). |
 
 ### 4.2 `StatusBadge`
 
-Props: `status`, `audience`, and `size` (`sm` | `md`). It renders the icon, the label and the phase colors from §3.3, plus `data-status`. When the status changes live, it runs the §3.10 fade.
+Props: `status`, `audience`, and `size` (`sm`, 24 px with a 12 px label, in lists and tables; `md`, 28 px with a 14 px label, beside a page title). It renders the icon, the label and the phase colours from §3.3, plus `data-status`. When the status changes live, it runs the §3.10 fade.
 
 ### 4.3 `BookingReference`
 
@@ -990,13 +1058,14 @@ Mono `BF-XXXXXX` with a copy button (`aria-label="Copy booking reference BF-7K2M
 - Header: "Estimate v2", `EstimateStatus` badge, "Sent 16 Oct, 2:15 pm".
 - **Parts** table: name, quantity, unit price, line total. Staff also see SKU.
 - **Labour** table: description, hours, rate, line total.
-- Footer: parts subtotal, labour subtotal, **Grand total** (`text-xl font-semibold tabular-nums`), all formatted with `formatPKR`.
+- Footer: a paper well (`rounded-xl bg-layer p-4`, DESIGN.md §6.5) with the parts subtotal, the labour subtotal and the **Grand total** (`text-lg font-bold tabular-nums`), all formatted with `formatPKR`.
 - Staff get a **version selector** listing every version with its status and author ("v1 Submitted by Imran · v2 Sent by Bilal"). P1: a "Changed since v1" marker on edited lines (for example labour Rs 4,000 → Rs 3,500, worked example step 6).
 - Customers only ever see `SENT`, `APPROVED` and `REJECTED` versions. They never see `DRAFT`, `SUBMITTED` or `SUPERSEDED` (D39; spec 04 §C data-exposure rule).
 
 **`EstimateDecisionBar`** (customer, when `allowed_actions` contains `approve-estimate` or `reject-estimate`):
-- "Approve estimate (Rs 16,100)" as a `cta` button; it opens a confirm dialog repeating the version and total.
-- "Decline estimate" (`reject-estimate`) as destructive outline; it opens a dialog with an optional reason (≤ 500 characters) and the copy "The shop will contact you to revise it."
+- "Approve estimate (Rs 16,100)" as the view's primary (blue) button (R7); it opens a confirm dialog repeating the version and total.
+- "Decline estimate" (`reject-estimate`) as an `outline` button; it opens a dialog with an optional reason (≤ 500 characters), the copy "The shop will contact you to revise it." and a `destructive` confirm button.
+- On phones both sit in a `StickyActionBar` at the bottom of the screen (§4.14), Decline first and Approve last.
 - Both send `estimate_id` (the current `SENT` version) and `expected_version`.
 
 **`EstimateEditor`** (staff; shown when `allowed_actions` contains `edit-estimate`). Editable in `INSPECTING` by the assigned Technician, and in `ESTIMATE_REVIEW` by the SA or Owner (08 O1).
@@ -1035,7 +1104,7 @@ Mono `BF-XXXXXX` with a copy button (`aria-label="Copy booking reference BF-7K2M
 **Rendering rules.**
 1. Render **only** slugs present in `allowed_actions` that also have a registry entry (`lib/config/booking-actions.ts`, `satisfies Record<ActionSlug, ActionMeta>`). Unknown slugs are ignored and logged in development (forward-compatible).
 2. Some slugs render elsewhere on the page: `edit-estimate` (estimate panel header), `pass-qc` and `fail-qc` (QC inspection form footer), `approve-estimate` and `reject-estimate` (`EstimateDecisionBar`). Everything else renders in the bar.
-3. Order follows the table below. The **first forward action** is the primary button: navy, or `cta` in the customer portal. Other actions are `outline`. `reassign-*` goes into a "More" menu. Destructive actions (`decline`, `cancel`, and `fail-qc` where it shows in a bar) come last, after a separator, as destructive outline.
+3. Order follows the table below. The **first forward action** is the view's one primary button (brand blue, R7), in the POS and the customer portal alike. Other actions are `outline`. `reassign-*` goes into a "More" menu. Destructive actions (`decline`, `cancel`, and `fail-qc` where it shows in a bar) come last, after a separator, as `outline` buttons; their `AlertDialog` carries the danger colour (a `destructive` confirm button, DESIGN.md §6.10). On phones the bar is a `StickyActionBar` (§4.14).
 4. While any action is pending, the clicked button shows a `Spinner` and **every** action button is disabled. On success: a toast, then focus returns to the bar. When an action takes the booking out of the user's queue (for example a technician sending it to QC), the page stays, now read-only, and a "Back to my jobs" link appears.
 5. **Data guards** (stock, checklist, empty estimate) are not pre-evaluated by the API (08). The UI uses hints such as `parts_summary.all_available` to choose emphasis, and validates on click with an explanation. It never disables a button without saying why.
 
@@ -1076,6 +1145,7 @@ Mono `BF-XXXXXX` with a copy button (`aria-label="Copy booking reference BF-7K2M
 ### 4.7 `DataTable` and `FilterBar`
 
 - **Semantics.** A real `<table>` with an `sr-only` `<caption>`. The row's primary link sits in the reference cell; a stretched pseudo-element makes the whole row clickable without nesting interactive elements. Row menus stop propagation.
+- **Look (D101, built into `Table` and `DataTableCard`, §4.14).** The table sits flush in a white 20 px card with an optional title row, a toolbar (`TableSearch`, a 36 px pill search field with a clear button; filter pills from `ToggleGroup variant="outline" size="sm"`; a result count) and an optional pager footer. `Table` gives a header band (`bg-layer` at 60 %) with 14 px `text-helper` labels in sentence case, 48 px rows, faint dividers, a blue hover tint (`brand-blue-subtle` at 40 %) and no zebra. Money is right-aligned with `tabular-nums`, IDs and plates are `font-mono`, and there is one action column, at the end. The `Table` container scrolls horizontally, so a wide table never widens the page.
 - **Props:**
   - `columns`: header, cell, align, `hideBelow` breakpoint;
   - `rows`, `getRowHref`, `isLoading`, `error`, `empty` (an `EmptyState` config);
@@ -1096,18 +1166,19 @@ Mono `BF-XXXXXX` with a copy button (`aria-label="Copy booking reference BF-7K2M
 
 | State | Pattern |
 |---|---|
-| Loading | Skeletons shaped like the final content: header, cards, rows. No full-page spinners after the first paint. Buttons show a `Spinner` while their own mutation runs. |
-| Empty | shadcn `Empty`: 40 px icon, a title saying what is missing, one sentence on why it matters, and **one** next action. Example — Technician: "No jobs assigned yet — new assignments appear here instantly." |
+| Loading | Skeletons shaped like the final content: header, cards, rows (`Skeleton`: pulsing stone `#E7E5E4`, `rounded-lg`; `rounded-2xl` for card shapes, `rounded-full` for pills). No full-page spinners after the first paint. Buttons show a `Spinner` while their own mutation runs. |
+| Empty | `EmptyState` (§4.14, on shadcn `Empty`): a 48 px icon tile (brand tint; `success` for "all done", `neutral`), a title saying what is missing, one sentence on why it matters, and at most **one** next action. A dashed 24 px-radius card on the canvas, or `inline` inside another card. Example — Technician: "No jobs assigned yet — new assignments appear here instantly." |
 | Error | `ErrorState`: `CircleAlert`, a human message (§2.9), the code line, and "Try again". |
 | Not found | Copy: "We couldn't find that." The page never says whether the item exists elsewhere (D20). |
 | Forbidden | Copy: "This area is for {roles}." Plus a link to the user's home. |
-| Offline | `OfflineBanner` (top, `warning-subtle`): "You're offline — changes can't be saved." Mutations are blocked while offline. |
+| Offline | `OfflineBanner` (sticky at the top, `warning-subtle` with `warning-ink` text, `role="status"`): "You're offline — changes can't be saved." Mutations are blocked while offline. |
 
 ### 4.9 Toasts (sonner)
 
 - **Position:** bottom-right on desktop; top-centre below `md`, so sticky action bars are never covered.
 - **Duration:** success 4 s; realtime notification 6 s with a "View" action; errors stay until dismissed.
 - **Limits:** at most 3 visible.
+- **Look:** white popover cards with the hairline border and a 20 px radius (`--radius-2xl`); they follow the theme (§3.11).
 - **Copy:** success toasts are short and include the reference.
 - **Live region:** sonner announces toasts through its own live region **(unverified: check `aria-live` in the rendered DOM on day 1)**.
 
@@ -1116,9 +1187,9 @@ Mono `BF-XXXXXX` with a copy button (`aria-label="Copy booking reference BF-7K2M
 - **Container:** a `Popover` 380 px wide on ≥ md, a right-side `Sheet` below md.
 - **Header:** "Notifications" and "Mark all as read" (`POST /api/v1/me/notifications/read-all`).
 - **Items:**
-  - type icon, title (bold while unread), body clamped to 2 lines;
-  - a meta line: reference · shop name (when the user belongs to more than one shop) · relative time;
-  - an unread dot with `sr-only` "Unread".
+  - the type icon in a round tile tinted with its booking phase (§3.3), the title (semibold while unread), the body clamped to 2 lines;
+  - a meta line in `text-helper`: reference · shop name (when the user belongs to more than one shop) · relative time;
+  - while unread, a brand-blue dot with `sr-only` "Unread" and a light blue row tint (`brand-blue-subtle` at 50 %).
 - **List:** "Load more" pages 20 at a time. Empty: "You're all caught up". Errors: `ErrorState` with Retry.
 - **Click:** marks the item read (optimistic) and navigates to the notification's `link`.
 
@@ -1146,9 +1217,9 @@ Mono `BF-XXXXXX` with a copy button (`aria-label="Copy booking reference BF-7K2M
 
 | Component | Behaviour |
 |---|---|
-| `ActionNeededCallout` | `attention` surface with a 4 px `--brand-orange` left border, `CircleAlert`, a one-line message and one CTA. Its text comes from `allowed_actions`, never from status alone. Examples: `approve-estimate` → "Estimate awaiting your approval — Rs 16,100" + "Review estimate"; `complete` → "Your vehicle is ready — confirm when you've collected it". |
-| `ReadyForPickupBanner` | `success-subtle` with `CarFront`. Shows the shop name, address, phone and today's opening hours. Shown while the status is `READY_FOR_PICKUP` (D27); it adds "Pick-up notice sent at …" once `ready_notified_at` is set. |
-| `ReadOnlyBanner` | `info-subtle`: "Read-only view — technician actions are done by technicians. To act on this booking, open it in Bookings." Includes a link. Used on the Owner's role views (D16). |
+| `ActionNeededCallout` | A 16 px-radius box on the `attention` tint with a 1 px `attention-border` (no coloured side bar), `CircleAlert`, the label in semibold `cta` ink and the one-line message in `foreground`, and one action (R7 decides whether it is the view's primary). Its text comes from `allowed_actions`, never from status alone. Examples: `approve-estimate` → "Estimate awaiting your approval — Rs 16,100" + "Review estimate"; `complete` → "Your vehicle is ready — confirm when you've collected it". |
+| `ReadyForPickupBanner` | `Alert variant="success"` (the success tint, title and icon in `success-ink`, body in `foreground`) with `CarFront`. Shows the shop name, address, phone and today's opening hours. Shown while the status is `READY_FOR_PICKUP` (D27); it adds "Pick-up notice sent at …" once `ready_notified_at` is set. |
+| `ReadOnlyBanner` | `Alert variant="info"`: "Read-only view — technician actions are done by technicians. To act on this booking, open it in Bookings." Includes a link. Used on the Owner's role views (D16). |
 | `OfflineBanner` | §4.8 |
 
 ### 4.12 `DemoCredentialsPanel` (login page, D52)
@@ -1172,51 +1243,70 @@ These load only when `NEXT_PUBLIC_CALL_PROVIDER_URL` is set. **Spec 05 §9 is au
 | `InCallBar` | Sticky bar in the layout: the other party (or "AI Front Desk · Lahore Auto Care") and reference; the state ("Ringing…", "Connected 01:23", or "Our advisors are busy — connecting you to the AI assistant…"); mute (`Mic` / `MicOff`), hang up (`PhoneOff`) and connection quality; `StartAudio` when playback is blocked; a `BarVisualizer` during the AI leg. A `beforeunload` warning is active during a call; the end shows "Call ended · 2:10". |
 | `CallLog` | On the booking, newest first: direction icon and a "who" line ("You called Lahore Auto Care", "Bilal called Ahmed"), time in shop time, status chip with the missed reason, durations, and an "AI Front Desk" badge. Staff also get "View AI summary" and task chips (`has_summary`, `open_task_count`); customers never see summaries, transcripts or tasks. |
 
+### 4.14 Shared page parts (`components/layout`, D101)
+
+Pages are composed from these and the `ui` primitives instead of re-inventing them; DESIGN.md §5–§6 has the props and copy-paste recipes.
+
+| Component | What it gives |
+|---|---|
+| `PageHeader` | The page's only `<h1>` (30 → 36 px, extra-bold), with an optional back link, a small brand-blue eyebrow, chips beside the title (e.g. `StatusBadge size="md"`), a muted one-sentence description and the actions on the right (below the title on phones): at most one primary, the rest `outline` or `ghost` (R7). It goes first in the page's `space-y-6` stack. |
+| `StatCard` | A KPI card: label, an icon tile (`default`, `brand`, `success`, `warning` or `danger` tone; `warning` and `danger` also colour the value), the value at 30 px extra-bold with tabular figures, an optional 12 px hint. With `href` the whole card is a link to the list it counts (hover lift, focus ring). Grids of them use `gap-4`. |
+| `DataTableCard`, `TableSearch` | The white 20 px card around a list: optional title row and actions, the toolbar (search pill, filter pills, count), the `Table` (or the stacked phone list, or an `EmptyState`) flush to the edges, and an optional pager footer (§4.7). |
+| `DetailLayout`, `StickyActionBar` | Detail pages: the record's sections in the main column plus a 360 px aside from `lg` (sticky under the bar; first on phones, so the status and next action come before the details). `StickyActionBar` pins the page's main decision to the bottom of the screen below `md` (it respects `env(safe-area-inset-bottom)`) and renders inline from `md` up. |
+| `Timeline` | An activity list (an `<ol>`, rendered in the order given; staff activity is newest first): a 32 px round node per event in a tone (`default`, `brand`, `success`, `warning` or `danger`), the title, a muted description and the time. `StatusTimeline` (§4.4) uses the same look, in its own order. |
+| `EmptyState` | Icon tile, title, one sentence, at most one action; `card` (a dashed card on the canvas) or `inline` (inside another card); tones `brand`, `success`, `neutral` (§4.8). |
+| `FormSection` | One settings topic: the title (an `<h2>`) and description on the left from `lg`, the fields in a white card on the right, an optional footer bar on `bg-muted` with the save pill. Several stack with `space-y-8`. |
+| `Handwritten` (`components/booking/booking-hero.tsx`) | The one handwritten accent word of a hero or greeting (§3.6), on a `bg-hero` band. |
+
 ---
 
 ## 5. Accessibility — WCAG 2.2 AA
 
 ### 5.1 Contrast, computed for every token pair defined above
 
-Computed with the WCAG relative-luminance formula. Requirements: 4.5 : 1 for text (SC 1.4.3), 3 : 1 for large text (≥ 24 px, or ≥ 18.66 px bold), and 3 : 1 for UI components and focus indicators (SC 1.4.11).
+Computed with the WCAG relative-luminance formula for the D101 palette (2026-10-10); translucent surfaces are composited over white first. Requirements: 4.5 : 1 for text (SC 1.4.3), 3 : 1 for large text (≥ 24 px, or ≥ 18.66 px bold), and 3 : 1 for UI components and focus indicators (SC 1.4.11).
 
 | Pair | Ratio | Requirement | Result |
 |---|---|---|---|
-| foreground `#212529` on background `#FFFFFF` | 15.43 | 4.5 | Pass |
-| foreground on muted `#F8F9FA` / secondary `#F1F3F5` / accent `#EEF1F7` | 14.63 / 13.87 / 13.63 | 4.5 | Pass |
-| foreground on attention / success / warning / info / danger subtle | 14.20 / 14.37 / 14.56 / 13.89 / 14.42 | 4.5 | Pass |
-| muted-foreground `#495057` on background / muted / secondary / accent | 8.18 / 7.76 / 7.35 / 7.23 | 4.5 | Pass |
-| primary-foreground `#FFFFFF` on primary `#14213D` / primary-hover `#1F3157` | 15.97 / 12.84 | 4.5 | Pass |
-| primary `#14213D` (links) on background | 15.97 | 4.5 | Pass |
-| secondary-foreground / accent-foreground `#14213D` on `#F1F3F5` / `#EEF1F7` | 14.36 / 14.12 | 4.5 | Pass |
-| white on destructive `#C92A2A`; destructive text on white | 5.46 / 5.46 | 4.5 | Pass |
-| white on cta `#BD490A` / cta-hover `#A53F08` | 5.10 / 6.34 | 4.5 | Pass |
-| cta text on white / on attention `#FFF4E6` | 5.10 / 4.69 | 4.5 | Pass |
-| brand-orange `#E8590C` on white — **large display text only** | 3.58 | 3.0 | Pass (fails 4.5, so never used for small text) |
-| brand-orange `#E8590C` as small text on navy | 4.46 | 4.5 | **Fail** → use brand-orange-on-dark `#FD7E14` (6.22) |
-| nav-foreground on nav / nav-hover; nav-muted `#A9B4C8` on nav | 15.97 / 12.84 / 7.64 | 4.5 | Pass |
-| white on role chip `#303C54` | 11.05 | 4.5 | Pass |
-| success-ink `#247534` on success-subtle / white | 5.33 / 5.72 | 4.5 | Pass |
-| warning-ink `#995400` on warning-subtle / white | 5.47 / 5.80 | 4.5 | Pass |
-| danger-ink `#C92A2A` on danger-subtle | 5.10 | 4.5 | Pass |
-| info-ink `#1864AB` on info-subtle / white | 5.48 / 6.09 | 4.5 | Pass |
-| status badge text on badge background (8 hues) | 5.10 – 7.35 (§3.3) | 4.5 | Pass |
-| **Non-text:** focus ring `#E8590C` vs white / muted / navy | 3.58 / 3.40 / 4.46 | 3.0 | Pass |
-| **Non-text:** input border `#868E96` vs white / muted | 3.32 / 3.15 | 3.0 | Pass |
-| **Non-text:** cta button `#BD490A` vs navy hero; unread badge vs navy | 3.13 / 3.13 | 3.0 | Pass |
-| **Non-text:** checked control `#14213D` vs white | 15.97 | 3.0 | Pass |
-| Decorative only: `--border` `#DEE2E6` vs white | 1.30 | n/a | Never the only boundary of a control |
+| foreground `#1C1917` on white / canvas `#F2F7FE` / paper `#EDF2FA` | 17.49 / 16.25 / 15.56 | 4.5 | Pass |
+| foreground on muted `#FAFAF9` / secondary `#F4F4F3` / hover `#EAEEF3` / active nav `#BFDBFE` | 16.74 / 15.89 / 15.01 / 12.31 | 4.5 | Pass |
+| foreground on attention / success / warning / danger / info subtle | 16.10 / 15.07 / 15.77 / 14.15 / 13.01 | 4.5 | Pass |
+| muted-foreground `#44403C` on white / canvas / paper / secondary / hover | 10.27 / 9.54 / 9.14 / 9.33 / 8.82 | 4.5 | Pass |
+| helper `#736C67` on white / canvas / paper / muted / secondary | 5.16 / 4.79 / 4.59 / 4.94 / 4.69 | 4.5 | Pass |
+| helper on the table header band (`layer` at 60 %) / row hover (blue tint at 40 %) / unread row (50 %) / selected row (70 %) | 4.81 / 4.81 / 4.73 / 4.56 | 4.5 | Pass |
+| white on primary `#002CF1` / primary-hover `#1D4ED8` | 7.98 / 6.70 | 4.5 | Pass |
+| brand-blue-ink `#002CF1` (links) on white / canvas / blue tint `#E4EBF9` / active nav | 7.98 / 7.42 / 6.67 / 5.62 | 4.5 | Pass |
+| white on green `#047857` / green-hover `#065F46`; green text on white / canvas | 5.48 / 7.68; 5.48 / 5.10 | 4.5 | Pass |
+| destructive `#DA2626` text on white / canvas; white on destructive-strong `#DC2626` | 4.90 / 4.55; 4.83 | 4.5 | Pass |
+| cta `#BD490A` text on white / on attention `#FFF4E6`; white on cta / cta-hover `#A53F08` | 5.10 / 4.69; 5.10 / 6.34 | 4.5 | Pass |
+| success-ink / warning-ink / danger-ink / info-ink on their subtle tints | 4.72 / 6.18 / 5.24 / 4.98 | 4.5 | Pass |
+| status chips, ink on fill (8 phases) | 4.61 – 8.39 (§3.3) | 4.5 | Pass |
+| white on foreground (tooltips, the "Platform admin" pill) | 17.49 | 4.5 | Pass |
+| brand-orange-on-dark `#FD7E14` on navy `#14213D` (auth panel icons); white on navy | 6.22 / 15.97 | 4.5 | Pass |
+| **Non-text:** focus outline `#002CF1` vs white / canvas / paper / hover / active nav (inset) | 7.98 / 7.42 / 7.10 / 6.85 / 5.62 | 3.0 | Pass |
+| **Non-text:** control edge `#8B857F` vs white / canvas / paper / muted | 3.65 / 3.39 / 3.24 / 3.49 | 3.0 | Pass |
+| **Non-text:** checked control and focused-field border `#002CF1` vs white / canvas | 7.98 / 7.42 | 3.0 | Pass |
+| **Non-text:** switch thumb (white) vs the unchecked track `#8B857F` | 3.65 | 3.0 | Pass |
+| **Non-text:** green fill / danger fill / unread badge vs white | 5.48 / 4.83 / 5.10 | 3.0 | Pass |
+| **Non-text:** chart inks `--chart-1` … `--chart-5` on white | 6.70 / 7.10 / 4.92 / 5.36 / 6.32 | 3.0 | Pass |
+| Decorative only: `--border` `#D9D9D9` / `--border-medium` `#D6D3D1` / `--border-faint` `#ECECEC` vs white | 1.41 / 1.49 / 1.18 | n/a | Never the only boundary of a control (fields use the 3.65 control edge) |
 
-**Excluded pairs:**
-- Placeholders use `muted-foreground` (8.18), never `#868E96`, which is only 3.32 as text.
-- The warning icon color `#E67700` (3.00 on white) was rejected; icons use the ink colors.
+**Excluded pairs (never used for text):**
+- `--subtle-foreground` `#A8A29E` on white is 2.52: decoration only.
+- White on `#10B981` is 2.54: green fills use `#047857`; `#10B981` is decoration only.
+- `--brand-orange` `#E8590C` on white is 3.58: decoration only; orange text uses `--cta`.
+- Helper text never sits on the hover surface `#EAEEF3` (4.43), the active-nav fill `#BFDBFE` (3.63) or a full blue tint `#E4EBF9` (4.31); use `muted-foreground` there.
+- Placeholders use `text-helper` (5.16 on white), never the control-edge colour (3.65 as text).
+
+**Selected states are carried by more than a fill.** The current sidebar item's `#BFDBFE` fill is only 1.42 : 1 against the white sidebar, so the item also gets a semibold label, a brand-blue icon and `aria-current="page"`. The active segmented tab (a white pill on `#F4F4F3`, 1.10 : 1) also darkens its label and gains a shadow; an "on" filter pill also turns its label blue (6.67 : 1) and gains a blue border. The primitives expose each state to assistive technology through their ARIA attributes.
 
 ### 5.2 Keyboard and focus
 
 - Every interactive element is reachable and operable with the keyboard. The tab order follows the visual order.
 - Radix provides focus trapping and restore in dialogs and sheets, roving focus in menus and radio groups, and Esc to close.
-- **Focus ring:** `:focus-visible` gets a 2 px ring in `--ring` at **full opacity** with a 2 px offset (contrast in §5.1). shadcn's default `ring-ring/50` is replaced (§3.12) because a 50 % orange would fail 3 : 1.
-- Sticky headers and action bars never cover focused elements (SC 2.4.11). Main content has `scroll-padding-top` equal to the header height.
+- **Focus outline (D101):** `:focus-visible` draws a 2 px solid outline in `--ring` (brand blue `#002CF1`) at **full opacity**, 2 px outside the element (contrast in §5.1). It is inset (`-outline-offset-2`) on sidebar items and on rows inside scrolling lists such as the notification panel. Fields show focus as a brand-blue border plus a 4 px blue halo at 15 % (`focus-visible:border-brand-blue focus-visible:ring-4 focus-visible:ring-brand-blue/15`), and invalid fields as a red border and halo. The danger button's outline is red. `* { @apply outline-ring }` sets the colour everywhere; shadcn's default `ring-ring/50` / `outline-ring/50` was replaced (§3.12).
+- **The Tailwind 4 pitfall.** `outline-none` and `outline-hidden` set `--tw-outline-style: none` and `outline-style: none`, and `outline-2` draws `outline-style: var(--tw-outline-style)`, so `outline-none focus-visible:outline-2` alone draws nothing (verified in `tailwindcss` 4.3.3). Every hand-made focusable element therefore writes `outline-none focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-ring`; the primitives already handle their own focus. This bug made focus invisible app-wide before D101.
+- Sticky headers and action bars never cover focused elements (SC 2.4.11): `<html>` has `scroll-padding-top: 5rem` (80 px), which clears the 64 px app bar and the 80 px public header.
 - After a route change, focus moves to the page `<h1>` (`tabIndex={-1}`). The wizard moves focus to each step's heading.
 
 ### 5.3 Screen readers and live regions
@@ -1243,7 +1333,7 @@ Computed with the WCAG relative-luminance formula. Requirements: 4.5 : 1 for tex
 
 | Criterion | How we meet it |
 |---|---|
-| Target size (SC 2.5.8, ≥ 24 × 24 px) | Our minimum is 36 px, and 44 px for touch-primary screens (§3.7). |
+| Target size (SC 2.5.8, ≥ 24 × 24 px) | Every target is at least 24 × 24 px. Default controls are 42 px and compact ones 32–36 px; the smallest are the 24 px `icon-xs` button and the 16 px checkbox and radio, whose invisible `::after` enlarges the hit area to 40 × 32 px. Touch-primary screens use 44 px (the booking wizard's bar) and 48 px (technician and QC actions and toggles) (§3.7). |
 | Reflow (SC 1.4.10) | The portal works at 320 px with no horizontal scroll. POS tables become cards below `md`. |
 | Motion | `prefers-reduced-motion` is respected (§3.10). |
 | Language | `<html lang="en">`. |
@@ -1258,12 +1348,12 @@ Computed with the WCAG relative-luminance formula. Requirements: 4.5 : 1 for tex
 | Surface | Strategy | Below `md` (< 768) | `md` – `lg` (tablet) | ≥ `lg` (desktop) |
 |---|---|---|---|---|
 | Customer portal (landing, wizard, customer bookings) | **Mobile-first** (brief §7.3 "works on mobile") | Single column. Shop cards full width. Wizard: one step per screen with a sticky bottom bar (Back / Continue, 44 px). Estimate tables collapse to stacked rows. | 2-column shop grid. Wizard summary below the step. | 3-column shop grid. Wizard with a right-side booking summary (sticky). |
-| POS — SA, Owner, Parts | **Desktop-first, tablet-usable** | Tables become cards. The sidebar becomes a sheet. Booking detail uses tabs (Overview · Estimate · Parts · QC · History). The action bar becomes a sticky bottom bar (primary + "More"). | Sidebar as an icon rail or sheet. Tables hide secondary columns (`hideBelow`). Detail in a single column. | Sidebar 256 px. Booking detail in 2 columns (main 2/3: actions, estimate, parts, QC, timeline; side 1/3: summary, customer, vehicle, assignments). |
-| POS — Technician, QC | **Tablet-first** (used in the bay) | As above, with 44 px controls | 44 px checklist toggles and buttons; the editor scrolls horizontally inside its own container, not the page | As above |
+| POS — SA, Owner, Parts | **Desktop-first, tablet-usable** | Tables become stacked lists. The sidebar becomes a 288 px sheet opened from the bar's toggle. Booking detail uses tabs (Overview · Estimate · Parts · QC · History). The action bar becomes a `StickyActionBar` at the bottom (primary + "More"). | Sidebar 256 px, or the 64 px icon rail (bar toggle, ⌘B / Ctrl+B). Tables hide secondary columns (`hideBelow`). Detail in a single column, the aside first. | Booking detail in `DetailLayout`: the main column (actions, estimate, parts, QC, timeline) plus a 360 px sticky aside (summary, customer, vehicle, assignments). |
+| POS — Technician, QC | **Tablet-first** (used in the bay) | As above, with 48 px controls | 48 px job actions (`size="lg"`) and checklist toggles (`h-12`); the editor scrolls horizontally inside its own container, not the page | As above |
 
 **Rules:**
-- No horizontal page scroll at any width.
-- Wide tables scroll inside a `ScrollArea` with a visible shadow cue.
+- No horizontal page scroll at any width: check 1440 px and 390 px.
+- Wide tables scroll inside the `Table` container (`overflow-x-auto`); the shop, admin and customer content landmarks also clip horizontal overflow (`overflow-x-clip`) as a safety net, and long words truncate (`min-w-0` + `truncate` in flex rows). Phones get a stacked list, never a squeezed seven-column table.
 - Sticky bars respect `env(safe-area-inset-bottom)`.
 - Use `min-h-dvh` (not `h-screen`) so mobile browser bars never hide CTAs.
 
@@ -1282,7 +1372,7 @@ Computed with the WCAG relative-luminance formula. Requirements: 4.5 : 1 for tex
 4. **R4 — PKR only through `formatPKR`** (D41), with whole-rupee inputs (§2.11). Times always in shop time (D38).
 5. **R5 — Language per audience.** The customer portal uses the glossary §3 customer labels; the POS uses staff labels. The portal never says "QC", "SA" or "PO" without explaining it ("quality check", "service advisor").
 6. **R6 — Destructive actions confirm** (`decline`, `cancel`, `fail-qc`, `reject-estimate`, member deactivation), with the reason rules from 08. Focus starts on the safe option.
-7. **R7 — One primary action per view.** In the portal it is the orange `cta`; in the POS it is navy.
+7. **R7 — One primary action per view.** It is the brand-blue pill (`Button` default variant) in the customer portal, the POS and the admin console alike (D101). Secondary actions are `outline`; tertiary ones `ghost` or `link`; a destructive action's colour lives in its confirm dialog (§4.6). Orange is never a button: `cta` is the "action needed" ink only (§3.1). The public header's green "Sign In" pill is navigation, not a view action.
 8. **R8 — Every list and panel has loading, empty and error states.** Every page has an `<h1>` and a unique `<title>`.
 9. **R9 — Never lose input.**
    - The wizard keeps its state in `sessionStorage` (`bf:wizard:<slug>`, **never the password**).
@@ -1296,7 +1386,7 @@ Computed with the WCAG relative-luminance formula. Requirements: 4.5 : 1 for tex
 
 ---
 
-## 8. Sources (checked 2026-10-09)
+## 8. Sources (checked 2026-10-09; the design-language sources on 2026-10-10)
 
 **Next.js 16.4 docs:**
 - Proxy file convention (renamed from middleware, Node.js runtime, matcher, execution order): https://nextjs.org/docs/app/api-reference/file-conventions/proxy
@@ -1317,6 +1407,11 @@ Computed with the WCAG relative-luminance formula. Requirements: 4.5 : 1 for tex
 **Tailwind CSS 4:**
 - Theme variables, `@theme inline`, breakpoints: https://tailwindcss.com/docs/theme
 - Class-based dark variant: https://tailwindcss.com/docs/dark-mode
+- Outline utilities (`outline-none`, `outline-hidden`, `outline-solid`): https://tailwindcss.com/docs/outline-style; the behaviour in §5.2 was read from the `tailwindcss` 4.3.3 package source (2026-10-10).
+
+**Design language (D101):**
+- GarageBox, the owner's reference for fonts and palette: https://www.garagebox.io/en. Values only; this spec records them as implemented in `apps/web/src/app/globals.css` and `apps/web/DESIGN.md`.
+- Font licences (OFL, from each family's `METADATA.pb`, read 2026-10-10): https://github.com/google/fonts/tree/main/ofl/firasans, https://github.com/google/fonts/tree/main/ofl/edunswactfoundation, https://github.com/google/fonts/tree/main/ofl/jetbrainsmono
 
 **shadcn/ui:**
 - Tailwind v4 & React 19: https://ui.shadcn.com/docs/tailwind-v4
@@ -1351,8 +1446,10 @@ Computed with the WCAG relative-luminance formula. Requirements: 4.5 : 1 for tex
 - Node 24.13.1 / ICU 78.2 `Intl` outputs (PKR, `en-PK` dates, U+202F in ranges).
 - zod 4.6.5: `z.email()` accepts `fatima.owner@bayflow.test` and rejects `x@test` (§2.10).
 - Rejected WebSocket handshake: a Starlette 1.7 endpoint served by uvicorn 0.54 (websockets 17.2) calls `close(1008)` before `accept()`; Node 24.13's WHATWG `WebSocket` reports `error`, then `close` with code 1006 (`wasClean: false`). After `accept()`, the same close arrives as 1008 (§2.12).
-- Brief PDF colors extracted from the PDF's content streams with `mutool clean -d`.
-- Contrast ratios computed with the WCAG formula.
+- Brief PDF colours extracted from the PDF's content streams with `mutool clean -d` (the palette before D101).
+- Contrast ratios computed with the WCAG formula: the D101 light palette (§5.1, §3.2) and a dark-theme sample (§3.11), 2026-10-10.
+- `next` 16.4.0 `next/font` Google font data: Fira Sans has static weights 100–900 and an italic; Edu NSW ACT Foundation is variable (`wght` 400–700), Latin only, with no italic; JetBrains Mono is variable (`wght` 100–800) (§3.6).
+- `apps/web` at commit 2994f59 (2026-10-10): `DESIGN.md`, `globals.css`, `layout.tsx`, `providers.tsx`, `theme-tokens.test.ts`, `components/ui/*`, `components/layout/*`, `components/admin/admin-shell.tsx`, `components/notifications/notification-bell.tsx`; `sonner` 2.0.8 styles (toaster stacking, §3.7).
 - `apps/web` as implemented (2026-10-09): `package.json` scripts, `components.json` (`radix-vega`), `next.config.ts` (`@tailwindcss/turbopack` loader, rewrite, headers), `src/proxy.ts` and its test.
 - shadcn 4.21.4 package source: presets (`vega` = "Lucide / Inter", style `vega`); the style prompt (incl. `new-york`) only runs for non-Tailwind-4 projects (§3.12).
 - Next 16.4.0 package: `next/experimental/testing/server` exports `unstable_doesMiddlewareMatch`, not the `unstable_doesProxyMatch` named in the docs (§2.8).
@@ -1377,7 +1474,7 @@ Computed with the WCAG relative-luminance formula. Requirements: 4.5 : 1 for tex
 2. **Polling semantics (D14).** ✅ Resolved by D14: the web app always polls every 15 s as a safety net, in addition to WebSocket updates (§2.7).
 3. **shadcn base.** ✅ Resolved by D1: shadcn/ui initialised with Radix primitives (`-b radix`).
 4. **`capabilities` on memberships.** ✅ Resolved by D66: `GET /api/v1/me` returns server-computed `capabilities` per membership (glossary §2.4); the UI shows non-booking buttons only from them (§2.8).
-5. **Fonts.** Inter + JetBrains Mono are a proposal; the brief does not specify typography.
+5. ✅ **Resolved by D101: fonts.** Fira Sans for all text, Edu NSW ACT Foundation for one handwritten accent word per page, JetBrains Mono for codes (§3.6); the brief does not specify typography.
 6. ✅ **Resolved by D93: light and dark themes** with `next-themes`, following the OS by default (§3.11).
 7. **Staff status labels** (§3.3). ✅ Resolved: the labels and phases were merged into glossary §3 (and `StatusPhase`, §5).
 8. **Booking-creation idempotency.** Should the wizard send an `Idempotency-Key` header, so a network retry after a lost response cannot create a second booking? This needs API support (tracked as spec 03 Open question 2); until then the wizard disables its button while the request is pending.

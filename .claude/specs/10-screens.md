@@ -305,11 +305,12 @@ flowchart TD
 
 | | |
 |---|---|
-| **Where** | `(pos)/pos/layout.tsx` provides `RequireSession` and `PosHeader`. `[shopId]/layout.tsx` provides `ShopScope` and `PosSidebar` (09 §2.8, §4.1). |
-| **Header** | Logo (→ `/pos`) · `ShopSwitcher` (shop name and role chip per membership — `/me` memberships carry no city; "All shops summary" for owners of ≥ 2 shops (P1); "Create a new shop" for owners) · `RoleChip` · `RealtimeIndicator` (P1, with the WebSocket, D88) · `NotificationBell` (X-01) · `UserMenu` ("My bookings", "Log out"). |
-| **Sidebar** | Items per role, in the matrix below. The Owner gets two groups: **Manage**, and **Role views (read-only)**. Off-role routes show `ForbiddenState` (X-03). |
+| **Where** | `(pos)/pos/layout.tsx` provides `RequireSession`, the sidebar state (`SidebarProvider`), the canvas and `PosHeader`. `[shopId]/layout.tsx` provides `ShopScope`, `PosSidebar`, the section gate and the content landmark (`<main id="main">` with `max-w-7xl`, `px-4 sm:px-6 lg:px-8`, `py-6 lg:py-8`) (09 §2.8, §3.7, §4.1). `/pos`, `/pos/shops/new` and `/pos/summary` have no sidebar and render their own `<main>`. |
+| **Look** | Light (D101, 09 §4.1): a white 64 px bar (90 % with a blur, sticky) over the `#F2F7FE` canvas, and a white 256 px sidebar. No navy surfaces. |
+| **Header** | Left: the sidebar toggle (shop pages only) · logo (→ `/pos`; a "POS" tag from `lg`) · `ShopSwitcher` pill showing the current shop's name; its menu lists "All shops summary" first (owners of ≥ 2 shops, P1), then the user's shops (`shop_name` and the role per membership — `/me` memberships carry no city) with a check on the current one, and "Create new shop" last (D17). Right: the role pill (`RoleChip`) · `NotificationBell` (X-01; orange unread badge, 1–9 or "9+") · `AccountMenu` (avatar; "My bookings", "Website", "Sign out"). `RealtimeIndicator` joins the right side with the P1 WebSocket (D88). |
+| **Sidebar** | Items per role, in the matrix below. The Owner gets two groups: **Manage**, and **Role views (read-only)**; every other role gets **Your work**. The current item has the `#BFDBFE` fill, a semibold dark label, a brand-blue icon and `aria-current="page"`. Off-role routes show `ForbiddenState` (X-03); a suspended shop shows its suspended state to every member (D96). |
 | **Data** | E-04 me (flat active memberships `{membership_id, shop_id, shop_name, shop_slug, role, capabilities}`, D66), E-22 the current shop (`city`, `timezone`, `logo_url`, which `/me` does not carry; `ShopScope`, 09 §2.8), E-18 unread count (live), the realtime socket |
-| **Mobile** | Below `lg` the sidebar is a `Sheet` opened from the hamburger. Below `sm` the role chip shows the tag (`SA`, `TECH`, …). |
+| **Mobile** | Below `md` (768 px) the sidebar is a 288 px `Sheet` opened from the bar's toggle; from `md` up the same toggle (or ⌘B / Ctrl+B, or the rail) collapses it to a 64 px icon rail. Below `sm` the logo shows the mark only, the shop name truncates and the role pill shows only its icon (the role name stays in `sr-only` text). |
 | **Traceability** | §7.2 "Shop switcher", §5.4 bell, §3 "Each role only sees the work that is theirs", D15, D16 |
 
 **Role navigation matrix.** This is navigation scope only; the API enforces permissions (09 §2.8).

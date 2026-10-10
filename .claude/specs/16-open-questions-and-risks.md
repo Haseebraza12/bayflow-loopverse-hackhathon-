@@ -255,6 +255,15 @@ Every row is a spec 07 day-1 check (run with a "hello world" deploy, results in 
 - **Owner / phase.** Platform person; PH0.
 - **Detected by.** Day-1 #8; SEC-27.
 
+### A25 — The landing page ships GarageBox's own assets and claims (P1)
+
+- **Description.** D101 takes GarageBox's fonts and palette as values only — never its name, logo, images or copy. The landing page and its footer predate D101 (commit `8559517`, "use Ibrahim's UI as-is") and still carry GarageBox material: 14 files in `apps/web/public/garagebox/` (the hero images, three feature illustrations, a phone mock-up, two app-store badges and six review-site logos; the hero's code comment says its image was taken from garagebox.io), the line "5-Star Rated based on 200+ reviews" beside those review-site logos, app-store badges for apps BayFlow does not have, and the footer's `support@garagebox.io`.
+- **Impact on judging.** A judge who knows garagebox.io, or who writes to the footer address, sees copied material and claims BayFlow cannot back up; once the repository is public (B1) the copied images are also a copyright exposure. Product & UX is 15 % (brief §10).
+- **Likelihood.** Medium: the hero and the footer are the first and last things a judge sees.
+- **Mitigation.** Replace the `public/garagebox/` images with BayFlow's own screenshots or openly licensed images with their sources recorded (as the booking flow did for its shop photos in `apps/web/src/lib/shop-photos.ts`); drop the review count, the review-site logos and the app-store badges; use a BayFlow contact address. Keep the fonts and the palette (D101).
+- **Owner / phase.** The owner (the landing was kept "as-is" on request, so changing it is the owner's call) and the web owner; before the repository goes public (B1) and before submission.
+- **Detected by.** `apps/web/public/garagebox/` is gone; `grep -rni garagebox apps/web/src` finds code comments only.
+
 ---
 
 ## B. Open decisions for the owner
@@ -305,7 +314,7 @@ Every row is a spec 07 day-1 check (run with a "hello world" deploy, results in 
 | Cap active bookings per customer per shop? | No cap for the hackathon; rate limits suffice | spec 04 open question 9 |
 | `Idempotency-Key` on booking creation? | Not in P0; P1 only if cheap (the wizard disables its button meanwhile) | spec 03 open question 2, spec 09 open question 8 |
 | Quick-add common services on O-03? | Drop unless P1 time remains | spec 10 open question 7 |
-| Fonts | Inter + JetBrains Mono (the Vega preset already uses Inter) | spec 09 open question 5 |
+| Fonts | ✅ Decided by D101: Fira Sans for all text, Edu NSW ACT Foundation for one handwritten accent word, JetBrains Mono for codes (garagebox.io's fonts, owner request 2026-10-10) | spec 09 open question 5 (resolved) |
 | Purchase orders that will never arrive | Accept: no cancel/close status (brief statuses only) | `modules/inventory.md` open question 4 |
 | Notify the actor when they are also the booking's customer | ✅ Decided by D91: glossary §6 is applied literally and the actor is not excluded | `modules/notifications.md` open question 3 (resolved) |
 | Re-validate deactivated parts when the SA sends an estimate | Keep: the saved line is what the SA reviewed | `modules/estimates.md` open question 2 |
@@ -338,7 +347,6 @@ Every row is a spec 07 day-1 check (run with a "hello world" deploy, results in 
 | 07 · 4 | Build-time `API_BASE_URL` needs a redeploy to change | Platform person | Accept; runbook note (A23) |
 | 07 · 5 | Railway region | Owner (B7) | Measure on day 1 |
 | 07 · 6 | Does the always-on agent fit Railway's $5 credit; agent health check | Bonus owner | Check at B4 (PH9) |
-| 09 · 5 | Fonts | Owner (B8) | Inter + JetBrains Mono |
 | 10 · 7 | Quick-add common services (P1) | Owner (B8) | Drop unless time |
 | 12 · 6 | The test seam that raises spec 04's rate-limit constants | Coordinator | Spec 04 names a test-settings override |
 | 13 · 1–8 | pgvector, WhatsApp, Urdu evaluation, data protection, data volume, pricing, production provider, fitment data | Post-hackathon | P3, revisit when each AI item is scheduled |
@@ -368,7 +376,7 @@ Every row is a spec 07 day-1 check (run with a "hello world" deploy, results in 
 | 05 | 1 (D77), 2 (D26, glossary §6), 4 (D36, D59), 8 (D21), 9 naming (D58, glossary §12) |
 | 06 | 1 (D62), 2 (D71), 4 (D83) |
 | 07 | 1 (D26; vendor Resend, `modules/notifications.md`), 2 (D1, D11), 3 (D13), 7 (spec 03, D81), 8 (D69), 10 (D73) |
-| 09 | 1 (D41), 2 (D14), 3 (D1), 4 (D66), 6 (D1), 7 (glossary §3) |
+| 09 | 1 (D41), 2 (D14), 3 (D1), 4 (D66), 5 (D101), 6 (D93), 7 (glossary §3) |
 | 10 | 1 (D68), 2 (spec 03 §4.7), 3 (D40), 4 (D46), 5 (spec 03 §5.2), 6 (spec 03 §4.13), 8 (spec 03 §4.14, D78), 9 (spec 03 §4.8) |
 | 11 | 1 (D62), 2 (D26), 3 (D63), 4 (D71), 5 (D51) |
 | 12 | 1 (D62), 2 (spec 03), 3 (D1, D5, D11), 4 (spec 11, D71), 5 (D12), 7 (D75), 8 (D76), 9 (D11), 10 (specs 01, 04, 11, the §5 numbering, and spec 05 §14.1 for CALL-17 … CALL-20 and FD-13 … FD-15) |
