@@ -120,7 +120,6 @@ from app.modules.bookings.schemas import (
     BookingDetail,
     BookingDetailBase,
     BookingEventRead,
-    BookingLabel,
     BookingServiceRead,
     BookingShopRead,
     BookingShopRef,
@@ -1823,44 +1822,6 @@ async def _customer_summaries(
         )
         for booking, changed in rows
     ]
-
-
-# =================================================================================================
-# P2 read helpers for the calls module and the AI Front Desk (spec 05 §5.3, modules/bookings.md)
-# =================================================================================================
-
-
-def vehicle_label(vehicle: Vehicle) -> str:
-    """`2016 Honda Civic (LEA-1234)`: how calls and the agent name a car."""
-    return f"{vehicle.year} {vehicle.make} {vehicle.model} ({vehicle.registration_number})"
-
-
-async def find_customer_bookings(
-    session: AsyncSession, *, shop_id: UUID, customer_user_id: UUID, limit: int = 10
-) -> list[CustomerBookingSummary]:
-    """The customer's bookings at one shop, newest slot first, as the customer sees them."""
-    rows = await BookingRepository(session).customer_at_shop(
-        shop_id=shop_id, customer_user_id=customer_user_id, limit=limit
-    )
-    return await _customer_summaries(session, rows)
-
-
-async def get_booking_labels(
-    session: AsyncSession, *, shop_id: UUID, booking_ids: Collection[UUID]
-) -> dict[UUID, BookingLabel]:
-    """Reference, vehicle label and customer of each booking, in two queries."""
-    bookings = await BookingRepository(session).get_many_at_shop(
-        shop_id=shop_id, booking_ids=booking_ids
-    )
-    vehicles = await VehicleRepository(session).get_many(keys=_vehicle_keys(bookings))
-    return {
-        booking.id: BookingLabel(
-            reference=booking.reference,
-            vehicle_label=vehicle_label(vehicles[booking.vehicle_id]),
-            customer_user_id=booking.customer_user_id,
-        )
-        for booking in bookings
-    }
 
 
 # =================================================================================================

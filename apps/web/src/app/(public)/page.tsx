@@ -199,7 +199,7 @@ export default function LandingPage() {
           </div>
 
           {/* ========================================================
-              RATING & PLATFORM LOGOS
+              RATING & APP STORES & PLATFORM LOGOS
               ======================================================== */}
           <div className="mt-12 flex flex-col items-center justify-center gap-6 text-center md:mt-16">
             {/* 5-Star Rating */}
@@ -213,6 +213,36 @@ export default function LandingPage() {
               <span className="ml-2 text-sm font-bold text-foreground">
                 5-Star Rated based on 200+ reviews
               </span>
+            </div>
+
+            {/* App Store Badges */}
+            <div className="flex flex-wrap items-center justify-center gap-4">
+              <a
+                href="#google-play"
+                className="transition-opacity hover:opacity-90"
+                title="Google Play Store"
+              >
+                <Image
+                  src="/garagebox/play-store.svg"
+                  alt="Google Play Store"
+                  width={165}
+                  height={50}
+                  className="h-11 w-auto"
+                />
+              </a>
+              <a
+                href="#app-store"
+                className="transition-opacity hover:opacity-90"
+                title="Apple App Store"
+              >
+                <Image
+                  src="/garagebox/app-store.svg"
+                  alt="Apple App Store"
+                  width={155}
+                  height={50}
+                  className="h-11 w-auto"
+                />
+              </a>
             </div>
 
             {/* Platform Review Logos Banner */}

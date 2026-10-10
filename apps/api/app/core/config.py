@@ -138,15 +138,6 @@ class Settings(BaseSettings):
     ai_daily_call_cap: int = Field(default=100, ge=0)
     call_monthly_minutes_cap: int = Field(default=4_000, ge=0)
 
-    # --- Bonus: text AI in the API (D103, modules/ai.md; no key = off) ---
-    ai_text_provider: Literal["gemini", "fake"] = "gemini"
-    ai_text_model: str = "gemini-2.5-flash"
-    ai_text_api_key: SecretStr | None = None  # blank -> LLM_API_KEY
-    ai_features: str = ""  # comma-separated AiFeature names, or "*"; blank = none
-    ai_shop_daily_cap: int = Field(default=200, ge=0)
-    ai_shop_monthly_cap: int = Field(default=3_000, ge=0)
-    ai_timeout_seconds: int = Field(default=30, ge=1, le=300)
-
     @field_validator("database_url", mode="before")
     @classmethod
     def _normalize_database_url(cls, value: object) -> object:
@@ -247,24 +238,6 @@ class Settings(BaseSettings):
     def ai_enabled(self) -> bool:
         """Spec 05 §10: calling enabled and `LLM_API_KEY` and `AGENT_SERVICE_TOKEN` set."""
         return bool(self.calling_enabled and self.llm_api_key and self.agent_service_token)
-
-    def text_ai_key(self) -> SecretStr | None:
-        """D103: the text provider's key; `AI_TEXT_API_KEY`, else `LLM_API_KEY`."""
-        return self.ai_text_api_key or self.llm_api_key
-
-    @property
-    def text_ai_configured(self) -> bool:
-        """D103: a provider can be built. The fake provider never counts in production."""
-        if self.ai_text_provider == "fake":
-            return not self.is_production
-        return self.text_ai_key() is not None
-
-    @property
-    def enabled_ai_features(self) -> frozenset[str]:
-        """`AI_FEATURES` as upper-case names (`*` kept as is); unknown names are ignored later."""
-        return frozenset(
-            name.strip().upper() for name in self.ai_features.split(",") if name.strip()
-        )
 
     def startup_warnings(self) -> list[str]:
         """Non-fatal configuration problems, logged once at start-up (development only)."""

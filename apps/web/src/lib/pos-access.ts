@@ -12,7 +12,6 @@ export type SectionAccess = 'manage' | 'read'
 export const SECTION_ACCESS: Readonly<Record<string, Partial<Record<StaffRole, SectionAccess>>>> = {
   overview: { OWNER: 'manage' },
   bookings: { OWNER: 'manage', SERVICE_ADVISOR: 'manage' },
-  calls: { OWNER: 'manage', SERVICE_ADVISOR: 'manage' }, // AI calls & tasks (spec 05 §6.5, D21)
   jobs: { OWNER: 'read', TECHNICIAN: 'manage' },
   parts: { OWNER: 'read', PARTS_PERSON: 'manage' },
   inventory: { OWNER: 'manage', PARTS_PERSON: 'manage' },

@@ -12,7 +12,6 @@ import {
   Users,
   Wrench,
   type LucideIcon,
-  PhoneCall,
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -31,7 +30,6 @@ import {
 } from '@/components/ui/sidebar'
 import { useMockStore } from '@/hooks/use-mock-store'
 import { getCurrentUser, getShopById, type CurrentUserSession } from '@/lib/mock-data'
-import { CALLING_ENABLED } from '@/features/calls/config'
 import { sectionAccess } from '@/lib/pos-access'
 
 import { Logo } from './logo'
@@ -51,7 +49,6 @@ interface NavGroup {
 const ITEMS: Record<string, NavItem> = {
   overview: { segment: 'overview', label: 'Overview', icon: LayoutDashboard },
   bookings: { segment: 'bookings', label: 'Bookings', icon: CalendarCheck },
-  calls: { segment: 'calls', label: 'AI calls & tasks', icon: PhoneCall },
   team: { segment: 'team', label: 'Team', icon: Users },
   services: { segment: 'services', label: 'Services', icon: Tags },
   settings: { segment: 'settings', label: 'Settings', icon: Settings },
@@ -65,8 +62,6 @@ const ITEMS: Record<string, NavItem> = {
 const ORDER = [
   'overview',
   'bookings',
-  // Only when in-app calling is configured (spec 05 §6.5: the panel needs the calls module).
-  ...(CALLING_ENABLED ? ['calls'] : []),
   'jobs',
   'parts',
   'inventory',

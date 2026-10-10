@@ -6,8 +6,6 @@ import { toast } from 'sonner'
 
 import { DetailLayout } from '@/components/layout/detail-layout'
 import { PageHeader } from '@/components/layout/page-header'
-import { BookingCallsCard } from '@/features/calls/booking-calls-card'
-import { CallButton } from '@/features/calls/call-button'
 import {
   AssignMemberDialog,
   ConfirmActionDialog,
@@ -439,14 +437,6 @@ export default function ServiceAdvisorBookingDetailPage() {
             <span className="font-mono whitespace-nowrap">{booking.licensePlate}</span>
           </>
         }
-        actions={
-          // In-app call to the booking's customer (spec 05 §9.2), SA and Owner only (D21).
-          <CallButton
-            target={{ audience: 'staff', reference, shopSlug: booking.shopSlug }}
-            counterpart={customer}
-            label="Call customer"
-          />
-        }
       />
 
       <DetailLayout
@@ -488,10 +478,6 @@ export default function ServiceAdvisorBookingDetailPage() {
           />
         ) : null}
         <ActivityCard entries={activity} timeZone={timeZone} />
-        <BookingCallsCard
-          target={{ audience: 'staff', reference, shopSlug: booking.shopSlug }}
-          summaryHrefBase={base}
-        />
       </DetailLayout>
 
       <MobileActionBar plan={plan} onAction={onAction} />

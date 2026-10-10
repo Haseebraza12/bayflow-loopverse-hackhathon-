@@ -8,7 +8,6 @@ or migration autogenerate. Add a module here when it gains a `models.py`.
 from sqlalchemy import MetaData
 
 from app.core.database import Base
-from app.modules.ai import models as ai_models
 from app.modules.audit import models as audit_models
 from app.modules.bookings import models as bookings_models
 from app.modules.calls import models as calls_models
@@ -31,7 +30,6 @@ MODEL_MODULES = (
     notifications_models,
     audit_models,
     calls_models,
-    ai_models,
 )
 
 metadata: MetaData = Base.metadata

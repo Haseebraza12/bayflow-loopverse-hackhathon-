@@ -16,7 +16,6 @@ import logging
 import uuid
 from collections import defaultdict
 from collections.abc import Collection, Sequence
-from typing import TYPE_CHECKING
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -32,7 +31,6 @@ from app.modules.notifications.domain.messages import (
     compose,
     estimate_version,
     format_pkr,
-    truncate,
 )
 from app.modules.notifications.domain.recipients import (
     Audience,
@@ -53,12 +51,9 @@ from app.modules.notifications.schemas import (
 )
 from app.modules.shops import service as shops_service
 from app.shared.clock import utcnow
-from app.shared.enums import ActorRole, MembershipRole, NotificationType
+from app.shared.enums import MembershipRole
 from app.shared.pagination import Page, PageParams
 from app.shared.uow import UnitOfWork
-
-if TYPE_CHECKING:  # the calls package is optional (spec 01 rule 6)
-    from app.modules.calls.events import AiTaskCreated, CallStateChanged
 
 logger = logging.getLogger(__name__)
 
@@ -335,130 +330,3 @@ def issue_ws_ticket(user_id: uuid.UUID) -> RealtimeTicketRead:
     return RealtimeTicketRead(
         ticket=issue_token(user_id, "ws", utcnow()), expires_in=WS_TICKET_LIFETIME_SECONDS
     )
-
-
-# --- P2: calls (spec 05 §3.8, §6.3; `modules/notifications.md` "Call handlers") ------------------
-
-
-async def _insert_records(
-    session: AsyncSession, rows: Sequence[NewNotification], *, reference: str | None
-) -> list[NotificationRecord]:
-    if not rows:
-        return []
-    await NotificationRepository(session).insert_many(rows)
-    shops = await shops_service.get_shop_briefs(session, shop_ids={row.shop_id for row in rows})
-    return [
-        NotificationRecord(
-            id=row.id,
-            type=row.type,
-            title=row.title,
-            body=row.body,
-            recipient_role=row.recipient_role,
-            link=row.link,
-            shop_id=row.shop_id,
-            shop_name=shops[row.shop_id].name if row.shop_id in shops else None,
-            booking_id=row.booking_id,
-            booking_reference=reference,
-            read_at=None,
-            created_at=row.created_at,
-            recipient_user_id=row.recipient_user_id,
-        )
-        for row in rows
-    ]
-
-
-async def _shop_advisor_recipients(
-    session: AsyncSession, shop_id: uuid.UUID
-) -> list[tuple[uuid.UUID, ActorRole]]:
-    """D26 "SAs of the shop": the active SAs, else the Owner."""
-    advisors = await shops_service.list_active_member_ids(
-        session, shop_id=shop_id, roles=[MembershipRole.SERVICE_ADVISOR]
-    )
-    if advisors:
-        return [(user_id, ActorRole.SERVICE_ADVISOR) for user_id in advisors]
-    owner = await _owner_or_none(session, shop_id=shop_id)
-    return [(owner, ActorRole.OWNER)] if owner is not None else []
-
-
-def _first_name(full_name: str | None) -> str:
-    parts = (full_name or "").split(maxsplit=1)
-    return parts[0] if parts else "A customer"
-
-
-async def create_for_call_event(
-    uow: UnitOfWork, event: "CallStateChanged"
-) -> list[NotificationRecord]:
-    """`CALL_MISSED` when a ringing call becomes `MISSED` (C3, C4, C5): customer → shop to the SAs
-    of the shop, shop → customer to the customer. In the call's transaction; never commits."""
-    from app.shared.enums import AiLegStatus, CallDirection, CallStatus  # noqa: PLC0415
-
-    if event.previous_status is not CallStatus.RINGING or event.status is not CallStatus.MISSED:
-        return []
-    session = uow.session
-    refs = await bookings_service.get_booking_refs(
-        session, shop_id=event.shop_id, booking_ids=[event.booking_id]
-    )
-    ref = refs.get(event.booking_id)
-    reference = ref.reference if ref is not None else ""
-    if event.direction is CallDirection.CUSTOMER_TO_SHOP:
-        customer = await identity_service.get_user(session, event.customer_user_id)
-        first = _first_name(customer.full_name if customer else None)
-        title = truncate(f"Missed call from {first} ({reference})", 160)
-        body = f"{first} called about {reference} and no advisor answered."
-        if event.ai_status is not AiLegStatus.NONE:
-            body = f"{first} called about {reference} — answered by the AI Front Desk."
-        recipients = await _shop_advisor_recipients(session, event.shop_id)
-    else:
-        briefs = await shops_service.get_shop_briefs(session, shop_ids=[event.shop_id])
-        shop_name = briefs[event.shop_id].name if event.shop_id in briefs else "The shop"
-        title = truncate(f"Missed call from {shop_name}", 160)
-        body = f"{shop_name} tried to call you about {reference}."
-        recipients = [(event.customer_user_id, ActorRole.CUSTOMER)]
-    rows = [
-        NewNotification(
-            id=uuid.uuid4(),
-            recipient_user_id=user_id,
-            recipient_role=role,
-            shop_id=event.shop_id,
-            booking_id=event.booking_id,
-            type=NotificationType.CALL_MISSED,
-            title=title,
-            body=body,
-            link=link_for(
-                role,
-                NotificationType.CALL_MISSED,
-                shop_id=event.shop_id,
-                booking_id=event.booking_id,
-            ),
-            created_at=event.occurred_at,
-        )
-        for user_id, role in recipients
-    ]
-    return await _insert_records(session, rows, reference=reference or None)
-
-
-async def create_for_ai_task(uow: UnitOfWork, event: "AiTaskCreated") -> list[NotificationRecord]:
-    """`AI_TASK_CREATED` for the SAs of the shop (link: the AI calls & tasks panel)."""
-    title = truncate(f"AI task: {event.title}", 160)
-    body = f"Urgent · {event.booking_reference}" if event.is_urgent else event.booking_reference
-    rows = [
-        NewNotification(
-            id=uuid.uuid4(),
-            recipient_user_id=user_id,
-            recipient_role=role,
-            shop_id=event.shop_id,
-            booking_id=event.booking_id,
-            type=NotificationType.AI_TASK_CREATED,
-            title=title,
-            body=body,
-            link=link_for(
-                role,
-                NotificationType.AI_TASK_CREATED,
-                shop_id=event.shop_id,
-                booking_id=event.booking_id,
-            ),
-            created_at=event.occurred_at,
-        )
-        for user_id, role in await _shop_advisor_recipients(uow.session, event.shop_id)
-    ]
-    return await _insert_records(uow.session, rows, reference=event.booking_reference)

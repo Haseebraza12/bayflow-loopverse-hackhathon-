@@ -2,7 +2,6 @@ import type { ReactNode } from 'react'
 
 import { PosHeader } from '@/components/layout/pos-header'
 import { SidebarProvider } from '@/components/ui/sidebar'
-import { CallProvider } from '@/features/calls/call-provider'
 
 /**
  * POS shell (spec 09 §2.3, spec 10 S-01; DESIGN.md "App shell"): the light 64px PosHeader over
@@ -14,11 +13,8 @@ import { CallProvider } from '@/features/calls/call-provider'
 export default function PosLayout({ children }: { children: ReactNode }) {
   return (
     <SidebarProvider className="min-h-dvh flex-col bg-canvas">
-      {/* In-app calling (spec 05 §9.1): the incoming-call panel and in-call bar on every POS page. */}
-      <CallProvider>
-        <PosHeader />
-        <div className="flex flex-1 flex-col">{children}</div>
-      </CallProvider>
+      <PosHeader />
+      <div className="flex flex-1 flex-col">{children}</div>
     </SidebarProvider>
   )
 }

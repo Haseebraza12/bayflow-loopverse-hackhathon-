@@ -23,7 +23,6 @@ import { isAccountActive, recordSignIn } from '@/lib/mock-admin'
 import { homePathFor, resolveMockSession } from '@/lib/mock-auth'
 import { setCurrentUser } from '@/lib/mock-data'
 import { safeNextPath } from '@/lib/safe-next'
-import { signInToApi } from '@/features/calls/session'
 
 /** P-04 Login (spec 10): e-mail and password, the session-expired banner, and the demo accounts. */
 export function LoginForm() {
@@ -48,7 +47,7 @@ export function LoginForm() {
     submitRef.current?.focus()
   }
 
-  const handleSubmit = async (event: FormEvent) => {
+  const handleSubmit = (event: FormEvent) => {
     event.preventDefault()
     if (loading) return
     if (!email.trim() || !password) {
@@ -69,10 +68,6 @@ export function LoginForm() {
     }
     setError(null)
     setLoading(true)
-    // The real API session (D8) next to the mock one, for in-app calling. Its httpOnly
-    // `bf_session` cookie cannot be replaced by the mock one below; `setCurrentUser` also sets
-    // the readable `bf_signed_in` flag the header reads (hooks/use-mock-session).
-    await signInToApi(email.trim(), password)
 
     const session = resolveMockSession(email)
     recordSignIn(email, true)
@@ -103,12 +98,7 @@ export function LoginForm() {
           )}
 
           {/* POST: a submit that beats hydration must not put the password in the URL */}
-          <form
-            method="post"
-            onSubmit={(event) => void handleSubmit(event)}
-            noValidate
-            className="space-y-6"
-          >
+          <form method="post" onSubmit={handleSubmit} noValidate className="space-y-6">
             <FieldGroup>
               <Field>
                 <FieldLabel htmlFor="email">E-mail</FieldLabel>

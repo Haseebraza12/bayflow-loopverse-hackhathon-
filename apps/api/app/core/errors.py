@@ -42,9 +42,6 @@ class ErrorCode(StrEnum):
     RATE_LIMITED = "RATE_LIMITED"
     INTERNAL_ERROR = "INTERNAL_ERROR"
     CALLING_DISABLED = "CALLING_DISABLED"  # bonus
-    AI_DISABLED = "AI_DISABLED"  # bonus, D103
-    AI_LIMIT_REACHED = "AI_LIMIT_REACHED"  # bonus, D103
-    AI_UNAVAILABLE = "AI_UNAVAILABLE"  # bonus, D103
 
     @property
     def http_status(self) -> int:
@@ -86,9 +83,6 @@ _HTTP_STATUS: dict[ErrorCode, int] = {
     ErrorCode.RATE_LIMITED: HTTPStatus.TOO_MANY_REQUESTS,
     ErrorCode.INTERNAL_ERROR: HTTPStatus.INTERNAL_SERVER_ERROR,
     ErrorCode.CALLING_DISABLED: HTTPStatus.SERVICE_UNAVAILABLE,
-    ErrorCode.AI_DISABLED: HTTPStatus.SERVICE_UNAVAILABLE,
-    ErrorCode.AI_LIMIT_REACHED: HTTPStatus.TOO_MANY_REQUESTS,
-    ErrorCode.AI_UNAVAILABLE: HTTPStatus.SERVICE_UNAVAILABLE,
 }
 
 _DEFAULT_DETAIL: dict[ErrorCode, str] = {
@@ -122,9 +116,6 @@ _DEFAULT_DETAIL: dict[ErrorCode, str] = {
     ErrorCode.RATE_LIMITED: "Too many attempts. Please wait and try again.",
     ErrorCode.INTERNAL_ERROR: "An unexpected error occurred. Please try again.",
     ErrorCode.CALLING_DISABLED: "Calling is not available right now.",
-    ErrorCode.AI_DISABLED: "This AI feature is not enabled.",
-    ErrorCode.AI_LIMIT_REACHED: "This shop has reached its AI usage limit for now.",
-    ErrorCode.AI_UNAVAILABLE: "AI is unavailable right now. Please carry on without it.",
 }
 
 
@@ -279,15 +270,3 @@ class InternalError(AppError):
 
 class CallingDisabled(AppError):
     code = ErrorCode.CALLING_DISABLED
-
-
-class AiDisabled(AppError):
-    code = ErrorCode.AI_DISABLED
-
-
-class AiLimitReached(AppError):
-    code = ErrorCode.AI_LIMIT_REACHED
-
-
-class AiUnavailable(AppError):
-    code = ErrorCode.AI_UNAVAILABLE
