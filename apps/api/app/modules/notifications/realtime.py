@@ -23,9 +23,11 @@ and closed (1011), so its client reconnects with a new ticket; no message is rep
 
 import asyncio
 import contextlib
+import importlib.util
 import json
 import logging
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Awaitable, Callable, Iterable, Mapping, Sequence
+from functools import partial
 from typing import Any
 from uuid import UUID
 
@@ -51,6 +53,9 @@ MAX_CLIENT_FRAME_LENGTH = 1024
 
 NOTIFICATION_CREATED = "notification.created"
 BOOKING_UPDATED = "booking.updated"
+CALL_INCOMING = "call.incoming"  # P2, glossary §11
+CALL_UPDATED = "call.updated"
+TASK_CREATED = "task.created"
 
 
 def encode(message: Mapping[str, Any]) -> str:
@@ -102,6 +107,9 @@ async def _close_quietly(websocket: WebSocket, code: int) -> None:
             await websocket.close(code=code)
 
 
+type ConnectHook = Callable[[UUID], Awaitable[None]]
+
+
 class RealtimeHub:
     """Connected sockets by user id, and the pushes of glossary §11 (one instance per app, D90)."""
 
@@ -111,6 +119,28 @@ class RealtimeHub:
         self._state = state
         # user id -> {socket -> its send lock}: one frame at a time per socket.
         self._sockets: dict[UUID, dict[WebSocket, asyncio.Lock]] = {}
+        self._connect_hooks: list[ConnectHook] = []
+
+    # --- Presence (the calls module's `Presence` port, spec 05 §3.3) ---------------------------
+
+    def is_online(self, user_id: UUID) -> bool:
+        return bool(self._sockets.get(user_id))
+
+    def online_user_ids(self, user_ids: Iterable[UUID]) -> set[UUID]:
+        """The given users who hold at least one open socket right now."""
+        return {user_id for user_id in user_ids if self._sockets.get(user_id)}
+
+    def add_connect_hook(self, hook: "ConnectHook") -> None:
+        """P2: run `hook(user_id)` after a socket of that user is accepted (e.g. re-send ringing
+        calls). Hook failures are logged and never close the socket."""
+        self._connect_hooks.append(hook)
+
+    async def _run_connect_hooks(self, user_id: UUID) -> None:
+        for hook in self._connect_hooks:
+            try:
+                await hook(user_id)
+            except Exception:
+                logger.exception("realtime.connect_hook_failed", extra={"user_id": str(user_id)})
 
     # --- Registry -------------------------------------------------------------------------------
 
@@ -219,6 +249,7 @@ class RealtimeHub:
         except (WebSocketDisconnect, RuntimeError, OSError):  # the client left mid-handshake
             return
         self.connect(user_id, websocket)
+        await self._run_connect_hooks(user_id)
         try:
             while True:
                 try:
@@ -241,6 +272,20 @@ class RealtimeHub:
         return await self._deliver(user_id, websocket, lock, frame)
 
 
+async def resend_ringing_calls(state: State, user_id: UUID) -> None:
+    """P2 connect hook (spec 05 §8.4): a socket that (re)connects gets `call.incoming` again for
+    every call still ringing that this user may answer."""
+    from app.modules.calls import service as calls_service  # noqa: PLC0415 - optional package
+
+    async with _database(state).sessionmaker() as session:
+        calls = await calls_service.list_ringing_calls_for_user(session, user_id)
+    hub = get_realtime_hub(state)
+    for call in calls:
+        await hub.send_to_users(
+            [user_id], {"type": CALL_INCOMING, "data": call.model_dump(mode="json")}
+        )
+
+
 def get_realtime_hub(state: State) -> RealtimeHub:
     """The app's hub, created on first use at `state.realtime_hub` (D90). There is no `await`
     between the check and the assignment, so one event loop never builds two."""
@@ -248,6 +293,8 @@ def get_realtime_hub(state: State) -> RealtimeHub:
     if hub is None:
         hub = RealtimeHub(state)
         state.realtime_hub = hub
+        if importlib.util.find_spec("app.modules.calls") is not None:  # P2 (spec 05 §8.4)
+            hub.add_connect_hook(partial(resend_ringing_calls, state))
     if not isinstance(hub, RealtimeHub):
         msg = "app.state.realtime_hub is not a RealtimeHub"
         raise TypeError(msg)

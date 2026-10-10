@@ -5,11 +5,12 @@ routers and the lifespan (engine created at start-up, disposed at shutdown). Not
 import time, so tests and the OpenAPI export can build the app without a database.
 """
 
+import contextlib
 import importlib
 import importlib.util
 import logging
-from collections.abc import AsyncIterator, Iterable
-from contextlib import asynccontextmanager
+from collections.abc import AsyncIterator, Callable, Iterable
+from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from enum import Enum
 from types import ModuleType
 
@@ -53,6 +54,7 @@ MODULES: tuple[str, ...] = (
     "identity",
     "shops",
     "scheduling",
+    "ai",
     "inventory",
     "qc",
     "estimates",
@@ -109,6 +111,18 @@ def wire_modules(app: FastAPI, bus: EventBus, modules: Iterable[str] = MODULES) 
                 app.include_router(router)
 
 
+def module_lifespans(
+    modules: Iterable[str] = MODULES,
+) -> list[Callable[[FastAPI], AbstractAsyncContextManager[None]]]:
+    """D104: each module's `lifespan.lifespan(app)` if `lifespan.py` exists, in `MODULES` order."""
+    hooks = []
+    for module in modules:
+        lifespan_module = _optional_module(f"app.modules.{module}.lifespan")
+        if lifespan_module is not None:
+            hooks.append(lifespan_module.lifespan)
+    return hooks
+
+
 def create_app(settings: Settings | None = None, *, database: Database | None = None) -> FastAPI:
     """Build the API. `database` lets tests inject an engine (e.g. with `NullPool`)."""
     settings = settings or get_settings()
@@ -129,7 +143,10 @@ def create_app(settings: Settings | None = None, *, database: Database | None = 
             len(MODEL_MODULES),
         )
         try:
-            yield
+            async with contextlib.AsyncExitStack() as stack:
+                for hook in module_lifespans():  # D104: e.g. the calls sweeper
+                    await stack.enter_async_context(hook(app))
+                yield
         finally:
             await drain_after_commit_tasks()
             if database is None:

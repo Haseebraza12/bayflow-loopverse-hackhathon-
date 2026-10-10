@@ -1668,6 +1668,8 @@ export function setCurrentUser(user: CurrentUserSession): void {
   setStoredData('current_user', user)
   if (typeof document !== 'undefined') {
     document.cookie = `bf_session=active_${Date.now()}; path=/; max-age=86400`
+    // Readable sign-in flag for the header, also when the API's httpOnly `bf_session` is set.
+    document.cookie = `bf_signed_in=1; path=/; max-age=86400; SameSite=Lax`
   }
 }
 

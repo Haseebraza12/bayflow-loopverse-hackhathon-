@@ -794,6 +794,16 @@ class CustomerBookingSummary(BaseModel):
     updated_at: Timestamp
 
 
+class BookingLabel(BaseModel):
+    """P2 (`modules/bookings.md` §5.3): what call lists show about a booking, batched."""
+
+    model_config = ConfigDict(frozen=True)
+
+    reference: str
+    vehicle_label: str = Field(description='e.g. "2016 Honda Civic (LEA-1234)".')
+    customer_user_id: UUID
+
+
 class CustomerBookingDetail(BaseModel):
     """The customer detail and every customer action response (spec 03 §3.3): no staff names,
     internal notes, stock or event metadata (spec 04 §C)."""

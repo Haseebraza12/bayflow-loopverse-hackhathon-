@@ -16,6 +16,7 @@ def test_modules_are_listed_lowest_first_in_the_spec_01_direction() -> None:
         "identity",
         "shops",
         "scheduling",
+        "ai",
         "inventory",
         "qc",
         "estimates",

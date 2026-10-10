@@ -175,6 +175,10 @@ Endpoint pattern: staff → `POST /api/v1/shops/{shop_id}/bookings/{booking_id}/
 | `Sentiment` *(bonus)* | `POSITIVE`, `NEUTRAL`, `NEGATIVE` | `ai_call_summaries.sentiment` |
 | `TaskKind` *(bonus)* | `CALLBACK`, `RESCHEDULE_REQUEST`, `ESCALATION`, `FOLLOW_UP` | `tasks.kind` |
 | `TaskStatus` *(bonus)* | `OPEN`, `DONE` | `tasks.status` |
+| `AiFeature` *(bonus, D103)* | `ESTIMATE_EXPLAINER`, `ESTIMATE_CHECKER`, `VOICE_TO_ESTIMATE`, `SYMPTOM_TRIAGE`, `ASK_YOUR_SHOP` | `ai_audit_events.feature`, `ai_drafts.feature` |
+| `AiCallStatus` *(bonus, D103)* | `SUCCEEDED`, `PROVIDER_ERROR`, `INVALID_OUTPUT`, `GUARD_BLOCKED` | `ai_audit_events.status` |
+| `AiDraftStatus` *(bonus, D103)* | `PENDING`, `ACCEPTED`, `EDITED`, `REJECTED` | `ai_drafts.status` |
+| `AiSubjectType` *(bonus, D103)* | `BOOKING`, `ESTIMATE`, `SHOP` | `ai_audit_events.subject_type`, `ai_drafts.subject_type` |
 
 All stored enums are `VARCHAR` with a `CHECK` constraint (non-native enums; D29).
 
@@ -223,6 +227,7 @@ A module is the **only** code allowed to write its tables. Other modules call it
 | notifications | `app.modules.notifications` | `notifications` |
 | reporting | `app.modules.reporting` | *(none — read-only queries)* |
 | calls *(bonus)* | `app.modules.calls` | `call_logs`, `ai_call_summaries`, `tasks` |
+| ai *(bonus)* | `app.modules.ai` | `ai_audit_events`, `ai_drafts` (D103) |
 
 Cross-cutting packages (not modules):
 - `app.core` — `config`, `database`, `db_errors` (constraint name → error code), `security` (`issue_token(…, now)`, `decode_token(token, now, expected_typ)`, `parse_duration`, `hash_password`, `verify_password`), `errors` (`ErrorCode`, `AppError`), `error_handlers`, `logging`, `middleware`, `health`.
@@ -242,7 +247,7 @@ Wiring (D89): `router.py` exports `routers: tuple[APIRouter, ...]`; `handlers.py
 
 ## 8. Table names (PostgreSQL, snake_case plural)
 
-`users`, `shops`, `shop_working_hours`, `shop_memberships`, `services`, `slot_counters`, `vehicles`, `bookings`, `booking_services`, `booking_events`, `estimates`, `estimate_lines`, `parts`, `stock_movements`, `booking_parts`, `purchase_orders`, `purchase_order_items`, `qc_inspections`, `qc_issues`, `notifications`, and bonus: `call_logs`, `ai_call_summaries`, `tasks`.
+`users`, `shops`, `shop_working_hours`, `shop_memberships`, `services`, `slot_counters`, `vehicles`, `bookings`, `booking_services`, `booking_events`, `estimates`, `estimate_lines`, `parts`, `stock_movements`, `booking_parts`, `purchase_orders`, `purchase_order_items`, `qc_inspections`, `qc_issues`, `notifications`, and bonus: `call_logs`, `ai_call_summaries`, `tasks`, `ai_audit_events`, `ai_drafts`.
 
 Key column names other specs rely on (full definitions in spec 02; bonus tables in spec 05 §7, which is authoritative for them):
 
@@ -321,6 +326,9 @@ Key column names other specs rely on (full definitions in spec 02; bonus tables 
 | `SHOP_SUSPENDED` | 403 | The shop is suspended by BayFlow: every staff route, and customer booking actions except `cancel` (D96) |
 | `RATE_LIMITED` | 429 | Too many attempts (login, logout, owner registration, booking creation, shop creation, member creation, and — bonus — call starts) |
 | `INTERNAL_ERROR` | 500 | Unexpected error (no internals leaked) |
+| `AI_DISABLED` *(bonus, D103)* | 503 | Text AI not configured, or the feature is not in `AI_FEATURES` |
+| `AI_LIMIT_REACHED` *(bonus, D103)* | 429 | The shop's daily or monthly text-AI cap is reached |
+| `AI_UNAVAILABLE` *(bonus, D103)* | 503 | The model failed, returned invalid output, or its output failed the grounding guard |
 | `CALLING_DISABLED` *(bonus)* | 503 | Calling not configured (`CALL_PROVIDER_*` blank) or the monthly calling cap (`CALL_MONTHLY_MINUTES_CAP`) reached. A blank `LLM_API_KEY` or a reached `AI_DAILY_CALL_CAP` never fails a call; they only mean no AI answers missed calls |
 
 Check order for any booking action: **visibility (404) → role (403 `FORBIDDEN`) → assignment (403 `NOT_ASSIGNED`) → status (409 `INVALID_TRANSITION`) → data guards (409/422)**. A deactivated **user** gets 401 everywhere; a deactivated **membership** gets 404 on that shop's routes (D9, D21).
@@ -370,10 +378,14 @@ Names follow the brief's sample `.env.example` (§9.3) wherever possible. Spec 0
 | `AI_PROVIDER` | agent | Bonus: `openai` (default) or `gemini` (fallback, D58) |
 | `AI_REALTIME_MODEL`, `AI_SUMMARY_MODEL` | agent | Bonus: model overrides (defaults in code: `gpt-realtime-2.1-mini` for voice) |
 | `STT_TTS_API_KEY` | agent | Bonus: only if a separate STT/TTS provider is used (blank when using a realtime speech model) |
+| `AI_TEXT_PROVIDER`, `AI_TEXT_MODEL`, `AI_TEXT_API_KEY` | api | Bonus (D103): text AI provider (`gemini` default, or `fake`), model (`gemini-2.5-flash`) and key (blank → `LLM_API_KEY`) |
+| `AI_FEATURES` | api | Bonus (D103): comma-separated `AiFeature` names enabled, or `*`; blank = none |
+| `AI_SHOP_DAILY_CAP`, `AI_SHOP_MONTHLY_CAP`, `AI_TIMEOUT_SECONDS` | api | Bonus (D103): text AI calls per shop per UTC day (`200`) and month (`3000`); provider timeout (`30`) |
 | `AI_RING_TIMEOUT_SECONDS` | api | Bonus: seconds before the AI answers (default `20`) |
 | `AI_DAILY_CALL_CAP`, `CALL_MONTHLY_MINUTES_CAP` | api | Bonus: app-level usage caps kept below provider hard caps |
 | `AGENT_SERVICE_TOKEN` | api, agent | Bonus: shared secret for `/api/v1/internal/*` |
 | `API_INTERNAL_URL` | agent | Bonus: API base URL reachable from the agent (Railway private network) |
+| `AGENT_PORT` | agent | Bonus: the worker's health-server port (default `8081`; Railway health check `/`). Not `PORT`, which the API uses locally (D104 notes). |
 | `POSTGRES_HOST_PORT` | docker compose only | Host port of the local PostgreSQL container (default `5434`, D73) |
 
 Placeholder secret values in `.env.example` use letters and hyphens only (so the repo's own secret scanner does not flag them).

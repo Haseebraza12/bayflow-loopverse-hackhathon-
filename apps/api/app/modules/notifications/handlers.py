@@ -14,9 +14,11 @@ never the request session — and opens its own short session when it needs the 
 failures are logged (never with an e-mail address) and never reach the request (spec 01 rule 5).
 """
 
+import importlib.util
 import logging
 from collections.abc import Sequence
 from functools import partial
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 from starlette.datastructures import State
@@ -34,11 +36,19 @@ from app.modules.notifications.channels.email import (
 )
 from app.modules.notifications.domain.messages import email_text
 from app.modules.notifications.domain.recipients import EMAILED_TYPES
-from app.modules.notifications.realtime import get_realtime_hub
+from app.modules.notifications.realtime import (
+    CALL_INCOMING,
+    CALL_UPDATED,
+    TASK_CREATED,
+    get_realtime_hub,
+)
 from app.modules.notifications.schemas import NotificationRecord
 from app.shared.enums import ActorRole
 from app.shared.event_bus import EventBus
 from app.shared.uow import UnitOfWork
+
+if TYPE_CHECKING:  # the calls package is optional (spec 01 rule 6)
+    from app.modules.calls.events import AiTaskCreated, CallStateChanged
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +57,37 @@ def register(bus: EventBus) -> None:
     """Subscribe this module's handlers (called by `app.main.wire_modules()`, after bookings')."""
     bus.subscribe(BookingActionApplied, on_booking_action_applied)
     bus.subscribe(BookingPartsChanged, on_booking_parts_changed)
+    if calls_installed():
+        register_call_handlers(bus)
+
+
+def calls_installed() -> bool:
+    """The optional calls package exists (spec 01 rule 6; checked on the package itself)."""
+    return importlib.util.find_spec("app.modules.calls") is not None
+
+
+def register_call_handlers(bus: EventBus) -> None:
+    """P2: `CallStateChanged` and `AiTaskCreated` (imported here, never at module import)."""
+    from app.modules.calls.events import AiTaskCreated, CallStateChanged  # noqa: PLC0415
+
+    bus.subscribe(CallStateChanged, on_call_state_changed)
+    bus.subscribe(AiTaskCreated, on_ai_task_created)
+
+
+async def on_call_state_changed(event: "CallStateChanged", uow: UnitOfWork) -> None:
+    rows = await service.create_for_call_event(uow, event)
+    state = uow.app_state
+    if state is None:
+        return
+    uow.after_commit(partial(after_call_event, state, event, tuple(rows)))
+
+
+async def on_ai_task_created(event: "AiTaskCreated", uow: UnitOfWork) -> None:
+    rows = await service.create_for_ai_task(uow, event)
+    state = uow.app_state
+    if state is None:
+        return
+    uow.after_commit(partial(after_ai_task, state, event.task_id, tuple(rows)))
 
 
 async def on_booking_action_applied(event: BookingActionApplied, uow: UnitOfWork) -> None:
@@ -131,3 +172,56 @@ async def after_booking_action(
     await push_booking_updated(state, shop_id, booking_id)
     for row in emailed(rows):
         await email_notification(state, row)
+
+
+# --- P2: calls (spec 05 §8.4) -------------------------------------------------------------------
+
+
+def _database_of(state: State) -> Database:
+    database = getattr(state, "db", None)
+    if not isinstance(database, Database):
+        msg = "the database is not initialised"
+        raise RuntimeError(msg)
+    return database
+
+
+async def after_call_event(
+    state: State, event: "CallStateChanged", rows: Sequence[NotificationRecord]
+) -> None:
+    """`call.incoming` to the rung users (C1) or `call.updated` to the caller, the answerer and
+    everyone rung; then `notification.created` for any `CALL_MISSED` rows."""
+    from app.modules.calls import service as calls_service  # noqa: PLC0415
+
+    try:
+        async with _database_of(state).sessionmaker() as session:
+            call = await calls_service.get_call_read(session, event.call_id)
+        if call is not None:
+            data = call.model_dump(mode="json")
+            hub = get_realtime_hub(state)
+            if event.previous_status is None:
+                await hub.send_to_users(event.rung_user_ids, {"type": CALL_INCOMING, "data": data})
+            else:
+                targets = {event.caller_user_id, *event.rung_user_ids}
+                if event.answered_by_user_id is not None:
+                    targets.add(event.answered_by_user_id)
+                await hub.send_to_users(targets, {"type": CALL_UPDATED, "data": data})
+    except Exception:
+        logger.exception("realtime.push_call_failed", extra={"call_id": str(event.call_id)})
+    await push_notifications(state, rows)
+
+
+async def after_ai_task(state: State, task_id: UUID, rows: Sequence[NotificationRecord]) -> None:
+    """`task.created` (`TaskRead`) to the SAs notified, then `notification.created`."""
+    from app.modules.calls import service as calls_service  # noqa: PLC0415
+
+    try:
+        async with _database_of(state).sessionmaker() as session:
+            task = await calls_service.get_task_read(session, task_id)
+        if task is not None:
+            await get_realtime_hub(state).send_to_users(
+                [row.recipient_user_id for row in rows],
+                {"type": TASK_CREATED, "data": task.model_dump(mode="json")},
+            )
+    except Exception:
+        logger.exception("realtime.push_task_failed", extra={"task_id": str(task_id)})
+    await push_notifications(state, rows)
