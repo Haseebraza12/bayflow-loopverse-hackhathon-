@@ -40,6 +40,8 @@ Source of truth for requirements: `helping-folder/Web Dev - Virtual.pdf` (BayFlo
 | **Platform admin** | A BayFlow operator ("super admin"): a user with `is_platform_admin`, not a shop role; manages tenants and accounts from the admin console (D94, spec 19). |
 | **Audit event** | One row of the platform-wide, append-only `audit_events` log: who did what to which target in which shop, when, from where (D95, spec 19 §3). |
 | **Suspended shop** | A shop a platform admin has switched off with a reason: hidden publicly, closed to its staff, readable by its customers; fully reversible (D96). |
+| **Shop membership gate** | The rule that a shop's pages and routes open only for an active member of that shop (D20, `require_shop_member`). Anyone else — another shop's staff, a customer, a platform admin without a membership — gets "We couldn't find that shop", with no sidebar and no shop name, exactly as for a shop that does not exist. Members then meet the suspension check (D96) and, per section, their role in this shop (spec 10 S-01, X-03). |
+| **Read-only view** | A role's screen that the Owner opens to look, not act (D16): the Technician jobs, the parts queue and parts jobs, the purchase orders and the QC queue and inspection. The role's actions are hidden, and an `info` notice titled "Read-only view" says who acts and links to where the Owner can (Bookings, or Inventory). The Owner's inventory is **catalogue only** instead: parts can be added and edited, stock is never changed (D44). |
 | **Notification** | In-app message shown under the bell icon with unread count (§5.4). |
 | **Transition** | A booking action that changes `bookings.status`. |
 | **Operation** | A booking action that does **not** change status (e.g. `START_REPAIR`, `NOTIFY_READY`) but is still role-guarded and audited. |
@@ -438,6 +440,7 @@ Worked-example vehicle: 2016 Honda Civic, plate `LEA-1234`. Worked-example price
 - 2026-10-09 (wave-2 findings 2): `shop_scoped_router()` (D80), `ShopGridChanging` event (D37), `get_clock()`/`utcnow()` (D63), module files "only as needed".
 - 2026-10-09 (final consistency sweep): ID prefix `DI` for spec 02's data invariants (`DI-1` … `DI-7`, formerly `INV-1` … `INV-7`, which collided with spec 12's inventory tests `INV-01` …), §13.
 - 2026-10-10 (design language, D101): role tags (§2.3) are no longer shown in UI chips; the UI uses the §2.1 display names.
+- 2026-10-10 (spec sync after the page redesign): added **Shop membership gate** and **Read-only view** (§1), the names spec 10 and the built screens use (D16, D20, D44, D102).
 
 ## Dependencies
 

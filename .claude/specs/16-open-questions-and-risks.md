@@ -263,6 +263,7 @@ Every row is a spec 07 day-1 check (run with a "hello world" deploy, results in 
 - **Mitigation.** Replace the `public/garagebox/` images with BayFlow's own screenshots or openly licensed images with their sources recorded (as the booking flow did for its shop photos in `apps/web/src/lib/shop-photos.ts`); drop the review count, the review-site logos and the app-store badges; use a BayFlow contact address. Keep the fonts and the palette (D101).
 - **Owner / phase.** The owner (the landing was kept "as-is" on request, so changing it is the owner's call) and the web owner; before the repository goes public (B1) and before submission.
 - **Detected by.** `apps/web/public/garagebox/` is gone; `grep -rni garagebox apps/web/src` finds code comments only.
+- **Status (2026-10-10): OPEN — owner chose to keep the previous landing, 2026-10-10.** `ef510c5` had replaced this material; it was reverted, so the landing, its header and footer are the previous versions again and both checks above currently fail. Per `ef510c5`'s own commit message, the previous landing also carries the hero images' "4X / 60% / 40%" figures, testimonial photos of unknown provenance (`public/testimonials/`), features BayFlow lacks (invoicing, SMS/WhatsApp, payments, labour tracking, native apps, live chat, data migration), GarageBox's real e-mail and phone, legal links to pages that don't exist and a carousel with a missing image. It also has no link to the shop directory `/book` (spec 10 P-01, G1).
 
 ---
 
@@ -313,7 +314,7 @@ Every row is a spec 07 day-1 check (run with a "hello world" deploy, results in 
 |---|---|---|
 | Cap active bookings per customer per shop? | No cap for the hackathon; rate limits suffice | spec 04 open question 9 |
 | `Idempotency-Key` on booking creation? | Not in P0; P1 only if cheap (the wizard disables its button meanwhile) | spec 03 open question 2, spec 09 open question 8 |
-| Quick-add common services on O-03? | Drop unless P1 time remains | spec 10 open question 7 |
+| Quick-add common services on O-03? | ✅ Built 2026-10-10: kept — a new service's sheet suggests the brief's §5.1 examples the shop lacks; the owner sets the price | spec 10 open question 7 (resolved) |
 | Fonts | ✅ Decided by D101: Fira Sans for all text, Edu NSW ACT Foundation for one handwritten accent word, JetBrains Mono for codes (garagebox.io's fonts, owner request 2026-10-10) | spec 09 open question 5 (resolved) |
 | Purchase orders that will never arrive | Accept: no cancel/close status (brief statuses only) | `modules/inventory.md` open question 4 |
 | Notify the actor when they are also the booking's customer | ✅ Decided by D91: glossary §6 is applied literally and the actor is not excluded | `modules/notifications.md` open question 3 (resolved) |
@@ -347,7 +348,7 @@ Every row is a spec 07 day-1 check (run with a "hello world" deploy, results in 
 | 07 · 4 | Build-time `API_BASE_URL` needs a redeploy to change | Platform person | Accept; runbook note (A23) |
 | 07 · 5 | Railway region | Owner (B7) | Measure on day 1 |
 | 07 · 6 | Does the always-on agent fit Railway's $5 credit; agent health check | Bonus owner | Check at B4 (PH9) |
-| 10 · 7 | Quick-add common services (P1) | Owner (B8) | Drop unless time |
+| 10 · 7 | Quick-add common services (P1) | Owner (B8) | ✅ Built 2026-10-10 (kept; spec 10 O-03) |
 | 12 · 6 | The test seam that raises spec 04's rate-limit constants | Coordinator | Spec 04 names a test-settings override |
 | 13 · 1–8 | pgvector, WhatsApp, Urdu evaluation, data protection, data volume, pricing, production provider, fitment data | Post-hackathon | P3, revisit when each AI item is scheduled |
 | bookings · 6; identity · 3 | Customer-name search through `identity.find_user_ids_by_name` (capped at 1,000 ids) | Coordinator | Accept the cap |

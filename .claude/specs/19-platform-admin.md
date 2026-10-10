@@ -159,11 +159,12 @@ glossary §10), declared on every shop-scoped route and on every customer action
 
 ## 5. Console (screens A-01…A-08, route group `(admin)`, path `/admin`)
 
-Carbon product UI (DESIGN.md) with its own shell: a dark header "BayFlow · Platform admin" with the
-user menu, and a side nav (Overview, Shops, Users, Bookings, Audit log). Only platform admins see
-it; anyone else gets `ForbiddenState` ("This area is for BayFlow platform admins."). Logging in as a
-platform admin without memberships lands on `/admin`; one with memberships gets "Platform admin" in
-the account menu.
+The app's one design language (D101, `apps/web/DESIGN.md`) with its own shell: the light 64 px app
+bar of the POS (sidebar toggle, the logo with a dark "Platform admin" pill, the account menu) and a
+collapsible side nav (Overview, Shops, Users, Bookings, Audit log); page titles read "{Page} ·
+Platform admin · BayFlow". Only platform admins see it; anyone else gets `ForbiddenState` ("This
+area is for BayFlow platform admins."). Logging in as a platform admin without memberships lands on
+`/admin`; one with memberships gets "Platform admin" in the public header's account menu.
 
 | ID | Route | Content |
 |---|---|---|
@@ -178,6 +179,13 @@ the account menu.
 
 Every destructive action uses an `AlertDialog` with a reason field and a toast on success; every
 list has loading skeletons, an empty state and an error state.
+
+Built (2026-10-10, on the mock store of D102): A-01's "Open bookings" leaves completed bookings out,
+open bookings per phase are labelled rows (not a colour-only bar) and the 14-day chart has a table
+twin; the suspend and deactivate dialogs list "What happens" above a required reason with a live
+counter, and every action dialog shows an API refusal inside itself; A-05's blocked actions say why
+(self, last admin, inactive); A-06 flags a From date after To inline; A-07 says the view is audited; A-08's detail
+sheet adds a security note, the raw JSON and "Copy JSON".
 
 ## 6. Module placement (spec 01, D97)
 
