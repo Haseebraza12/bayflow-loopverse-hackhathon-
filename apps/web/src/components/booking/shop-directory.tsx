@@ -78,7 +78,7 @@ export function ShopDirectory() {
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search by workshop, area or street"
             aria-label="Search workshops"
-            className="text-base"
+            className="text-base [&::-webkit-search-cancel-button]:hidden"
           />
           {query && (
             <InputGroupAddon align="inline-end">
